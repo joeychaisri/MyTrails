@@ -1,0 +1,844 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Image as ImageIcon,
+  Plus,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
+import Logo from "@/components/Logo";
+import { Event, Category, Ticket, Checkpoint } from "@/data/mockData";
+
+interface EventWizardProps {
+  event?: Event;
+  onBack: () => void;
+  onComplete: () => void;
+}
+
+type WizardStep = 1 | 2 | 3 | 4 | 5;
+
+const steps = [
+  { number: 1, title: "Basic Info" },
+  { number: 2, title: "Race Configuration" },
+  { number: 3, title: "Checkpoints & Safety" },
+  { number: 4, title: "Tickets" },
+  { number: 5, title: "Review & Submit" },
+];
+
+const provinces = [
+  "Bangkok",
+  "Chiang Mai",
+  "Chiang Rai",
+  "Chonburi",
+  "Kanchanaburi",
+  "Krabi",
+  "Nakhon Ratchasima",
+  "Nan",
+  "Phetchabun",
+  "Phuket",
+  "Prachuap Khiri Khan",
+  "Tak",
+];
+
+const defaultGear = [
+  "Headlamp",
+  "Emergency Blanket",
+  "Whistle",
+  "First Aid Kit",
+  "Water 1L",
+  "Water 1.5L",
+  "Mobile Phone",
+  "Reflective Vest",
+  "Rain Jacket",
+  "Trail Running Shoes",
+];
+
+const EventWizard = ({ event, onBack, onComplete }: EventWizardProps) => {
+  const [currentStep, setCurrentStep] = useState<WizardStep>(1);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Form state
+  const [basicInfo, setBasicInfo] = useState({
+    title: event?.title || "",
+    titleTh: event?.titleTh || "",
+    description: event?.description || "",
+    descriptionTh: event?.descriptionTh || "",
+    province: event?.province || "",
+    date: event?.date || "",
+    endDate: event?.endDate || "",
+    latitude: event?.latitude || "",
+    longitude: event?.longitude || "",
+    facebook: event?.socialLinks.facebook || "",
+    instagram: event?.socialLinks.instagram || "",
+    website: event?.socialLinks.website || "",
+  });
+
+  const [categories, setCategories] = useState<Category[]>(
+    event?.categories || [
+      {
+        id: "new-1",
+        name: "50K Trail",
+        nameTh: "50K เทรล",
+        distance: 50,
+        elevation: 2000,
+        itra: 4,
+        cutoff: "12:00:00",
+        checkpoints: [],
+        mandatoryGear: ["Headlamp", "Water 1L"],
+        tickets: [],
+      },
+    ]
+  );
+
+  const [activeCategory, setActiveCategory] = useState(0);
+  const [langTab, setLangTab] = useState("en");
+
+  const addCategory = () => {
+    const newCat: Category = {
+      id: `new-${Date.now()}`,
+      name: "",
+      nameTh: "",
+      distance: 0,
+      elevation: 0,
+      itra: 0,
+      cutoff: "",
+      checkpoints: [],
+      mandatoryGear: [],
+      tickets: [],
+    };
+    setCategories([...categories, newCat]);
+    setActiveCategory(categories.length);
+  };
+
+  const removeCategory = (index: number) => {
+    if (categories.length > 1) {
+      const updated = categories.filter((_, i) => i !== index);
+      setCategories(updated);
+      setActiveCategory(Math.min(activeCategory, updated.length - 1));
+    }
+  };
+
+  const updateCategory = (index: number, updates: Partial<Category>) => {
+    const updated = [...categories];
+    updated[index] = { ...updated[index], ...updates };
+    setCategories(updated);
+  };
+
+  const addCheckpoint = (catIndex: number) => {
+    const newCp: Checkpoint = {
+      id: `cp-${Date.now()}`,
+      name: "",
+      distance: 0,
+      cutoffTime: "",
+      services: [],
+    };
+    const updated = [...categories];
+    updated[catIndex].checkpoints.push(newCp);
+    setCategories(updated);
+  };
+
+  const updateCheckpoint = (catIndex: number, cpIndex: number, updates: Partial<Checkpoint>) => {
+    const updated = [...categories];
+    updated[catIndex].checkpoints[cpIndex] = {
+      ...updated[catIndex].checkpoints[cpIndex],
+      ...updates,
+    };
+    setCategories(updated);
+  };
+
+  const removeCheckpoint = (catIndex: number, cpIndex: number) => {
+    const updated = [...categories];
+    updated[catIndex].checkpoints = updated[catIndex].checkpoints.filter((_, i) => i !== cpIndex);
+    setCategories(updated);
+  };
+
+  const toggleGear = (catIndex: number, gear: string) => {
+    const updated = [...categories];
+    const gearList = updated[catIndex].mandatoryGear;
+    if (gearList.includes(gear)) {
+      updated[catIndex].mandatoryGear = gearList.filter((g) => g !== gear);
+    } else {
+      updated[catIndex].mandatoryGear = [...gearList, gear];
+    }
+    setCategories(updated);
+  };
+
+  const addTicket = (catIndex: number) => {
+    const newTicket: Ticket = {
+      id: `t-${Date.now()}`,
+      name: "",
+      price: 0,
+      quantity: 0,
+      sold: 0,
+    };
+    const updated = [...categories];
+    updated[catIndex].tickets.push(newTicket);
+    setCategories(updated);
+  };
+
+  const updateTicket = (catIndex: number, ticketIndex: number, updates: Partial<Ticket>) => {
+    const updated = [...categories];
+    updated[catIndex].tickets[ticketIndex] = {
+      ...updated[catIndex].tickets[ticketIndex],
+      ...updates,
+    };
+    setCategories(updated);
+  };
+
+  const removeTicket = (catIndex: number, ticketIndex: number) => {
+    const updated = [...categories];
+    updated[catIndex].tickets = updated[catIndex].tickets.filter((_, i) => i !== ticketIndex);
+    setCategories(updated);
+  };
+
+  const handleSubmit = () => {
+    setShowSuccess(true);
+    setTimeout(() => {
+      onComplete();
+    }, 2000);
+  };
+
+  const handleSaveDraft = () => {
+    onBack();
+  };
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            {/* Cover Photo */}
+            <div className="space-y-2">
+              <Label>Cover Photo</Label>
+              <div className="flex h-48 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/50 transition-colors hover:border-primary/50">
+                <div className="text-center">
+                  <ImageIcon className="mx-auto h-10 w-10 text-muted-foreground" />
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Drag & drop or click to upload
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Recommended: 1920x1080px
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Title */}
+            <div className="space-y-2">
+              <Label>Event Title</Label>
+              <Tabs value={langTab} onValueChange={setLangTab}>
+                <TabsList className="mb-2">
+                  <TabsTrigger value="en">English</TabsTrigger>
+                  <TabsTrigger value="th">ภาษาไทย</TabsTrigger>
+                </TabsList>
+                <TabsContent value="en">
+                  <Input
+                    placeholder="Doi Inthanon Trail Challenge"
+                    value={basicInfo.title}
+                    onChange={(e) => setBasicInfo({ ...basicInfo, title: e.target.value })}
+                  />
+                </TabsContent>
+                <TabsContent value="th">
+                  <Input
+                    placeholder="ดอยอินทนนท์เทรลชาเลนจ์"
+                    value={basicInfo.titleTh}
+                    onChange={(e) => setBasicInfo({ ...basicInfo, titleTh: e.target.value })}
+                  />
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Province & Location */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Province</Label>
+                <Select value={basicInfo.province} onValueChange={(v) => setBasicInfo({ ...basicInfo, province: v })}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select province" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {provinces.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Latitude</Label>
+                  <Input
+                    placeholder="18.5881"
+                    value={basicInfo.latitude}
+                    onChange={(e) => setBasicInfo({ ...basicInfo, latitude: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Longitude</Label>
+                  <Input
+                    placeholder="98.4864"
+                    value={basicInfo.longitude}
+                    onChange={(e) => setBasicInfo({ ...basicInfo, longitude: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Dates */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <Input
+                  type="date"
+                  value={basicInfo.date}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, date: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>End Date</Label>
+                <Input
+                  type="date"
+                  value={basicInfo.endDate}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, endDate: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Tabs value={langTab} onValueChange={setLangTab}>
+                <TabsList className="mb-2">
+                  <TabsTrigger value="en">English</TabsTrigger>
+                  <TabsTrigger value="th">ภาษาไทย</TabsTrigger>
+                </TabsList>
+                <TabsContent value="en">
+                  <Textarea
+                    rows={4}
+                    placeholder="Describe your event..."
+                    value={basicInfo.description}
+                    onChange={(e) => setBasicInfo({ ...basicInfo, description: e.target.value })}
+                  />
+                </TabsContent>
+                <TabsContent value="th">
+                  <Textarea
+                    rows={4}
+                    placeholder="อธิบายกิจกรรมของคุณ..."
+                    value={basicInfo.descriptionTh}
+                    onChange={(e) => setBasicInfo({ ...basicInfo, descriptionTh: e.target.value })}
+                  />
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Social Links */}
+            <div className="space-y-4">
+              <Label>Social Links</Label>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Input
+                  placeholder="Facebook URL"
+                  value={basicInfo.facebook}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, facebook: e.target.value })}
+                />
+                <Input
+                  placeholder="Instagram URL"
+                  value={basicInfo.instagram}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, instagram: e.target.value })}
+                />
+                <Input
+                  placeholder="Website URL"
+                  value={basicInfo.website}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, website: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <Tabs value={String(activeCategory)} onValueChange={(v) => setActiveCategory(Number(v))}>
+                <TabsList>
+                  {categories.map((cat, index) => (
+                    <TabsTrigger key={cat.id} value={String(index)}>
+                      {cat.name || `Category ${index + 1}`}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+              <Button variant="outline" size="sm" onClick={addCategory}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Category
+              </Button>
+            </div>
+
+            {categories[activeCategory] && (
+              <div className="space-y-6 rounded-xl border border-border bg-card p-6">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold">Category Details</h4>
+                  {categories.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeCategory(activeCategory)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Category Name (EN)</Label>
+                    <Input
+                      placeholder="100K Ultra"
+                      value={categories[activeCategory].name}
+                      onChange={(e) => updateCategory(activeCategory, { name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Category Name (TH)</Label>
+                    <Input
+                      placeholder="100K อัลตร้า"
+                      value={categories[activeCategory].nameTh}
+                      onChange={(e) => updateCategory(activeCategory, { nameTh: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-4">
+                  <div className="space-y-2">
+                    <Label>Distance (km)</Label>
+                    <Input
+                      type="number"
+                      placeholder="100"
+                      value={categories[activeCategory].distance || ""}
+                      onChange={(e) => updateCategory(activeCategory, { distance: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Elevation (m)</Label>
+                    <Input
+                      type="number"
+                      placeholder="5200"
+                      value={categories[activeCategory].elevation || ""}
+                      onChange={(e) => updateCategory(activeCategory, { elevation: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ITRA Points</Label>
+                    <Input
+                      type="number"
+                      placeholder="8"
+                      value={categories[activeCategory].itra || ""}
+                      onChange={(e) => updateCategory(activeCategory, { itra: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cut-off Time</Label>
+                    <Input
+                      placeholder="24:00:00"
+                      value={categories[activeCategory].cutoff}
+                      onChange={(e) => updateCategory(activeCategory, { cutoff: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>GPX Route File</Label>
+                  <div className="flex items-center gap-4">
+                    <Button variant="outline">
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload GPX
+                    </Button>
+                    <span className="text-sm text-muted-foreground">No file selected</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            <Tabs value={String(activeCategory)} onValueChange={(v) => setActiveCategory(Number(v))}>
+              <TabsList>
+                {categories.map((cat, index) => (
+                  <TabsTrigger key={cat.id} value={String(index)}>
+                    {cat.name || `Category ${index + 1}`}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+
+            {categories[activeCategory] && (
+              <div className="space-y-6">
+                {/* Checkpoints */}
+                <div className="rounded-xl border border-border bg-card p-6">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h4 className="font-semibold">Checkpoints</h4>
+                    <Button variant="outline" size="sm" onClick={() => addCheckpoint(activeCategory)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Checkpoint
+                    </Button>
+                  </div>
+
+                  {categories[activeCategory].checkpoints.length === 0 ? (
+                    <p className="text-center text-sm text-muted-foreground py-8">
+                      No checkpoints added yet
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      {categories[activeCategory].checkpoints.map((cp, cpIndex) => (
+                        <div key={cp.id} className="flex items-start gap-4 rounded-lg border border-border p-4">
+                          <div className="flex-1 grid gap-4 sm:grid-cols-3">
+                            <Input
+                              placeholder="Checkpoint name"
+                              value={cp.name}
+                              onChange={(e) =>
+                                updateCheckpoint(activeCategory, cpIndex, { name: e.target.value })
+                              }
+                            />
+                            <Input
+                              type="number"
+                              placeholder="Distance (km)"
+                              value={cp.distance || ""}
+                              onChange={(e) =>
+                                updateCheckpoint(activeCategory, cpIndex, { distance: Number(e.target.value) })
+                              }
+                            />
+                            <Input
+                              placeholder="Cutoff time"
+                              value={cp.cutoffTime}
+                              onChange={(e) =>
+                                updateCheckpoint(activeCategory, cpIndex, { cutoffTime: e.target.value })
+                              }
+                            />
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeCheckpoint(activeCategory, cpIndex)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Mandatory Gear */}
+                <div className="rounded-xl border border-border bg-card p-6">
+                  <h4 className="mb-4 font-semibold">Mandatory Gear</h4>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {defaultGear.map((gear) => (
+                      <div key={gear} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`gear-${gear}`}
+                          checked={categories[activeCategory].mandatoryGear.includes(gear)}
+                          onCheckedChange={() => toggleGear(activeCategory, gear)}
+                        />
+                        <Label htmlFor={`gear-${gear}`} className="text-sm font-normal cursor-pointer">
+                          {gear}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-6">
+            {categories.map((cat, catIndex) => (
+              <div key={cat.id} className="rounded-xl border border-border bg-card p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h4 className="font-semibold">{cat.name || `Category ${catIndex + 1}`}</h4>
+                  <Button variant="outline" size="sm" onClick={() => addTicket(catIndex)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Price Tier
+                  </Button>
+                </div>
+
+                {cat.tickets.length === 0 ? (
+                  <p className="text-center text-sm text-muted-foreground py-8">
+                    No tickets added yet
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {cat.tickets.map((ticket, ticketIndex) => (
+                      <div key={ticket.id} className="flex items-start gap-4 rounded-lg border border-border p-4">
+                        <div className="flex-1 grid gap-4 sm:grid-cols-3">
+                          <Input
+                            placeholder="Tier name (e.g., Early Bird)"
+                            value={ticket.name}
+                            onChange={(e) => updateTicket(catIndex, ticketIndex, { name: e.target.value })}
+                          />
+                          <Input
+                            type="number"
+                            placeholder="Price (THB)"
+                            value={ticket.price || ""}
+                            onChange={(e) =>
+                              updateTicket(catIndex, ticketIndex, { price: Number(e.target.value) })
+                            }
+                          />
+                          <Input
+                            type="number"
+                            placeholder="Quantity"
+                            value={ticket.quantity || ""}
+                            onChange={(e) =>
+                              updateTicket(catIndex, ticketIndex, { quantity: Number(e.target.value) })
+                            }
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeTicket(catIndex, ticketIndex)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-6">
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h4 className="mb-4 text-lg font-semibold">Event Summary</h4>
+
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Event Title</p>
+                    <p className="font-medium">{basicInfo.title || "Not set"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Province</p>
+                    <p className="font-medium">{basicInfo.province || "Not set"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Dates</p>
+                    <p className="font-medium">
+                      {basicInfo.date && basicInfo.endDate
+                        ? `${basicInfo.date} - ${basicInfo.endDate}`
+                        : "Not set"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Categories</p>
+                    <p className="font-medium">{categories.length}</p>
+                  </div>
+                </div>
+
+                <div className="border-t border-border pt-4">
+                  <p className="mb-2 text-sm text-muted-foreground">Race Categories</p>
+                  <div className="space-y-2">
+                    {categories.map((cat) => (
+                      <div key={cat.id} className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+                        <span className="font-medium">{cat.name || "Unnamed"}</span>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>{cat.distance}K</span>
+                          <span>{cat.tickets.length} ticket tiers</span>
+                          <span>{cat.checkpoints.length} checkpoints</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-warning/50 bg-warning/10 p-4">
+              <p className="text-sm text-warning-foreground">
+                <strong>Note:</strong> Once submitted, your event will be reviewed by our team. You'll
+                receive an email notification within 24-48 hours.
+              </p>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
+        <div className="flex h-16 items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={onBack}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            <div className="hidden h-6 w-px bg-border sm:block" />
+            <Logo size="sm" />
+          </div>
+          <h1 className="text-lg font-semibold text-foreground">
+            {event ? "Edit Event" : "Create New Event"}
+          </h1>
+        </div>
+      </header>
+
+      <div className="flex">
+        {/* Left Stepper */}
+        <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 border-r border-border bg-card p-6 lg:block">
+          <nav className="space-y-1">
+            {steps.map((step) => (
+              <button
+                key={step.number}
+                onClick={() => setCurrentStep(step.number as WizardStep)}
+                className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
+                  currentStep === step.number
+                    ? "bg-primary/10 text-primary"
+                    : currentStep > step.number
+                    ? "text-foreground"
+                    : "text-muted-foreground"
+                }`}
+              >
+                <div
+                  className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium ${
+                    currentStep === step.number
+                      ? "bg-primary text-primary-foreground"
+                      : currentStep > step.number
+                      ? "bg-success text-success-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {currentStep > step.number ? <Check className="h-4 w-4" /> : step.number}
+                </div>
+                <span className="font-medium">{step.title}</span>
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Mobile Stepper */}
+        <div className="lg:hidden sticky top-16 z-30 w-full border-b border-border bg-card p-4">
+          <div className="flex items-center justify-between">
+            {steps.map((step, index) => (
+              <div key={step.number} className="flex items-center">
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium ${
+                    currentStep === step.number
+                      ? "bg-primary text-primary-foreground"
+                      : currentStep > step.number
+                      ? "bg-success text-success-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {currentStep > step.number ? <Check className="h-4 w-4" /> : step.number}
+                </div>
+                {index < steps.length - 1 && (
+                  <div
+                    className={`mx-2 h-px w-8 ${
+                      currentStep > step.number ? "bg-success" : "bg-border"
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1">
+          <main className="p-6">
+            <div className="mx-auto max-w-3xl">
+              <h2 className="mb-6 text-2xl font-bold text-foreground">{steps[currentStep - 1].title}</h2>
+              {renderStep()}
+            </div>
+          </main>
+
+          {/* Footer */}
+          <footer className="sticky bottom-0 border-t border-border bg-card p-4">
+            <div className="mx-auto flex max-w-3xl items-center justify-between">
+              <Button
+                variant="outline"
+                onClick={() => currentStep > 1 && setCurrentStep((currentStep - 1) as WizardStep)}
+                disabled={currentStep === 1}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Button>
+
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={handleSaveDraft}>
+                  Save as Draft
+                </Button>
+                {currentStep < 5 ? (
+                  <Button onClick={() => setCurrentStep((currentStep + 1) as WizardStep)}>
+                    Next
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button onClick={handleSubmit}>Submit for Review</Button>
+                )}
+              </div>
+            </div>
+          </footer>
+        </div>
+      </div>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+                <Check className="h-8 w-8 text-success" />
+              </div>
+              Event Submitted!
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-center text-muted-foreground">
+            Your event has been submitted for review. We'll notify you via email within 24-48 hours.
+          </p>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default EventWizard;
