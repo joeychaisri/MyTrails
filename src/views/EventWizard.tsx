@@ -11,6 +11,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -18,23 +25,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ArrowLeft,
   ArrowRight,
   Check,
+  ChevronDown,
   Image as ImageIcon,
+  LogOut,
   Plus,
   Trash2,
   Upload,
+  User,
   X,
 } from "lucide-react";
 import Logo from "@/components/Logo";
-import { Event, Category, Ticket, Checkpoint } from "@/data/mockData";
+import { Event, Category, Ticket, Checkpoint, mockProfile } from "@/data/mockData";
 
 interface EventWizardProps {
   event?: Event;
   onBack: () => void;
   onComplete: () => void;
+  onLogout?: () => void;
 }
 
 type WizardStep = 1 | 2 | 3 | 4 | 5;
@@ -75,7 +87,8 @@ const defaultGear = [
   "Trail Running Shoes",
 ];
 
-const EventWizard = ({ event, onBack, onComplete }: EventWizardProps) => {
+const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) => {
+  const profile = mockProfile;
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -706,7 +719,7 @@ const EventWizard = ({ event, onBack, onComplete }: EventWizardProps) => {
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur shrink-0">
-        <div className="flex h-14 sm:h-16 items-center px-4 sm:px-6">
+        <div className="flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 sm:gap-2">
               <ArrowLeft className="h-4 w-4" />
@@ -715,6 +728,33 @@ const EventWizard = ({ event, onBack, onComplete }: EventWizardProps) => {
             <div className="hidden h-6 w-px bg-border sm:block" />
             <Logo size="sm" className="hidden sm:flex" />
           </div>
+          
+          {/* Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={profile.avatar} />
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {profile.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden sm:inline text-sm">{profile.name}</span>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 bg-popover">
+              <DropdownMenuItem>
+                <User className="mr-2 h-4 w-4" />
+                Edit Profile
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
