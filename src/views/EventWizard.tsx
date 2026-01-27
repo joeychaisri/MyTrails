@@ -31,6 +31,7 @@ import {
   ArrowRight,
   Check,
   ChevronDown,
+  CreditCard,
   Image as ImageIcon,
   LogOut,
   Plus,
@@ -40,7 +41,8 @@ import {
   X,
 } from "lucide-react";
 import Logo from "@/components/Logo";
-import { Event, Category, Ticket, Checkpoint, mockProfile } from "@/data/mockData";
+import PaymentModal from "@/components/PaymentModal";
+import { Event, Category, Ticket, Checkpoint, mockProfile, mockPaymentInfo, PaymentInfo } from "@/data/mockData";
 
 interface EventWizardProps {
   event?: Event;
@@ -89,6 +91,8 @@ const defaultGear = [
 
 const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) => {
   const profile = mockProfile;
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(mockPaymentInfo);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -748,6 +752,10 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
                 <User className="mr-2 h-4 w-4" />
                 Edit Profile
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setPaymentModalOpen(true)}>
+                <CreditCard className="mr-2 h-4 w-4" />
+                Payment
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
@@ -892,6 +900,14 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
           </p>
         </DialogContent>
       </Dialog>
+
+      {/* Payment Modal */}
+      <PaymentModal
+        open={paymentModalOpen}
+        onOpenChange={setPaymentModalOpen}
+        paymentInfo={paymentInfo}
+        onSave={setPaymentInfo}
+      />
     </div>
   );
 };

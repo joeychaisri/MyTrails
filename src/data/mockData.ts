@@ -91,11 +91,23 @@ export interface UserProfile {
   avatar: string;
 }
 
+export interface PaymentInfo {
+  accountName: string;
+  bank: string;
+  accountNumber: string;
+}
+
 export const mockProfile: UserProfile = {
   name: "Trail Events Co.",
   email: "organizer@trailevents.co.th",
   phone: "+66 89 123 4567",
   avatar: "",
+};
+
+export const mockPaymentInfo: PaymentInfo = {
+  accountName: "บริษัท เทรล อีเว้นท์ จำกัด",
+  bank: "kbank",
+  accountNumber: "123-4-56789-0",
 };
 
 export const mockEvents: Event[] = [
