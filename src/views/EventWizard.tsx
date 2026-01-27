@@ -703,28 +703,29 @@ const EventWizard = ({ event, onBack, onComplete }: EventWizardProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
-        <div className="flex h-16 items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={onBack}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur shrink-0">
+        <div className="flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 sm:gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Back</span>
             </Button>
             <div className="hidden h-6 w-px bg-border sm:block" />
-            <Logo size="sm" />
+            <Logo size="sm" className="hidden sm:flex" />
           </div>
-          <h1 className="text-lg font-semibold text-foreground">
+          <h1 className="text-base sm:text-lg font-semibold text-foreground truncate">
             {event ? "Edit Event" : "Create New Event"}
           </h1>
         </div>
       </header>
 
-      <div className="flex">
-        {/* Left Stepper */}
-        <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 border-r border-border bg-card p-6 lg:block">
-          <nav className="space-y-1">
+      {/* Main Layout Container */}
+      <div className="flex flex-1 flex-col lg:flex-row overflow-hidden">
+        {/* Left Stepper - Desktop */}
+        <aside className="hidden lg:block w-64 shrink-0 border-r border-border bg-card overflow-y-auto">
+          <nav className="p-6 space-y-1">
             {steps.map((step) => (
               <button
                 key={step.number}
@@ -755,12 +756,13 @@ const EventWizard = ({ event, onBack, onComplete }: EventWizardProps) => {
         </aside>
 
         {/* Mobile Stepper */}
-        <div className="lg:hidden sticky top-16 z-30 w-full border-b border-border bg-card p-4">
-          <div className="flex items-center justify-between">
+        <div className="lg:hidden border-b border-border bg-card p-3 sm:p-4 shrink-0">
+          <div className="flex items-center justify-between max-w-md mx-auto">
             {steps.map((step, index) => (
               <div key={step.number} className="flex items-center">
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium ${
+                <button
+                  onClick={() => setCurrentStep(step.number as WizardStep)}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-colors ${
                     currentStep === step.number
                       ? "bg-primary text-primary-foreground"
                       : currentStep > step.number
@@ -769,10 +771,10 @@ const EventWizard = ({ event, onBack, onComplete }: EventWizardProps) => {
                   }`}
                 >
                   {currentStep > step.number ? <Check className="h-4 w-4" /> : step.number}
-                </div>
+                </button>
                 {index < steps.length - 1 && (
                   <div
-                    className={`mx-2 h-px w-8 ${
+                    className={`mx-1 sm:mx-2 h-px w-4 sm:w-8 ${
                       currentStep > step.number ? "bg-success" : "bg-border"
                     }`}
                   />
@@ -780,40 +782,51 @@ const EventWizard = ({ event, onBack, onComplete }: EventWizardProps) => {
               </div>
             ))}
           </div>
+          <p className="text-center text-sm font-medium text-foreground mt-2">
+            {steps[currentStep - 1].title}
+          </p>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1">
-          <main className="p-6">
+        {/* Scrollable Content Area */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="mx-auto max-w-3xl">
-              <h2 className="mb-6 text-2xl font-bold text-foreground">{steps[currentStep - 1].title}</h2>
+              <h2 className="mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-foreground hidden lg:block">
+                {steps[currentStep - 1].title}
+              </h2>
               {renderStep()}
             </div>
           </main>
 
-          {/* Footer */}
-          <footer className="sticky bottom-0 border-t border-border bg-card p-4">
-            <div className="mx-auto flex max-w-3xl items-center justify-between">
+          {/* Sticky Footer */}
+          <footer className="shrink-0 border-t border-border bg-card p-3 sm:p-4">
+            <div className="mx-auto flex max-w-3xl items-center justify-between gap-2">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => currentStep > 1 && setCurrentStep((currentStep - 1) as WizardStep)}
                 disabled={currentStep === 1}
+                className="gap-1 sm:gap-2"
               >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Back</span>
               </Button>
 
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={handleSaveDraft}>
-                  Save as Draft
+              <div className="flex gap-2 sm:gap-3">
+                <Button variant="outline" size="sm" onClick={handleSaveDraft}>
+                  <span className="hidden sm:inline">Save as Draft</span>
+                  <span className="sm:hidden">Save</span>
                 </Button>
                 {currentStep < 5 ? (
-                  <Button onClick={() => setCurrentStep((currentStep + 1) as WizardStep)}>
+                  <Button size="sm" onClick={() => setCurrentStep((currentStep + 1) as WizardStep)} className="gap-1 sm:gap-2">
                     Next
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight className="h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button onClick={handleSubmit}>Submit for Review</Button>
+                  <Button size="sm" onClick={handleSubmit}>
+                    <span className="hidden sm:inline">Submit for Review</span>
+                    <span className="sm:hidden">Submit</span>
+                  </Button>
                 )}
               </div>
             </div>

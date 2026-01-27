@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -14,6 +15,7 @@ import Logo from "@/components/Logo";
 import EventCard from "@/components/EventCard";
 import StatsCard from "@/components/StatsCard";
 import ProfileModal from "@/components/ProfileModal";
+import DateRangeFilter, { DateFilterOption } from "@/components/DateRangeFilter";
 import { mockEvents, mockProfile, Event, UserProfile } from "@/data/mockData";
 
 interface DashboardViewProps {
@@ -35,6 +37,24 @@ const DashboardView = ({
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [events] = useState<Event[]>(mockEvents);
+  const [dateFilter, setDateFilter] = useState<DateFilterOption>("7days");
+  const [customRange, setCustomRange] = useState<DateRange | undefined>();
+
+  // Mock data multipliers based on date filter (simulating different date ranges)
+  const statsMultiplier = useMemo(() => {
+    switch (dateFilter) {
+      case "7days":
+        return 1;
+      case "14days":
+        return 1.8;
+      case "month":
+        return 3.2;
+      case "custom":
+        return 2.1;
+      default:
+        return 1;
+    }
+  }, [dateFilter]);
 
   const filteredEvents = events.filter((event) => {
     if (activeTab === "all") return true;
@@ -44,9 +64,13 @@ const DashboardView = ({
     return true;
   });
 
-  const totalRevenue = events.reduce((sum, e) => sum + e.revenue, 0);
-  const totalSold = events.reduce((sum, e) => sum + e.sold, 0);
+  const baseRevenue = events.reduce((sum, e) => sum + e.revenue, 0);
+  const baseSold = events.reduce((sum, e) => sum + e.sold, 0);
   const activeEvents = events.filter((e) => e.status === "live").length;
+  
+  // Apply multiplier for date-filtered stats
+  const totalRevenue = Math.round(baseRevenue * statsMultiplier);
+  const totalSold = Math.round(baseSold * statsMultiplier);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("th-TH", {
@@ -57,7 +81,7 @@ const DashboardView = ({
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Navigation */}
       <nav className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -99,27 +123,38 @@ const DashboardView = ({
       </nav>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Hero Stats */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatsCard
-            title="Active Events"
-            value={activeEvents}
-            icon={Calendar}
-            subtitle="Currently live"
-          />
-          <StatsCard
-            title="Tickets Sold"
-            value={totalSold.toLocaleString()}
-            icon={Users}
-            subtitle="Across all events"
-          />
-          <StatsCard
-            title="Total Revenue"
-            value={formatCurrency(totalRevenue)}
-            icon={DollarSign}
-            subtitle="Lifetime earnings"
-          />
+      <main className="flex-grow mx-auto w-full max-w-7xl px-4 py-6 sm:py-8 sm:px-6 lg:px-8">
+        {/* Hero Stats Section */}
+        <div className="mb-8">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-lg font-semibold text-foreground sm:text-xl">Performance Overview</h2>
+            <DateRangeFilter
+              selectedOption={dateFilter}
+              customRange={customRange}
+              onOptionChange={setDateFilter}
+              onCustomRangeChange={setCustomRange}
+            />
+          </div>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <StatsCard
+              title="Active Events"
+              value={activeEvents}
+              icon={Calendar}
+              subtitle="Currently live"
+            />
+            <StatsCard
+              title="Tickets Sold"
+              value={totalSold.toLocaleString()}
+              icon={Users}
+              subtitle={`In selected period`}
+            />
+            <StatsCard
+              title="Total Revenue"
+              value={formatCurrency(totalRevenue)}
+              icon={DollarSign}
+              subtitle={`In selected period`}
+            />
+          </div>
         </div>
 
         {/* Event List Section */}
