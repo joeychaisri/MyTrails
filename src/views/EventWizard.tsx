@@ -706,7 +706,7 @@ const EventWizard = ({ event, onBack, onComplete }: EventWizardProps) => {
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur shrink-0">
-        <div className="flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
+        <div className="flex h-14 sm:h-16 items-center px-4 sm:px-6">
           <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 sm:gap-2">
               <ArrowLeft className="h-4 w-4" />
@@ -715,9 +715,6 @@ const EventWizard = ({ event, onBack, onComplete }: EventWizardProps) => {
             <div className="hidden h-6 w-px bg-border sm:block" />
             <Logo size="sm" className="hidden sm:flex" />
           </div>
-          <h1 className="text-base sm:text-lg font-semibold text-foreground truncate">
-            {event ? "Edit Event" : "Create New Event"}
-          </h1>
         </div>
       </header>
 
@@ -791,9 +788,14 @@ const EventWizard = ({ event, onBack, onComplete }: EventWizardProps) => {
         <div className="flex-1 flex flex-col min-h-0">
           <main className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="mx-auto max-w-3xl">
-              <h2 className="mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-foreground hidden lg:block">
-                {steps[currentStep - 1].title}
-              </h2>
+              <div className="mb-4 sm:mb-6">
+                <p className="text-sm text-muted-foreground mb-1">
+                  {event ? "Edit Event" : "Create New Event"}
+                </p>
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+                  {steps[currentStep - 1].title}
+                </h2>
+              </div>
               {renderStep()}
             </div>
           </main>
