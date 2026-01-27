@@ -86,6 +86,7 @@ const Index = () => {
           event={editingEvent}
           onBack={handleBackToDashboard}
           onComplete={handleWizardComplete}
+          onLogout={handleLogout}
         />
       );
     case "preview":
