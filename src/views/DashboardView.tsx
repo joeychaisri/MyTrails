@@ -10,13 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Calendar, Users, DollarSign, LogOut, User, ChevronDown } from "lucide-react";
+import { Plus, Calendar, Users, DollarSign, LogOut, User, ChevronDown, CreditCard } from "lucide-react";
 import Logo from "@/components/Logo";
 import EventCard from "@/components/EventCard";
 import StatsCard from "@/components/StatsCard";
 import ProfileModal from "@/components/ProfileModal";
+import PaymentModal from "@/components/PaymentModal";
 import DateRangeFilter, { DateFilterOption } from "@/components/DateRangeFilter";
-import { mockEvents, mockProfile, Event, UserProfile } from "@/data/mockData";
+import { mockEvents, mockProfile, mockPaymentInfo, Event, UserProfile, PaymentInfo } from "@/data/mockData";
 
 interface DashboardViewProps {
   onLogout: () => void;
@@ -34,7 +35,9 @@ const DashboardView = ({
   onPreviewEvent,
 }: DashboardViewProps) => {
   const [profile, setProfile] = useState<UserProfile>(mockProfile);
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(mockPaymentInfo);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [events] = useState<Event[]>(mockEvents);
   const [dateFilter, setDateFilter] = useState<DateFilterOption>("7days");
@@ -110,6 +113,10 @@ const DashboardView = ({
                 <DropdownMenuItem onClick={() => setProfileModalOpen(true)}>
                   <User className="mr-2 h-4 w-4" />
                   Edit Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPaymentModalOpen(true)}>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Payment
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onLogout}>
@@ -207,6 +214,13 @@ const DashboardView = ({
         onOpenChange={setProfileModalOpen}
         profile={profile}
         onSave={setProfile}
+      />
+
+      <PaymentModal
+        open={paymentModalOpen}
+        onOpenChange={setPaymentModalOpen}
+        paymentInfo={paymentInfo}
+        onSave={setPaymentInfo}
       />
     </div>
   );
