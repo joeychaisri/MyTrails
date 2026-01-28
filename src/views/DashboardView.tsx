@@ -198,9 +198,9 @@ const DashboardView = ({
                 <EventCard
                   key={event.id}
                   event={event}
-                  onSelect={onSelectEvent}
                   onEdit={onEditEvent}
                   onPreview={onPreviewEvent}
+                  onManage={onSelectEvent}
                   onDelete={event.status === "draft" ? () => {} : undefined}
                 />
               ))}
