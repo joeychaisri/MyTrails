@@ -1,4 +1,4 @@
-import { Calendar, MapPin, MoreVertical, Pencil, Eye, Trash2 } from "lucide-react";
+import { Calendar, MapPin, MoreVertical, Pencil, Eye, Trash2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -14,13 +14,13 @@ import heroImage from "@/assets/hero-trail.jpg";
 
 interface EventCardProps {
   event: Event;
-  onSelect: (event: Event) => void;
   onEdit: (event: Event) => void;
   onPreview: (event: Event) => void;
+  onManage: (event: Event) => void;
   onDelete?: (event: Event) => void;
 }
 
-const EventCard = ({ event, onSelect, onEdit, onPreview, onDelete }: EventCardProps) => {
+const EventCard = ({ event, onEdit, onPreview, onManage, onDelete }: EventCardProps) => {
   const progressPercent = event.capacity > 0 ? (event.sold / event.capacity) * 100 : 0;
 
   return (
@@ -28,7 +28,7 @@ const EventCard = ({ event, onSelect, onEdit, onPreview, onDelete }: EventCardPr
       {/* Thumbnail */}
       <div
         className="relative h-40 cursor-pointer overflow-hidden bg-muted"
-        onClick={() => onSelect(event)}
+        onClick={() => onEdit(event)}
       >
         <img
           src={event.coverImage || heroImage}
@@ -45,7 +45,7 @@ const EventCard = ({ event, onSelect, onEdit, onPreview, onDelete }: EventCardPr
         <div className="mb-3 flex items-start justify-between">
           <h3
             className="cursor-pointer text-lg font-semibold text-card-foreground hover:text-primary"
-            onClick={() => onSelect(event)}
+            onClick={() => onEdit(event)}
           >
             {event.title}
           </h3>
@@ -63,6 +63,10 @@ const EventCard = ({ event, onSelect, onEdit, onPreview, onDelete }: EventCardPr
               <DropdownMenuItem onClick={() => onPreview(event)}>
                 <Eye className="mr-2 h-4 w-4" />
                 Preview Page
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onManage(event)}>
+                <Settings className="mr-2 h-4 w-4" />
+                Manage Event
               </DropdownMenuItem>
               {event.status === "draft" && onDelete && (
                 <DropdownMenuItem
