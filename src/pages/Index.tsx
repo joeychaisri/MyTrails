@@ -4,17 +4,18 @@ import DashboardView from "@/views/DashboardView";
 import EventManagerHub from "@/views/EventManagerHub";
 import EventWizard from "@/views/EventWizard";
 import PublicEventPage from "@/views/PublicEventPage";
+import AdminDashboard from "@/views/AdminDashboard";
 import { Event, mockEvents } from "@/data/mockData";
 
-type ViewType = "auth" | "dashboard" | "hub" | "wizard" | "preview";
+type ViewType = "auth" | "dashboard" | "hub" | "wizard" | "preview" | "admin";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewType>("auth");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | undefined>(undefined);
 
-  const handleLogin = () => {
-    setCurrentView("dashboard");
+  const handleLogin = (role: "organizer" | "admin") => {
+    setCurrentView(role === "admin" ? "admin" : "dashboard");
   };
 
   const handleLogout = () => {
@@ -93,6 +94,8 @@ const Index = () => {
       return selectedEvent ? (
         <PublicEventPage event={selectedEvent} onBack={handleBackToDashboard} />
       ) : null;
+    case "admin":
+      return <AdminDashboard onLogout={handleLogout} />;
     default:
       return <AuthView onLogin={handleLogin} />;
   }
