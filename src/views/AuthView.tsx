@@ -7,18 +7,20 @@ import Logo from "@/components/Logo";
 import heroImage from "@/assets/hero-trail.jpg";
 
 interface AuthViewProps {
-  onLogin: () => void;
+  onLogin: (role: "organizer" | "admin") => void;
 }
 
 const AuthView = ({ onLogin }: AuthViewProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    const role = loginEmail.trim().toLowerCase() === "admin@mytrails.com" ? "admin" : "organizer";
     setTimeout(() => {
       setIsLoading(false);
-      onLogin();
+      onLogin(role);
     }, 800);
   };
 
@@ -67,6 +69,8 @@ const AuthView = ({ onLogin }: AuthViewProps) => {
                     id="login-email"
                     type="email"
                     placeholder="organizer@example.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
                     required
                   />
                 </div>
