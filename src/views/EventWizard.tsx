@@ -118,8 +118,12 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
         id: "new-1",
         name: "50K Trail",
         nameTh: "50K เทรล",
+        raceDate: "",
+        startTime: "",
         distance: 50,
         elevation: 2000,
+        elevationLoss: 1800,
+        terrainType: "",
         itra: 4,
         cutoff: "12:00:00",
         checkpoints: [],
@@ -137,8 +141,12 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
       id: `new-${Date.now()}`,
       name: "",
       nameTh: "",
+      raceDate: "",
+      startTime: "",
       distance: 0,
       elevation: 0,
+      elevationLoss: 0,
+      terrainType: "",
       itra: 0,
       cutoff: "",
       checkpoints: [],
@@ -399,21 +407,21 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
                 <TabsList>
                   {categories.map((cat, index) => (
                     <TabsTrigger key={cat.id} value={String(index)}>
-                      {cat.name || `Category ${index + 1}`}
+                      {cat.name || `Race ${index + 1}`}
                     </TabsTrigger>
                   ))}
                 </TabsList>
               </Tabs>
               <Button variant="outline" size="sm" onClick={addCategory}>
                 <Plus className="mr-2 h-4 w-4" />
-                Add Category
+                Add Race
               </Button>
             </div>
 
             {categories[activeCategory] && (
               <div className="space-y-6 rounded-xl border border-border bg-card p-6">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold">Category Details</h4>
+                  <h4 className="font-semibold">Race Details</h4>
                   {categories.length > 1 && (
                     <Button
                       variant="ghost"
@@ -426,9 +434,10 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
                   )}
                 </div>
 
+                {/* Race Name */}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Category Name (EN)</Label>
+                    <Label>Race Name (EN)</Label>
                     <Input
                       placeholder="100K Ultra"
                       value={categories[activeCategory].name}
@@ -436,7 +445,7 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Category Name (TH)</Label>
+                    <Label>Race Name (TH)</Label>
                     <Input
                       placeholder="100K อัลตร้า"
                       value={categories[activeCategory].nameTh}
@@ -445,32 +454,22 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
                   </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-4">
+                {/* Race Date & Time */}
+                <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
-                    <Label>Distance (km)</Label>
+                    <Label>Race Date</Label>
                     <Input
-                      type="number"
-                      placeholder="100"
-                      value={categories[activeCategory].distance || ""}
-                      onChange={(e) => updateCategory(activeCategory, { distance: Number(e.target.value) })}
+                      type="date"
+                      value={categories[activeCategory].raceDate}
+                      onChange={(e) => updateCategory(activeCategory, { raceDate: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Elevation (m)</Label>
+                    <Label>Start Time</Label>
                     <Input
-                      type="number"
-                      placeholder="5200"
-                      value={categories[activeCategory].elevation || ""}
-                      onChange={(e) => updateCategory(activeCategory, { elevation: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>ITRA Points</Label>
-                    <Input
-                      type="number"
-                      placeholder="8"
-                      value={categories[activeCategory].itra || ""}
-                      onChange={(e) => updateCategory(activeCategory, { itra: Number(e.target.value) })}
+                      type="time"
+                      value={categories[activeCategory].startTime}
+                      onChange={(e) => updateCategory(activeCategory, { startTime: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -483,6 +482,66 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
                   </div>
                 </div>
 
+                {/* Distance & Elevation */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                  <div className="space-y-2">
+                    <Label>Distance (km)</Label>
+                    <Input
+                      type="number"
+                      placeholder="100"
+                      value={categories[activeCategory].distance || ""}
+                      onChange={(e) => updateCategory(activeCategory, { distance: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Accumulative Elevation Gain (m)</Label>
+                    <Input
+                      type="number"
+                      placeholder="5200"
+                      value={categories[activeCategory].elevation || ""}
+                      onChange={(e) => updateCategory(activeCategory, { elevation: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Elevation Loss (m)</Label>
+                    <Input
+                      type="number"
+                      placeholder="5100"
+                      value={categories[activeCategory].elevationLoss || ""}
+                      onChange={(e) => updateCategory(activeCategory, { elevationLoss: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Terrain Type</Label>
+                    <Select
+                      value={categories[activeCategory].terrainType}
+                      onValueChange={(v) => updateCategory(activeCategory, { terrainType: v })}
+                    >
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select terrain" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover">
+                        <SelectItem value="Mountain Trail">Mountain Trail</SelectItem>
+                        <SelectItem value="Forest Trail">Forest Trail</SelectItem>
+                        <SelectItem value="Desert Trail">Desert Trail</SelectItem>
+                        <SelectItem value="Coastal Trail">Coastal Trail</SelectItem>
+                        <SelectItem value="Mixed Terrain">Mixed Terrain</SelectItem>
+                        <SelectItem value="Road & Trail">Road & Trail</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ITRA Points</Label>
+                    <Input
+                      type="number"
+                      placeholder="8"
+                      value={categories[activeCategory].itra || ""}
+                      onChange={(e) => updateCategory(activeCategory, { itra: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                {/* GPX Upload */}
                 <div className="space-y-2">
                   <Label>GPX Route File</Label>
                   <div className="flex items-center gap-4">
@@ -505,7 +564,7 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
               <TabsList>
                 {categories.map((cat, index) => (
                   <TabsTrigger key={cat.id} value={String(index)}>
-                    {cat.name || `Category ${index + 1}`}
+                    {cat.name || `Race ${index + 1}`}
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -598,7 +657,7 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
             {categories.map((cat, catIndex) => (
               <div key={cat.id} className="rounded-xl border border-border bg-card p-6">
                 <div className="mb-4 flex items-center justify-between">
-                  <h4 className="font-semibold">{cat.name || `Category ${catIndex + 1}`}</h4>
+                  <h4 className="font-semibold">{cat.name || `Race ${catIndex + 1}`}</h4>
                   <Button variant="outline" size="sm" onClick={() => addTicket(catIndex)}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Price Tier
@@ -678,13 +737,13 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Categories</p>
+                    <p className="text-sm text-muted-foreground">Races</p>
                     <p className="font-medium">{categories.length}</p>
                   </div>
                 </div>
 
                 <div className="border-t border-border pt-4">
-                  <p className="mb-2 text-sm text-muted-foreground">Race Categories</p>
+                  <p className="mb-2 text-sm text-muted-foreground">Races</p>
                   <div className="space-y-2">
                     {categories.map((cat) => (
                       <div key={cat.id} className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
