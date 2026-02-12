@@ -54,7 +54,7 @@ interface EventWizardProps {
 type WizardStep = 1 | 2 | 3 | 4 | 5;
 
 const steps = [
-  { number: 1, title: "Basic Info" },
+  { number: 1, title: "Event Information" },
   { number: 2, title: "Race Configuration" },
   { number: 3, title: "Checkpoints & Safety" },
   { number: 4, title: "Tickets" },
@@ -265,26 +265,24 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
             {/* Title */}
             <div className="space-y-2">
               <Label>Event Title</Label>
-              <Tabs value={langTab} onValueChange={setLangTab}>
-                <TabsList className="mb-2">
-                  <TabsTrigger value="en">English</TabsTrigger>
-                  <TabsTrigger value="th">ภาษาไทย</TabsTrigger>
-                </TabsList>
-                <TabsContent value="en">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">English</span>
                   <Input
                     placeholder="Doi Inthanon Trail Challenge"
                     value={basicInfo.title}
                     onChange={(e) => setBasicInfo({ ...basicInfo, title: e.target.value })}
                   />
-                </TabsContent>
-                <TabsContent value="th">
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">ภาษาไทย</span>
                   <Input
                     placeholder="ดอยอินทนนท์เทรลชาเลนจ์"
                     value={basicInfo.titleTh}
                     onChange={(e) => setBasicInfo({ ...basicInfo, titleTh: e.target.value })}
                   />
-                </TabsContent>
-              </Tabs>
+                </div>
+              </div>
             </div>
 
             {/* Province & Location */}
@@ -347,28 +345,26 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
             {/* Description */}
             <div className="space-y-2">
               <Label>Description</Label>
-              <Tabs value={langTab} onValueChange={setLangTab}>
-                <TabsList className="mb-2">
-                  <TabsTrigger value="en">English</TabsTrigger>
-                  <TabsTrigger value="th">ภาษาไทย</TabsTrigger>
-                </TabsList>
-                <TabsContent value="en">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">English</span>
                   <Textarea
                     rows={4}
                     placeholder="Describe your event..."
                     value={basicInfo.description}
                     onChange={(e) => setBasicInfo({ ...basicInfo, description: e.target.value })}
                   />
-                </TabsContent>
-                <TabsContent value="th">
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">ภาษาไทย</span>
                   <Textarea
                     rows={4}
                     placeholder="อธิบายกิจกรรมของคุณ..."
                     value={basicInfo.descriptionTh}
                     onChange={(e) => setBasicInfo({ ...basicInfo, descriptionTh: e.target.value })}
                   />
-                </TabsContent>
-              </Tabs>
+                </div>
+              </div>
             </div>
 
             {/* Social Links */}
