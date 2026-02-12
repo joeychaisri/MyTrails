@@ -26,8 +26,12 @@ export interface Category {
   id: string;
   name: string;
   nameTh: string;
+  raceDate: string;
+  startTime: string;
   distance: number;
   elevation: number;
+  elevationLoss: number;
+  terrainType: string;
   itra: number;
   cutoff: string;
   checkpoints: Checkpoint[];
@@ -136,8 +140,12 @@ export const mockEvents: Event[] = [
         id: "1a",
         name: "100K Ultra",
         nameTh: "100K อัลตร้า",
+        raceDate: "2025-03-15",
+        startTime: "04:00",
         distance: 100,
         elevation: 5200,
+        elevationLoss: 5100,
+        terrainType: "Mountain Trail",
         itra: 8,
         cutoff: "24:00:00",
         checkpoints: [
@@ -156,8 +164,12 @@ export const mockEvents: Event[] = [
         id: "1b",
         name: "50K Trail",
         nameTh: "50K เทรล",
+        raceDate: "2025-03-15",
+        startTime: "05:00",
         distance: 50,
         elevation: 2600,
+        elevationLoss: 2500,
+        terrainType: "Mountain Trail",
         itra: 4,
         cutoff: "12:00:00",
         checkpoints: [
@@ -194,8 +206,12 @@ export const mockEvents: Event[] = [
         id: "2a",
         name: "25K Night Run",
         nameTh: "25K ไนท์รัน",
+        raceDate: "2025-04-20",
+        startTime: "18:00",
         distance: 25,
         elevation: 800,
+        elevationLoss: 800,
+        terrainType: "Forest Trail",
         itra: 2,
         cutoff: "06:00:00",
         checkpoints: [],
