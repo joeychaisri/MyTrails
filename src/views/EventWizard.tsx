@@ -51,14 +51,13 @@ interface EventWizardProps {
   onLogout?: () => void;
 }
 
-type WizardStep = 1 | 2 | 3 | 4 | 5;
+type WizardStep = 1 | 2 | 3 | 4;
 
 const steps = [
   { number: 1, title: "Event Information" },
   { number: 2, title: "Race Configuration" },
-  { number: 3, title: "Checkpoints & Safety" },
-  { number: 4, title: "Tickets" },
-  { number: 5, title: "Review & Submit" },
+  { number: 3, title: "Tickets" },
+  { number: 4, title: "Review & Submit" },
 ];
 
 const provinces = [
@@ -560,100 +559,6 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
       case 3:
         return (
           <div className="space-y-6">
-            <Tabs value={String(activeCategory)} onValueChange={(v) => setActiveCategory(Number(v))}>
-              <TabsList>
-                {categories.map((cat, index) => (
-                  <TabsTrigger key={cat.id} value={String(index)}>
-                    {cat.name || `Race ${index + 1}`}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-
-            {categories[activeCategory] && (
-              <div className="space-y-6">
-                {/* Checkpoints */}
-                <div className="rounded-xl border border-border bg-card p-6">
-                  <div className="mb-4 flex items-center justify-between">
-                    <h4 className="font-semibold">Checkpoints</h4>
-                    <Button variant="outline" size="sm" onClick={() => addCheckpoint(activeCategory)}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Checkpoint
-                    </Button>
-                  </div>
-
-                  {categories[activeCategory].checkpoints.length === 0 ? (
-                    <p className="text-center text-sm text-muted-foreground py-8">
-                      No checkpoints added yet
-                    </p>
-                  ) : (
-                    <div className="space-y-4">
-                      {categories[activeCategory].checkpoints.map((cp, cpIndex) => (
-                        <div key={cp.id} className="flex items-start gap-4 rounded-lg border border-border p-4">
-                          <div className="flex-1 grid gap-4 sm:grid-cols-3">
-                            <Input
-                              placeholder="Checkpoint name"
-                              value={cp.name}
-                              onChange={(e) =>
-                                updateCheckpoint(activeCategory, cpIndex, { name: e.target.value })
-                              }
-                            />
-                            <Input
-                              type="number"
-                              placeholder="Distance (km)"
-                              value={cp.distance || ""}
-                              onChange={(e) =>
-                                updateCheckpoint(activeCategory, cpIndex, { distance: Number(e.target.value) })
-                              }
-                            />
-                            <Input
-                              placeholder="Cutoff time"
-                              value={cp.cutoffTime}
-                              onChange={(e) =>
-                                updateCheckpoint(activeCategory, cpIndex, { cutoffTime: e.target.value })
-                              }
-                            />
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeCheckpoint(activeCategory, cpIndex)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Mandatory Gear */}
-                <div className="rounded-xl border border-border bg-card p-6">
-                  <h4 className="mb-4 font-semibold">Mandatory Gear</h4>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {defaultGear.map((gear) => (
-                      <div key={gear} className="flex items-center gap-2">
-                        <Checkbox
-                          id={`gear-${gear}`}
-                          checked={categories[activeCategory].mandatoryGear.includes(gear)}
-                          onCheckedChange={() => toggleGear(activeCategory, gear)}
-                        />
-                        <Label htmlFor={`gear-${gear}`} className="text-sm font-normal cursor-pointer">
-                          {gear}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="space-y-6">
             {categories.map((cat, catIndex) => (
               <div key={cat.id} className="rounded-xl border border-border bg-card p-6">
                 <div className="mb-4 flex items-center justify-between">
@@ -712,7 +617,7 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
           </div>
         );
 
-      case 5:
+      case 4:
         return (
           <div className="space-y-6">
             <div className="rounded-xl border border-border bg-card p-6">
@@ -922,7 +827,7 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
                   <span className="hidden sm:inline">Save as Draft</span>
                   <span className="sm:hidden">Save</span>
                 </Button>
-                {currentStep < 5 ? (
+                {currentStep < 4 ? (
                   <Button size="sm" onClick={() => setCurrentStep((currentStep + 1) as WizardStep)} className="gap-1 sm:gap-2">
                     Next
                     <ArrowRight className="h-4 w-4" />
