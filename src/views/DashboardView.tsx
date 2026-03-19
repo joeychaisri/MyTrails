@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,21 +21,14 @@ import PaymentModal from "@/components/PaymentModal";
 import DateRangeFilter, { DateFilterOption } from "@/components/DateRangeFilter";
 import { mockEvents, mockProfile, mockPaymentInfo, Event, UserProfile, PaymentInfo } from "@/data/mockData";
 
-interface DashboardViewProps {
-  onLogout: () => void;
-  onSelectEvent: (event: Event) => void;
-  onCreateEvent: () => void;
-  onEditEvent: (event: Event) => void;
-  onPreviewEvent: (event: Event) => void;
-}
-
-const DashboardView = ({
-  onLogout,
-  onSelectEvent,
-  onCreateEvent,
-  onEditEvent,
-  onPreviewEvent,
-}: DashboardViewProps) => {
+const DashboardView = () => {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const onLogout = () => { logout(); navigate("/login"); };
+  const onSelectEvent = (event: Event) => navigate(`/events/${event.id}/overview`);
+  const onCreateEvent = () => navigate("/events/new");
+  const onEditEvent = (event: Event) => navigate(`/events/${event.id}/edit`);
+  const onPreviewEvent = (event: Event) => navigate(`/events/${event.id}/preview`);
   const [profile, setProfile] = useState<UserProfile>(mockProfile);
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(mockPaymentInfo);
   const [profileModalOpen, setProfileModalOpen] = useState(false);

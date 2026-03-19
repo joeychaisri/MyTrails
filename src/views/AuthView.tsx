@@ -1,18 +1,18 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Logo from "@/components/Logo";
 import heroImage from "@/assets/hero-trail.jpg";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface AuthViewProps {
-  onLogin: (role: "organizer" | "admin") => void;
-}
-
-const AuthView = ({ onLogin }: AuthViewProps) => {
+const AuthView = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +20,8 @@ const AuthView = ({ onLogin }: AuthViewProps) => {
     const role = loginEmail.trim().toLowerCase() === "admin@mytrails.com" ? "admin" : "organizer";
     setTimeout(() => {
       setIsLoading(false);
-      onLogin(role);
+      login(role);
+      navigate(role === "admin" ? "/admin" : "/dashboard");
     }, 800);
   };
 

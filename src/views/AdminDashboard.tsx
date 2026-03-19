@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   ClipboardCheck,
@@ -37,10 +39,6 @@ import { cn } from "@/lib/utils";
 
 type AdminPage = "overview" | "approvals" | "financials" | "users" | "settings";
 
-interface AdminDashboardProps {
-  onLogout: () => void;
-}
-
 const sidebarItems: { id: AdminPage; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard },
   { id: "approvals", label: "Event Approvals", icon: ClipboardCheck },
@@ -57,7 +55,10 @@ const breadcrumbLabels: Record<AdminPage, string> = {
   settings: "Settings",
 };
 
-const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
+const AdminDashboard = () => {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const onLogout = () => { logout(); navigate("/login"); };
   const [activePage, setActivePage] = useState<AdminPage>("overview");
   const [events, setEvents] = useState<AdminEvent[]>(mockAdminEvents);
   const [organizers, setOrganizers] = useState<AdminOrganizer[]>(mockAdminOrganizers);

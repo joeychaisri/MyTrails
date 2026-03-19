@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -91,6 +92,7 @@ import {
   Participant,
   OrderStatus,
   PaymentMethod,
+  mockEvents,
   mockOrders,
   mockParticipants,
   mockDiscountCodes,
@@ -103,12 +105,6 @@ import {
   shirtSizeBreakdown,
   shuttleBusSeats,
 } from "@/data/mockData";
-
-interface EventManagerHubProps {
-  event: Event;
-  onBack: () => void;
-  onEditWizard: () => void;
-}
 
 type HubSection = "overview" | "overview2" | "orders" | "participants" | "merchandise" | "promotions" | "broadcast" | "settings";
 
@@ -125,8 +121,13 @@ const sidebarItems: { id: HubSection; label: string; icon: typeof BarChart3 }[] 
 
 const COLORS = ["#E85D04", "#F97316", "#FB923C", "#34D399", "#6EE7B7"];
 
-const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) => {
-  const [activeSection, setActiveSection] = useState<HubSection>("overview");
+const EventManagerHub = () => {
+  const { id, section } = useParams<{ id: string; section: string }>();
+  const navigate = useNavigate();
+  const event = mockEvents.find((e) => e.id === id);
+  const activeSection = ((section ?? "overview") as HubSection);
+  const onBack = () => navigate("/dashboard");
+  const onEditWizard = () => navigate(`/events/${id}/edit`);
   const [participantFilter, setParticipantFilter] = useState("all");
   const [participantSearch, setParticipantSearch] = useState("");
   const [genderFilter, setGenderFilter] = useState("all");
@@ -1761,7 +1762,7 @@ const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) 
               {sidebarItems.map((item) => (
                 <li key={item.id}>
                   <button
-                    onClick={() => setActiveSection(item.id)}
+                    onClick={() => navigate(`/events/${id}/${item.id}`)}
                     className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                       activeSection === item.id
                         ? "bg-primary/10 text-primary font-medium"
@@ -1783,7 +1784,7 @@ const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) 
             {sidebarItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => navigate(`/events/${id}/${item.id}`)}
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-colors ${
                   activeSection === item.id
                     ? "bg-primary/10 text-primary font-medium"

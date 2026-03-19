@@ -1,3 +1,4 @@
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -9,18 +10,17 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Calendar, MapPin, Mountain, Clock, Award, ChevronDown } from "lucide-react";
 import Logo from "@/components/Logo";
-import { Event } from "@/data/mockData";
+import { mockEvents } from "@/data/mockData";
 import { format } from "date-fns";
 import heroImage from "@/assets/hero-trail.jpg";
 import { useState } from "react";
 
-interface PublicEventPageProps {
-  event: Event;
-  onBack: () => void;
-}
-
-const PublicEventPage = ({ event, onBack }: PublicEventPageProps) => {
-  const [selectedCategory, setSelectedCategory] = useState(event.categories[0]?.id || "");
+const PublicEventPage = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const onBack = () => navigate(-1);
+  const event = mockEvents.find((e) => e.id === id);
+  const [selectedCategory, setSelectedCategory] = useState(event?.categories[0]?.id || "");
   const [selectedTicket, setSelectedTicket] = useState("");
 
   const formatCurrency = (amount: number) => {

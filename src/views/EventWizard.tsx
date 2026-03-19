@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,14 +44,7 @@ import {
 } from "lucide-react";
 import Logo from "@/components/Logo";
 import PaymentModal from "@/components/PaymentModal";
-import { Event, Category, Ticket, Checkpoint, mockProfile, mockPaymentInfo, PaymentInfo } from "@/data/mockData";
-
-interface EventWizardProps {
-  event?: Event;
-  onBack: () => void;
-  onComplete: () => void;
-  onLogout?: () => void;
-}
+import { Event, Category, Ticket, Checkpoint, mockProfile, mockPaymentInfo, mockEvents, PaymentInfo } from "@/data/mockData";
 
 type WizardStep = 1 | 2 | 3 | 4;
 
@@ -88,7 +83,14 @@ const defaultGear = [
   "Trail Running Shoes",
 ];
 
-const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) => {
+const EventWizard = () => {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const event = id ? mockEvents.find((e) => e.id === id) : undefined;
+  const onBack = () => navigate("/dashboard");
+  const onComplete = () => navigate("/dashboard");
+  const onLogout = () => { logout(); navigate("/login"); };
   const profile = mockProfile;
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(mockPaymentInfo);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
