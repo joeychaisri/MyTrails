@@ -744,14 +744,40 @@ const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) 
           setSelectedOrderIds(new Set());
         };
 
+        const exportCSV = () => {
+          const headers = ["Order ID", "Buyer Name", "Email", "Category", "Ticket Type", "Payment Method", "Amount (THB)", "Status", "Timestamp", "Note"];
+          const rows = filteredOrders.map((o) => [
+            o.id,
+            o.buyerName,
+            o.buyerEmail,
+            o.category,
+            o.ticketType,
+            o.paymentMethod,
+            o.amount,
+            ORDER_STATUS_LABEL[o.status],
+            o.timestamp,
+            o.note,
+          ]);
+          const csv = [headers, ...rows]
+            .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+            .join("\n");
+          const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+
         return (
           <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground">Transaction History</h3>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={exportCSV}>
                 <Download className="mr-2 h-4 w-4" />
-                Export
+                Export {filteredOrders.length > 0 && `(${filteredOrders.length})`}
               </Button>
             </div>
 
