@@ -50,6 +50,14 @@ import {
   ChevronDown,
   ChevronsUpDown,
   MoreHorizontal,
+  Eye,
+  Phone,
+  Mail,
+  User,
+  Hash,
+  Receipt,
+  RotateCcw,
+  ArrowRightLeft,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -138,6 +146,11 @@ const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) 
   const [revenueFilter, setRevenueFilter] = useState<"week" | "month" | "custom">("week");
   const [customRevenueRange, setCustomRevenueRange] = useState<DateRange | undefined>();
   const [customPickerOpen, setCustomPickerOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderPaymentFilter, setOrderPaymentFilter] = useState<"all" | PaymentMethod>("all");
+  const [orderCategoryFilter, setOrderCategoryFilter] = useState("all");
+  const [orderTicketFilter, setOrderTicketFilter] = useState("all");
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("th-TH", {
@@ -672,6 +685,9 @@ const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) 
         const startOf7Days = new Date(startOfToday); startOf7Days.setDate(startOf7Days.getDate() - 6);
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+        const uniqueCategories = [...new Set(orders.map((o) => o.category))].sort();
+        const uniqueTicketTypes = [...new Set(orders.map((o) => o.ticketType))].sort();
+
         const filteredOrders = orders.filter((o) => {
           const matchesFilter = ORDER_FILTER[orderFilter]?.(o.status) ?? true;
           const q = orderSearch.toLowerCase();
@@ -694,8 +710,39 @@ const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) 
               : new Date(from.getTime() + 86400000);
             matchesDate = orderDate >= from && orderDate < to;
           }
-          return matchesFilter && matchesSearch && matchesDate;
+          const matchesPayment = orderPaymentFilter === "all" || o.paymentMethod === orderPaymentFilter;
+          const matchesCategory = orderCategoryFilter === "all" || o.category === orderCategoryFilter;
+          const matchesTicket = orderTicketFilter === "all" || o.ticketType === orderTicketFilter;
+          return matchesFilter && matchesSearch && matchesDate && matchesPayment && matchesCategory && matchesTicket;
         });
+
+        const allFilteredSelected = filteredOrders.length > 0 && filteredOrders.every((o) => selectedOrderIds.has(o.id));
+        const someFilteredSelected = filteredOrders.some((o) => selectedOrderIds.has(o.id));
+
+        const toggleSelectAll = () => {
+          setSelectedOrderIds((prev) => {
+            const next = new Set(prev);
+            if (allFilteredSelected) {
+              filteredOrders.forEach((o) => next.delete(o.id));
+            } else {
+              filteredOrders.forEach((o) => next.add(o.id));
+            }
+            return next;
+          });
+        };
+
+        const toggleSelectOrder = (id: string) => {
+          setSelectedOrderIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+          });
+        };
+
+        const bulkUpdateStatus = (newStatus: OrderStatus) => {
+          setOrders((prev) => prev.map((o) => selectedOrderIds.has(o.id) ? { ...o, status: newStatus } : o));
+          setSelectedOrderIds(new Set());
+        };
 
         return (
           <div className="space-y-4">
@@ -783,6 +830,48 @@ const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) 
               </div>
             </div>
 
+            {/* Secondary Filters */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={orderPaymentFilter} onValueChange={(v) => setOrderPaymentFilter(v as "all" | PaymentMethod)}>
+                <SelectTrigger className="h-8 w-[130px] bg-card text-xs">
+                  <SelectValue placeholder="Payment" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  <SelectItem value="all">All Payments</SelectItem>
+                  <SelectItem value="Stripe">Stripe</SelectItem>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="VIP">VIP</SelectItem>
+                  <SelectItem value="Sponsor">Sponsor</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={orderCategoryFilter} onValueChange={setOrderCategoryFilter}>
+                <SelectTrigger className="h-8 w-[140px] bg-card text-xs">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {uniqueCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={orderTicketFilter} onValueChange={setOrderTicketFilter}>
+                <SelectTrigger className="h-8 w-[140px] bg-card text-xs">
+                  <SelectValue placeholder="Ticket Type" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  <SelectItem value="all">All Tickets</SelectItem>
+                  {uniqueTicketTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {(orderPaymentFilter !== "all" || orderCategoryFilter !== "all" || orderTicketFilter !== "all") && (
+                <button
+                  onClick={() => { setOrderPaymentFilter("all"); setOrderCategoryFilter("all"); setOrderTicketFilter("all"); }}
+                  className="h-8 rounded-lg px-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+
             {/* Filter Tabs + Search */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <Tabs value={orderFilter} onValueChange={setOrderFilter}>
@@ -807,11 +896,175 @@ const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) 
               </div>
             </div>
 
+            {/* Order Detail Modal */}
+            {selectedOrder && (() => {
+              const o = selectedOrder;
+              const linkedParticipant = participants.find(
+                (p) => p.email.toLowerCase() === o.buyerEmail.toLowerCase()
+              );
+              return (
+                <Dialog open={!!selectedOrder} onOpenChange={(open) => { if (!open) setSelectedOrder(null); }}>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <DialogTitle className="font-mono text-lg">{o.id}</DialogTitle>
+                          <p className="mt-0.5 text-sm text-muted-foreground">{o.timestamp}</p>
+                        </div>
+                        <span className={`mt-1 inline-flex rounded-full px-3 py-1 text-xs font-medium ${ORDER_STATUS_COLOR[o.status]}`}>
+                          {ORDER_STATUS_LABEL[o.status]}
+                        </span>
+                      </div>
+                    </DialogHeader>
+
+                    <div className="mt-4 space-y-5">
+                      {/* Buyer + Participant */}
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        {/* Buyer */}
+                        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2.5">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ผู้ซื้อ</p>
+                          <div className="flex items-center gap-2 text-sm">
+                            <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="font-medium">{o.buyerName}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-muted-foreground break-all">{o.buyerEmail}</span>
+                          </div>
+                          {linkedParticipant && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className="text-muted-foreground">{linkedParticipant.phone}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Order Info */}
+                        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2.5">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">รายละเอียดการสมัคร</p>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Hash className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span>
+                              {linkedParticipant?.bibNo
+                                ? <span className="font-mono font-medium">BIB #{linkedParticipant.bibNo}</span>
+                                : <span className="text-muted-foreground">ยังไม่มี BIB</span>}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="h-3.5 w-3.5 text-muted-foreground text-xs font-bold shrink-0">🏃</span>
+                            <span>{o.category}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-muted-foreground">{o.ticketType}</span>
+                          </div>
+                          {linkedParticipant && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Shirt className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className="text-muted-foreground">Shirt: {linkedParticipant.shirtSize}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Payment */}
+                      <div className="rounded-lg border border-border bg-muted/30 p-4">
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">การชำระเงิน</p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${PAYMENT_METHOD_COLOR[o.paymentMethod]}`}>
+                              {o.paymentMethod}
+                            </span>
+                          </div>
+                          <span className="text-xl font-bold text-foreground">{formatCurrency(o.amount)}</span>
+                        </div>
+                      </div>
+
+                      {/* Status Change */}
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">เปลี่ยนสถานะ</Label>
+                        <Select
+                          value={o.status}
+                          onValueChange={(val) => {
+                            updateOrderStatus(o.id, val as OrderStatus);
+                            setSelectedOrder({ ...o, status: val as OrderStatus });
+                          }}
+                        >
+                          <SelectTrigger className="bg-background">
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ORDER_STATUS_COLOR[o.status]}`}>
+                              {ORDER_STATUS_LABEL[o.status]}
+                            </span>
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover max-h-64 overflow-y-auto">
+                            {ALL_STATUSES.map((s) => (
+                              <SelectItem key={s} value={s} className="text-xs">
+                                <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ORDER_STATUS_COLOR[s]}`}>
+                                  {ORDER_STATUS_LABEL[s]}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Note */}
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Note (internal)</Label>
+                        <Textarea
+                          value={o.note}
+                          onChange={(e) => {
+                            updateOrderNote(o.id, e.target.value);
+                            setSelectedOrder({ ...o, note: e.target.value });
+                          }}
+                          placeholder="เพิ่ม note สำหรับ order นี้..."
+                          rows={2}
+                          className="bg-background text-sm"
+                        />
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex flex-wrap gap-2 pt-1 border-t border-border">
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          Refund
+                        </Button>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <ArrowRightLeft className="h-3.5 w-3.5" />
+                          เปลี่ยนระยะวิ่ง
+                        </Button>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <Receipt className="h-3.5 w-3.5" />
+                          Issue Tax Invoice
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-auto text-muted-foreground"
+                          onClick={() => setSelectedOrder(null)}
+                        >
+                          ปิด
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              );
+            })()}
+
             {/* Table */}
             <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <input
+                        type="checkbox"
+                        checked={allFilteredSelected}
+                        ref={(el) => { if (el) el.indeterminate = someFilteredSelected && !allFilteredSelected; }}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                      />
+                    </TableHead>
                     <TableHead>Order ID</TableHead>
                     <TableHead>Buyer</TableHead>
                     <TableHead>Category</TableHead>
@@ -826,10 +1079,22 @@ const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) 
                 <TableBody>
                   {filteredOrders.length === 0 ? (
                     <TableRow>
-                      <td colSpan={9} className="py-8 text-center text-sm text-muted-foreground">No orders found</td>
+                      <td colSpan={10} className="py-8 text-center text-sm text-muted-foreground">No orders found</td>
                     </TableRow>
                   ) : filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
+                    <TableRow
+                      key={order.id}
+                      className={`cursor-pointer transition-colors ${selectedOrderIds.has(order.id) ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/30"}`}
+                      onClick={() => setSelectedOrder(order)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedOrderIds.has(order.id)}
+                          onChange={() => toggleSelectOrder(order.id)}
+                          className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                        />
+                      </TableCell>
                       <TableCell className="font-mono text-sm">{order.id}</TableCell>
                       <TableCell>
                         <div>
@@ -844,7 +1109,7 @@ const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) 
                         </span>
                       </TableCell>
                       <TableCell>{formatCurrency(order.amount)}</TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Select
                           value={order.status}
                           onValueChange={(val) => updateOrderStatus(order.id, val as OrderStatus)}
@@ -866,7 +1131,7 @@ const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) 
                         </Select>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{order.timestamp}</TableCell>
-                      <TableCell className="min-w-[160px]">
+                      <TableCell className="min-w-[160px]" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="text"
                           value={order.note}
@@ -875,7 +1140,7 @@ const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) 
                           className="w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-foreground placeholder:text-muted-foreground/50 hover:border-border focus:border-border focus:outline-none focus:ring-1 focus:ring-primary/50"
                         />
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -903,6 +1168,38 @@ const EventManagerHub = ({ event, onBack, onEditWizard }: EventManagerHubProps) 
                 </TableBody>
               </Table>
             </div>
+
+            {/* Bulk Action Bar */}
+            {selectedOrderIds.size > 0 && (
+              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-xl">
+                <span className="text-sm font-medium text-foreground whitespace-nowrap">
+                  เลือก {selectedOrderIds.size} orders
+                </span>
+                <div className="h-4 w-px bg-border" />
+                <Select onValueChange={(val) => bulkUpdateStatus(val as OrderStatus)}>
+                  <SelectTrigger className="h-8 w-[200px] bg-background text-xs">
+                    <SelectValue placeholder="เปลี่ยนสถานะ..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover max-h-64 overflow-y-auto">
+                    {ALL_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s} className="text-xs">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ORDER_STATUS_COLOR[s]}`}>
+                          {ORDER_STATUS_LABEL[s]}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setSelectedOrderIds(new Set())}
+                >
+                  ยกเลิก
+                </Button>
+              </div>
+            )}
           </div>
         );
       }
