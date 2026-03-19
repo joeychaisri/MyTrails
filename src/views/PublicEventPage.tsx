@@ -124,7 +124,7 @@ const PublicEventPage = ({ event, onBack }: PublicEventPageProps) => {
                             </div>
                             <div>
                               <p className="text-sm text-muted-foreground">Cut-off</p>
-                              <p className="font-semibold">{cat.cutoff}</p>
+                              <p className="font-semibold">{cat.cutoffTime} ({cat.cutoffHours} hrs)</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-3">

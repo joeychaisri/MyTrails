@@ -119,12 +119,17 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
         nameTh: "50K เทรล",
         raceDate: "",
         startTime: "",
+        startLocationName: "",
+        startLat: 0,
+        startLng: 0,
         distance: 50,
         elevation: 2000,
         elevationLoss: 1800,
         terrainType: "",
         itra: 4,
-        cutoff: "12:00:00",
+        utmbIndex: 0,
+        cutoffTime: "",
+        cutoffHours: 0,
         checkpoints: [],
         mandatoryGear: ["Headlamp", "Water 1L"],
         tickets: [],
@@ -142,12 +147,17 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
       nameTh: "",
       raceDate: "",
       startTime: "",
+      startLocationName: "",
+      startLat: 0,
+      startLng: 0,
       distance: 0,
       elevation: 0,
       elevationLoss: 0,
       terrainType: "",
       itra: 0,
-      cutoff: "",
+      utmbIndex: 0,
+      cutoffTime: "",
+      cutoffHours: 0,
       checkpoints: [],
       mandatoryGear: [],
       tickets: [],
@@ -454,7 +464,7 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
                 </div>
 
                 {/* Race Date & Time */}
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Race Date</Label>
                     <Input
@@ -471,72 +481,138 @@ const EventWizard = ({ event, onBack, onComplete, onLogout }: EventWizardProps) 
                       onChange={(e) => updateCategory(activeCategory, { startTime: e.target.value })}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Cut-off Time</Label>
-                    <Input
-                      placeholder="24:00:00"
-                      value={categories[activeCategory].cutoff}
-                      onChange={(e) => updateCategory(activeCategory, { cutoff: e.target.value })}
-                    />
+                </div>
+
+                {/* Start Location */}
+                <div className="space-y-3">
+                  <Label>Start Location</Label>
+                  <Input
+                    placeholder="e.g. Doi Inthanon National Park HQ"
+                    value={categories[activeCategory].startLocationName}
+                    onChange={(e) => updateCategory(activeCategory, { startLocationName: e.target.value })}
+                  />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Latitude</Label>
+                      <Input
+                        type="number"
+                        step="0.0001"
+                        placeholder="18.5881"
+                        value={categories[activeCategory].startLat || ""}
+                        onChange={(e) => updateCategory(activeCategory, { startLat: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Longitude</Label>
+                      <Input
+                        type="number"
+                        step="0.0001"
+                        placeholder="98.4864"
+                        value={categories[activeCategory].startLng || ""}
+                        onChange={(e) => updateCategory(activeCategory, { startLng: Number(e.target.value) })}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* Distance & Elevation */}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                  <div className="space-y-2">
-                    <Label>Distance (km)</Label>
-                    <Input
-                      type="number"
-                      placeholder="100"
-                      value={categories[activeCategory].distance || ""}
-                      onChange={(e) => updateCategory(activeCategory, { distance: Number(e.target.value) })}
-                    />
+                {/* Cutoff */}
+                <div className="space-y-2">
+                  <Label>Cut-off</Label>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Clock time (HH:MM)</span>
+                      <Input
+                        type="time"
+                        value={categories[activeCategory].cutoffTime}
+                        onChange={(e) => updateCategory(activeCategory, { cutoffTime: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Hours limit from start</span>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          placeholder="24"
+                          value={categories[activeCategory].cutoffHours || ""}
+                          onChange={(e) => updateCategory(activeCategory, { cutoffHours: Number(e.target.value) })}
+                          className="pr-10"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">hrs</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Accumulative Elevation Gain (m)</Label>
-                    <Input
-                      type="number"
-                      placeholder="5200"
-                      value={categories[activeCategory].elevation || ""}
-                      onChange={(e) => updateCategory(activeCategory, { elevation: Number(e.target.value) })}
-                    />
+                </div>
+
+                {/* Course Metrics */}
+                <div className="space-y-3">
+                  <Label>Course Metrics</Label>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Distance (km)</Label>
+                      <Input
+                        type="number"
+                        placeholder="100"
+                        value={categories[activeCategory].distance || ""}
+                        onChange={(e) => updateCategory(activeCategory, { distance: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Elevation Gain (m)</Label>
+                      <Input
+                        type="number"
+                        placeholder="5200"
+                        value={categories[activeCategory].elevation || ""}
+                        onChange={(e) => updateCategory(activeCategory, { elevation: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Elevation Loss (m)</Label>
+                      <Input
+                        type="number"
+                        placeholder="5100"
+                        value={categories[activeCategory].elevationLoss || ""}
+                        onChange={(e) => updateCategory(activeCategory, { elevationLoss: Number(e.target.value) })}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Elevation Loss (m)</Label>
-                    <Input
-                      type="number"
-                      placeholder="5100"
-                      value={categories[activeCategory].elevationLoss || ""}
-                      onChange={(e) => updateCategory(activeCategory, { elevationLoss: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Terrain Type</Label>
-                    <Select
-                      value={categories[activeCategory].terrainType}
-                      onValueChange={(v) => updateCategory(activeCategory, { terrainType: v })}
-                    >
-                      <SelectTrigger className="bg-background">
-                        <SelectValue placeholder="Select terrain" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover">
-                        <SelectItem value="Mountain Trail">Mountain Trail</SelectItem>
-                        <SelectItem value="Forest Trail">Forest Trail</SelectItem>
-                        <SelectItem value="Desert Trail">Desert Trail</SelectItem>
-                        <SelectItem value="Coastal Trail">Coastal Trail</SelectItem>
-                        <SelectItem value="Mixed Terrain">Mixed Terrain</SelectItem>
-                        <SelectItem value="Road & Trail">Road & Trail</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>ITRA Points</Label>
-                    <Input
-                      type="number"
-                      placeholder="8"
-                      value={categories[activeCategory].itra || ""}
-                      onChange={(e) => updateCategory(activeCategory, { itra: Number(e.target.value) })}
-                    />
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Terrain Type</Label>
+                      <Select
+                        value={categories[activeCategory].terrainType}
+                        onValueChange={(v) => updateCategory(activeCategory, { terrainType: v })}
+                      >
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Select terrain" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover">
+                          <SelectItem value="Mountain Trail">Mountain Trail</SelectItem>
+                          <SelectItem value="Forest Trail">Forest Trail</SelectItem>
+                          <SelectItem value="Desert Trail">Desert Trail</SelectItem>
+                          <SelectItem value="Coastal Trail">Coastal Trail</SelectItem>
+                          <SelectItem value="Mixed Terrain">Mixed Terrain</SelectItem>
+                          <SelectItem value="Road & Trail">Road & Trail</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">ITRA Points</Label>
+                      <Input
+                        type="number"
+                        placeholder="8"
+                        value={categories[activeCategory].itra || ""}
+                        onChange={(e) => updateCategory(activeCategory, { itra: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">UTMB Index</Label>
+                      <Input
+                        type="number"
+                        placeholder="6"
+                        value={categories[activeCategory].utmbIndex || ""}
+                        onChange={(e) => updateCategory(activeCategory, { utmbIndex: Number(e.target.value) })}
+                      />
+                    </div>
                   </div>
                 </div>
 
