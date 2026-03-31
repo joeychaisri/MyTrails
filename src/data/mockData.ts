@@ -105,6 +105,13 @@ export interface Participant {
   itraId: string;
 }
 
+export interface DiscountCodeUsage {
+  name: string;
+  email: string;
+  usedAt: string;
+  orderId: string;
+}
+
 export interface DiscountCode {
   id: string;
   code: string;
@@ -113,6 +120,9 @@ export interface DiscountCode {
   usageLimit: number;
   used: number;
   validUntil: string;
+  isActive: boolean;
+  categories: string[];
+  usages: DiscountCodeUsage[];
 }
 
 export interface UserProfile {
@@ -410,9 +420,32 @@ export const mockParticipants: Participant[] = [
 ];
 
 export const mockDiscountCodes: DiscountCode[] = [
-  { id: "dc1", code: "EARLYBIRD20", discount: 20, type: "percentage", usageLimit: 100, used: 67, validUntil: "2025-02-28" },
-  { id: "dc2", code: "GROUPRUN", discount: 500, type: "fixed", usageLimit: 50, used: 12, validUntil: "2025-03-10" },
-  { id: "dc3", code: "TRAIL2025", discount: 15, type: "percentage", usageLimit: 200, used: 45, validUntil: "2025-03-15" },
+  {
+    id: "dc1", code: "EARLYBIRD20", discount: 20, type: "percentage", usageLimit: 100, used: 67,
+    validUntil: "2026-06-30", isActive: true, categories: [],
+    usages: [
+      { name: "Somchai Jaidee", email: "somchai.j@email.com", usedAt: "2026-01-15", orderId: "ORD-0012" },
+      { name: "Malee Srisin", email: "malee.s@email.com", usedAt: "2026-01-18", orderId: "ORD-0041" },
+      { name: "Wanchai Promma", email: "wanchai.p@email.com", usedAt: "2026-01-20", orderId: "ORD-0073" },
+      { name: "Nuttaporn Chai", email: "nuttaporn.c@email.com", usedAt: "2026-01-22", orderId: "ORD-0088" },
+    ],
+  },
+  {
+    id: "dc2", code: "GROUPRUN", discount: 500, type: "fixed", usageLimit: 50, used: 12,
+    validUntil: "2026-07-15", isActive: true, categories: ["100K", "50K"],
+    usages: [
+      { name: "Nattawut Kaewmanee", email: "nattawut.k@email.com", usedAt: "2026-02-01", orderId: "ORD-0120" },
+      { name: "Panida Sukhon", email: "panida.s@email.com", usedAt: "2026-02-03", orderId: "ORD-0154" },
+      { name: "Theerawat Boon", email: "theerawat.b@email.com", usedAt: "2026-02-05", orderId: "ORD-0162" },
+    ],
+  },
+  {
+    id: "dc3", code: "TRAIL2025", discount: 15, type: "percentage", usageLimit: 200, used: 45,
+    validUntil: "2025-12-31", isActive: false, categories: ["25K"],
+    usages: [
+      { name: "Apinya Wongchai", email: "apinya.w@email.com", usedAt: "2025-10-12", orderId: "ORD-0205" },
+    ],
+  },
 ];
 
 export const shirtSizeBreakdown = {
