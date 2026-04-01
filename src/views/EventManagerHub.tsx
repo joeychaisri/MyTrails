@@ -123,7 +123,7 @@ type HubSection = "overview2" | "overview3" | "orders" | "participants" | "bib" 
 
 const sidebarItems: { id: HubSection; label: string; icon: typeof BarChart3 }[] = [
   { id: "overview2", label: "Race Operations", icon: Activity },
-  { id: "overview3", label: "Race Ops (New ✦)", icon: Sparkles },
+  { id: "overview3", label: "Race Operations 2", icon: Sparkles },
   { id: "orders", label: "Orders (Finance)", icon: DollarSign },
   { id: "participants", label: "Participants", icon: Users },
   { id: "bib", label: "BIB Assignment", icon: Hash },
@@ -631,7 +631,7 @@ const EventManagerHub = () => {
         const maxNat3 = Math.max(...natTop5_3.map(([, c]) => c), 1);
 
         const countryFlags3: Record<string, string> = { TH: "🇹🇭", JP: "🇯🇵", US: "🇺🇸", SG: "🇸🇬", DE: "🇩🇪", AU: "🇦🇺", GB: "🇬🇧", CN: "🇨🇳", KR: "🇰🇷", HK: "🇭🇰" };
-        const countryNames3: Record<string, string> = { TH: "Thailand", JP: "Japan", US: "United States", SG: "Singapore", DE: "Germany", AU: "Australia", GB: "United Kingdom", CN: "China", KR: "South Korea", HK: "Hong Kong" };
+        const countryNames3: Record<string, string> = { TH: "Thailand", JP: "Japan", US: "United States", SG: "Singapore", DE: "Germany", AU: "Australia", GB: "United Kingdom", CN: "China", KR: "South Korea", HK: "Hong Kong", FR: "France", MY: "Malaysia", PH: "Philippines", NZ: "New Zealand", CA: "Canada", ZA: "South Africa" };
 
         const shirtEntries3 = Object.entries(shirtSizeBreakdown).map(([size, ev]) => ({
           size, Event: ev, Finisher: finisherShirtSizeBreakdown[size as keyof typeof finisherShirtSizeBreakdown] ?? 0,
@@ -644,6 +644,12 @@ const EventManagerHub = () => {
 
         const raceDate3 = new Date(event.date);
         const daysToRace3 = Math.ceil((raceDate3.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+        const refundedAmount3 = orders
+          .filter((o) => o.status === "refunded" || o.status === "refunded_receipt_issued")
+          .reduce((s, o) => s + o.amount, 0);
+        const pendingPayments3 = orders.filter((o) => o.status === "pending_cash" || o.status === "pending").length;
+        const netRevenue3 = event.revenue - refundedAmount3;
 
         const revData3 = revenueFilter === "week" ? revenueWeeklyData : revenueFilter === "month" ? revenueMonthlyData : revenueData;
 
@@ -668,74 +674,30 @@ const EventManagerHub = () => {
 
         return (
           <div className="space-y-6">
-            {/* Banner */}
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
-                <Sparkles className="h-3 w-3" /> New Design Preview
-              </span>
-              <span className="text-xs text-muted-foreground">เทียบกับแท็บ "Race Operations" เดิมได้เลย</span>
-            </div>
-
-            {/* 4 Stats Cards */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl border border-border bg-card p-4 shadow-card">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Revenue</p>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: `${PRIMARY_C}1A` }}>
-                    <DollarSign className="h-4 w-4" style={{ color: PRIMARY_C }} />
-                  </div>
-                </div>
-                <p className="text-2xl font-bold text-card-foreground">{formatCurrency(event.revenue)}</p>
-                <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                  <TrendingUp className="h-3 w-3 text-[#2D9166]" /><span className="text-[#2D9166] font-medium">Revenue</span> จากทุก category
-                </p>
+            {/* KPI Cards */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              {/* Net Revenue */}
+              <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Net Revenue</p>
+                <p className="mt-2 text-2xl font-bold text-card-foreground">{formatCurrency(netRevenue3)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">after refunds</p>
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-4 shadow-card">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tickets Sold</p>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: `${MALE_C}1A` }}>
-                    <Users className="h-4 w-4" style={{ color: MALE_C }} />
-                  </div>
-                </div>
-                <p className="text-2xl font-bold text-card-foreground">
-                  {event.sold} <span className="text-base font-normal text-muted-foreground">/ {event.capacity}</span>
-                </p>
+              {/* Fill Rate */}
+              <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fill Rate</p>
+                <p className="mt-2 text-2xl font-bold text-card-foreground">{overallPct3}%</p>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.round(event.sold / event.capacity * 100)}%`, background: MALE_C }} />
+                  <div className="h-full rounded-full transition-all" style={{ width: `${overallPct3}%`, background: PRIMARY_C }} />
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {Math.round(event.sold / event.capacity * 100)}% filled · {event.capacity - event.sold} remaining
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{overallSold3.toLocaleString()} / {overallCap3.toLocaleString()} · {(overallCap3 - overallSold3).toLocaleString()} left</p>
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-4 shadow-card flex items-center gap-3">
-                <div className="relative h-[60px] w-[60px] shrink-0">
-                  <PieChart width={60} height={60}>
-                    <Pie data={donutData3} cx={28} cy={28} innerRadius={20} outerRadius={28} startAngle={90} endAngle={-270} dataKey="value" strokeWidth={0}>
-                      <Cell fill={PRIMARY_C} />
-                      <Cell fill="hsl(220,14%,93%)" />
-                    </Pie>
-                  </PieChart>
-                  <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-foreground">{overallPct3}%</span>
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fill Rate</p>
-                  <p className="text-lg font-bold text-card-foreground">{overallSold3} <span className="text-sm font-normal text-muted-foreground">/ {overallCap3}</span></p>
-                  <p className="text-xs text-muted-foreground">{overallCap3 - overallSold3} slots left</p>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-4 shadow-card">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Race Day</p>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning/10">
-                    <CalendarDays className="h-4 w-4 text-warning" />
-                  </div>
-                </div>
-                <p className="text-2xl font-bold text-card-foreground">
-                  {daysToRace3 > 0 ? daysToRace3 : "—"}{" "}
-                  <span className="text-base font-normal text-muted-foreground">{daysToRace3 > 0 ? "days" : ""}</span>
+              {/* Race Countdown */}
+              <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Race Day</p>
+                <p className="mt-2 text-2xl font-bold text-card-foreground">
+                  {daysToRace3 > 0 ? `${daysToRace3} days` : "Today"}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">{format(raceDate3, "dd MMM yyyy")}</p>
               </div>
@@ -912,7 +874,7 @@ const EventManagerHub = () => {
                           return (
                             <div key={code} className={`flex items-center gap-3 px-6 py-3 hover:bg-muted/40 ${index !== natSorted3.length - 1 ? "border-b border-border/50" : ""}`}>
                               <span className="flex h-5 w-5 shrink-0 items-center justify-center text-[11px] text-muted-foreground">{index + 1}</span>
-                              <span className="text-[22px] leading-none">{countryFlags3[code] ?? "🏳️"}</span>
+                              <img src={`https://flagcdn.com/24x18/${code.toLowerCase()}.png`} width={24} height={18} alt={code} className="rounded-sm object-cover shadow-sm" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                               <div className="flex min-w-0 flex-1 flex-col gap-1">
                                 <div className="flex items-center justify-between gap-2">
                                   <span className="truncate text-sm font-medium text-foreground">{countryNames3[code] ?? code}</span>
