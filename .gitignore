@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local vite config variants
+vite.config.http.ts
+vite.config.ts.bak
