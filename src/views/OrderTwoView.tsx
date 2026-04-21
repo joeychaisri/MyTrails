@@ -26,6 +26,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Order, OrderStatus, Participant, PaymentMethod } from "@/data/mockData";
+import { calculateRefund, REFUND_POLICY } from "@/lib/refundPolicy";
 
 // ── constants ────────────────────────────────────────────────────────────────
 
@@ -638,5 +639,123 @@ export default function OrderTwoView({ orders, setOrders, participants }: Props)
 // ── sub-components (stubs — will be replaced in later tasks) ────────────────────
 
 function OrderDetailModal(_props: any) { return null; }
-function RefundCalculatorModal(_props: any) { return null; }
+interface RefundCalculatorProps {
+  order: Order;
+  onClose: () => void;
+  onConfirm: (id: string, refundAmount: number, requestDate: Date, rate: number) => void;
+  fmt: (n: number) => string;
+}
+
+function RefundCalculatorModal({ order, onClose, onConfirm, fmt }: RefundCalculatorProps) {
+  const [requestDate, setRequestDate] = useState<Date>(new Date());
+
+  const calc = calculateRefund(order.amount, requestDate);
+
+  const currentPeriodIndex = REFUND_POLICY.findIndex(
+    (p) => {
+      const d = new Date(requestDate.getFullYear(), requestDate.getMonth(), requestDate.getDate());
+      return d >= p.from && d <= p.to;
+    }
+  );
+  const nextPeriod = currentPeriodIndex >= 0 && currentPeriodIndex < REFUND_POLICY.length - 1
+    ? REFUND_POLICY[currentPeriodIndex + 1]
+    : null;
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>คำขอคืนเงิน — {order.id}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          {/* Order summary */}
+          <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-1">
+            <p className="font-medium">{order.buyerName}</p>
+            <p className="text-muted-foreground text-xs">{order.buyerEmail}</p>
+            <p className="text-xs text-muted-foreground">{order.category} · {order.ticketType} · {order.paymentMethod}</p>
+          </div>
+
+          {/* Request date picker */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              วันที่ลูกค้ายื่นคำขอ
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full justify-start text-sm font-normal">
+                  {format(requestDate, "dd/MM/yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-popover" align="start">
+                <Calendar
+                  mode="single"
+                  selected={requestDate}
+                  onSelect={(d) => d && setRequestDate(d)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Calculation breakdown */}
+          <div className="rounded-lg border border-border bg-muted/10 p-3 space-y-2 text-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">การคำนวณ</p>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">ยอดที่ชำระจริง</span>
+              <span>{fmt(order.amount)}</span>
+            </div>
+            <div className="flex justify-between text-destructive/80">
+              <span>หัก 5% ค่าธรรมเนียมระบบ</span>
+              <span>-{fmt(calc.paymentFee)}</span>
+            </div>
+            {calc.processingFee > 0 && (
+              <div className="flex justify-between text-destructive/80">
+                <span>หัก ค่าธรรมเนียมดำเนินการ</span>
+                <span>-{fmt(calc.processingFee)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-muted-foreground">
+              <span>อัตราคืนเงิน ({calc.canRefund ? `${Math.round(calc.refundRate * 100)}%` : "0%"})</span>
+              <span>{calc.canRefund ? `× ${Math.round(calc.refundRate * 100)}%` : "—"}</span>
+            </div>
+            <div className="border-t border-border pt-2 flex justify-between font-semibold text-base">
+              <span>ยอดที่จะคืน</span>
+              <span className={calc.canRefund ? "text-success" : "text-destructive"}>
+                {fmt(calc.refundAmount)}
+              </span>
+            </div>
+          </div>
+
+          {/* Period indicator */}
+          {calc.canRefund && calc.period ? (
+            <div className="rounded-lg bg-success/5 border border-success/20 px-3 py-2 text-xs space-y-0.5">
+              <p className="text-success font-medium">ช่วงเวลานี้: {calc.period.label}</p>
+              {nextPeriod && (
+                <p className="text-muted-foreground">
+                  Deadline ถัดไป: {format(nextPeriod.from, "d MMM yyyy")} → ลดเหลือ {Math.round(nextPeriod.rate * 100)}%
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-lg bg-destructive/5 border border-destructive/20 px-3 py-2 text-xs text-destructive">
+              ไม่สามารถคืนเงินได้ในช่วงเวลานี้ตามนโยบาย
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" className="flex-1" onClick={onClose}>ยกเลิก</Button>
+            <Button
+              className="flex-1"
+              disabled={!calc.canRefund || calc.refundAmount <= 0}
+              onClick={() => onConfirm(order.id, calc.refundAmount, requestDate, calc.refundRate)}
+            >
+              ยืนยัน → pending_refund
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 function DistanceChangeModal(_props: any) { return null; }
