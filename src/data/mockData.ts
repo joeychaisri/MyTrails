@@ -354,7 +354,7 @@ export const mockOrders: Order[] = [
     log: [
       { timestamp: "2025-01-14 16:20:00", type: "registration", description: "ลงทะเบียน 100K Ultra (Early Bird)" },
       { timestamp: "2025-01-14 16:20:05", type: "payment", description: "ชำระเงิน ฿2,500 via Stripe", amount: 2500 },
-      { timestamp: "2025-02-01 11:00:00", type: "refund_request", description: "ยื่นคำขอคืนเงิน ฿1,662 (70%) — วันที่ขอ 01/02/2025", amount: -1662 },
+      { timestamp: "2025-02-01 11:00:00", type: "refund_request", description: "ยื่นคำขอคืนเงิน ฿1,663 (70%) — วันที่ขอ 01/02/2025", amount: -1663 },
       { timestamp: "2025-02-05 09:00:00", type: "status_change", description: "สถานะเปลี่ยนเป็น Refunded" },
     ],
   },

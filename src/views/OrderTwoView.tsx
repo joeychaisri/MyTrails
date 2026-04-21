@@ -404,7 +404,15 @@ export default function OrderTwoView({ orders, setOrders, participants }: Props)
           onClose={() => setSelectedOrder(null)}
           onStatusChange={(id, status) => {
             updateOrderStatus(id, status);
-            setSelectedOrder((prev) => prev ? { ...prev, status } : null);
+            setSelectedOrder((prev) => prev ? {
+              ...prev,
+              status,
+              log: [...prev.log, {
+                timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
+                type: "status_change" as const,
+                description: `สถานะเปลี่ยนเป็น: ${ORDER_STATUS_LABEL[status]}`,
+              }],
+            } : null);
           }}
           onNoteChange={(id, note) => {
             updateOrderNote(id, note);
@@ -425,7 +433,15 @@ export default function OrderTwoView({ orders, setOrders, participants }: Props)
                 }],
               };
             }));
-            setSelectedOrder((prev) => prev ? { ...prev, slipUrl: url } : null);
+            setSelectedOrder((prev) => prev ? {
+              ...prev,
+              slipUrl: url,
+              log: [...prev.log, {
+                timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
+                type: "slip_uploaded" as const,
+                description: "อัปโหลดสลิปโอนเงิน",
+              }],
+            } : null);
           }}
           ORDER_STATUS_LABEL={ORDER_STATUS_LABEL}
           ORDER_STATUS_COLOR={ORDER_STATUS_COLOR}
@@ -853,7 +869,7 @@ function OrderDetailModal({
               <div className="relative pl-6 space-y-4">
                 <div className="absolute left-2 top-2 bottom-2 w-px bg-border" />
                 {[...order.log].reverse().map((entry, i) => (
-                  <div key={i} className="relative">
+                  <div key={entry.timestamp + entry.type} className="relative">
                     <div className="absolute -left-4 top-1 h-2 w-2 rounded-full bg-primary" />
                     <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-0.5">
                       <div className="flex items-center justify-between">
