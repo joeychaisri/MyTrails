@@ -74,6 +74,14 @@ export type OrderStatus =
 
 export type PaymentMethod = 'Stripe' | 'Cash' | 'VIP' | 'Sponsor';
 
+export interface OrderLogEntry {
+  timestamp: string;
+  type: 'registration' | 'payment' | 'status_change' | 'refund_request'
+       | 'distance_change' | 'document_issued' | 'slip_uploaded' | 'note';
+  description: string;
+  amount?: number;
+}
+
 export interface Order {
   id: string;
   buyerName: string;
@@ -85,6 +93,8 @@ export interface Order {
   ticketType: string;
   category: string;
   note: string;
+  slipUrl?: string;
+  log: OrderLogEntry[];
 }
 
 export interface Participant {
@@ -297,20 +307,148 @@ export const mockEvents: Event[] = [
 ];
 
 export const mockOrders: Order[] = [
-  { id: "ORD-001", buyerName: "Somchai Jaidee", buyerEmail: "somchai@email.com", amount: 2500, status: "complete_trc_issued", paymentMethod: "Stripe", timestamp: "2025-01-15 09:23:45", ticketType: "Early Bird", category: "100K Ultra", note: "" },
-  { id: "ORD-002", buyerName: "Sarah Johnson", buyerEmail: "sarah.j@email.com", amount: 3000, status: "complete_receipt_issued", paymentMethod: "Stripe", timestamp: "2025-01-15 10:15:32", ticketType: "Regular", category: "100K Ultra", note: "" },
-  { id: "ORD-003", buyerName: "Tanaka Yuki", buyerEmail: "yuki.t@email.jp", amount: 1500, status: "complete_crn_issued", paymentMethod: "Stripe", timestamp: "2025-01-16 14:45:00", ticketType: "Early Bird", category: "50K Trail", note: "" },
-  { id: "ORD-004", buyerName: "Prasert Wongsawat", buyerEmail: "prasert@email.com", amount: 1800, status: "complete_wait_trc", paymentMethod: "Stripe", timestamp: "2025-01-17 08:30:00", ticketType: "Regular", category: "50K Trail", note: "" },
-  { id: "ORD-005", buyerName: "Emma Wilson", buyerEmail: "emma.w@email.com", amount: 2500, status: "refunded", paymentMethod: "Stripe", timestamp: "2025-01-14 16:20:00", ticketType: "Early Bird", category: "100K Ultra", note: "Cancelled due to injury" },
-  { id: "ORD-006", buyerName: "David Chen", buyerEmail: "david.c@email.com", amount: 3000, status: "complete_vip", paymentMethod: "VIP", timestamp: "2025-01-18 11:00:00", ticketType: "VIP", category: "100K Ultra", note: "" },
-  { id: "ORD-007", buyerName: "Natthaporn Sae-tang", buyerEmail: "natthaporn@email.com", amount: 1800, status: "pending_cash", paymentMethod: "Cash", timestamp: "2025-01-18 15:30:00", ticketType: "Regular", category: "50K Trail", note: "Waiting for cash payment confirmation" },
-  { id: "ORD-008", buyerName: "Marcus Weber", buyerEmail: "marcus.w@email.de", amount: 2500, status: "issue_cash", paymentMethod: "Cash", timestamp: "2025-01-19 09:00:00", ticketType: "Early Bird", category: "100K Ultra", note: "Amount mismatch" },
-  { id: "ORD-009", buyerName: "Krit Pongpanich", buyerEmail: "krit.p@email.com", amount: 1200, status: "submitted", paymentMethod: "Stripe", timestamp: "2025-01-19 11:45:00", ticketType: "Early Bird", category: "25K Fun Run", note: "" },
-  { id: "ORD-010", buyerName: "Lisa Anderson", buyerEmail: "lisa.a@email.com", amount: 1800, status: "pending_refund", paymentMethod: "Stripe", timestamp: "2025-01-20 08:10:00", ticketType: "Regular", category: "50K Trail", note: "" },
-  { id: "ORD-011", buyerName: "Akira Tanaka", buyerEmail: "akira.t@email.jp", amount: 3000, status: "complete_stripe_wait_receipt", paymentMethod: "Stripe", timestamp: "2025-01-20 13:22:00", ticketType: "Regular", category: "100K Ultra", note: "" },
-  { id: "ORD-012", buyerName: "Wanchai Saengkaew", buyerEmail: "wanchai@email.com", amount: 2500, status: "complete_wns", paymentMethod: "Stripe", timestamp: "2025-01-21 10:05:00", ticketType: "Early Bird", category: "100K Ultra", note: "DNS - notified organizer" },
-  { id: "ORD-013", buyerName: "Chanya Moonmuang", buyerEmail: "chanya@email.com", amount: 1800, status: "edit_trc", paymentMethod: "Stripe", timestamp: "2025-01-21 14:50:00", ticketType: "Regular", category: "50K Trail", note: "" },
-  { id: "ORD-014", buyerName: "James Harrington", buyerEmail: "james.h@email.com", amount: 0, status: "complete_sponsor", paymentMethod: "Sponsor", timestamp: "2025-01-22 09:30:00", ticketType: "Sponsor", category: "100K Ultra", note: "Sponsor - Race Thailand 2025" },
+  {
+    id: "ORD-001", buyerName: "Somchai Jaidee", buyerEmail: "somchai@email.com",
+    amount: 2500, status: "complete_trc_issued", paymentMethod: "Stripe",
+    timestamp: "2025-01-15 09:23:45", ticketType: "Early Bird", category: "100K Ultra", note: "",
+    log: [
+      { timestamp: "2025-01-15 09:23:45", type: "registration", description: "ลงทะเบียน 100K Ultra (Early Bird)" },
+      { timestamp: "2025-01-15 09:23:50", type: "payment", description: "ชำระเงิน ฿2,500 via Stripe", amount: 2500 },
+      { timestamp: "2025-01-15 14:00:00", type: "document_issued", description: "ออก TRC แล้ว" },
+    ],
+  },
+  {
+    id: "ORD-002", buyerName: "Sarah Johnson", buyerEmail: "sarah.j@email.com",
+    amount: 3000, status: "complete_receipt_issued", paymentMethod: "Stripe",
+    timestamp: "2025-01-15 10:15:32", ticketType: "Regular", category: "100K Ultra", note: "",
+    log: [
+      { timestamp: "2025-01-15 10:15:32", type: "registration", description: "ลงทะเบียน 100K Ultra (Regular)" },
+      { timestamp: "2025-01-15 10:15:38", type: "payment", description: "ชำระเงิน ฿3,000 via Stripe", amount: 3000 },
+      { timestamp: "2025-01-16 09:00:00", type: "document_issued", description: "เปิดใบรับมัดจำแล้ว" },
+    ],
+  },
+  {
+    id: "ORD-003", buyerName: "Tanaka Yuki", buyerEmail: "yuki.t@email.jp",
+    amount: 1500, status: "complete_crn_issued", paymentMethod: "Stripe",
+    timestamp: "2025-01-16 14:45:00", ticketType: "Early Bird", category: "50K Trail", note: "",
+    log: [
+      { timestamp: "2025-01-16 14:45:00", type: "registration", description: "ลงทะเบียน 50K Trail (Early Bird)" },
+      { timestamp: "2025-01-16 14:45:05", type: "payment", description: "ชำระเงิน ฿1,500 via Stripe", amount: 1500 },
+      { timestamp: "2025-01-17 10:00:00", type: "document_issued", description: "ออก CrN แล้ว" },
+    ],
+  },
+  {
+    id: "ORD-004", buyerName: "Prasert Wongsawat", buyerEmail: "prasert@email.com",
+    amount: 1800, status: "complete_wait_trc", paymentMethod: "Stripe",
+    timestamp: "2025-01-17 08:30:00", ticketType: "Regular", category: "50K Trail", note: "",
+    log: [
+      { timestamp: "2025-01-17 08:30:00", type: "registration", description: "ลงทะเบียน 50K Trail (Regular)" },
+      { timestamp: "2025-01-17 08:30:06", type: "payment", description: "ชำระเงิน ฿1,800 via Stripe", amount: 1800 },
+    ],
+  },
+  {
+    id: "ORD-005", buyerName: "Emma Wilson", buyerEmail: "emma.w@email.com",
+    amount: 2500, status: "refunded", paymentMethod: "Stripe",
+    timestamp: "2025-01-14 16:20:00", ticketType: "Early Bird", category: "100K Ultra",
+    note: "Cancelled due to injury",
+    log: [
+      { timestamp: "2025-01-14 16:20:00", type: "registration", description: "ลงทะเบียน 100K Ultra (Early Bird)" },
+      { timestamp: "2025-01-14 16:20:05", type: "payment", description: "ชำระเงิน ฿2,500 via Stripe", amount: 2500 },
+      { timestamp: "2025-02-01 11:00:00", type: "refund_request", description: "ยื่นคำขอคืนเงิน ฿1,662 (70%) — วันที่ขอ 01/02/2025", amount: -1662 },
+      { timestamp: "2025-02-05 09:00:00", type: "status_change", description: "สถานะเปลี่ยนเป็น Refunded" },
+    ],
+  },
+  {
+    id: "ORD-006", buyerName: "David Chen", buyerEmail: "david.c@email.com",
+    amount: 3000, status: "complete_vip", paymentMethod: "VIP",
+    timestamp: "2025-01-18 11:00:00", ticketType: "VIP", category: "100K Ultra", note: "",
+    log: [
+      { timestamp: "2025-01-18 11:00:00", type: "registration", description: "ลงทะเบียน 100K Ultra (VIP)" },
+      { timestamp: "2025-01-18 11:00:00", type: "payment", description: "VIP — ไม่เสียค่าสมัคร", amount: 0 },
+    ],
+  },
+  {
+    id: "ORD-007", buyerName: "Natthaporn Sae-tang", buyerEmail: "natthaporn@email.com",
+    amount: 1800, status: "pending_cash", paymentMethod: "Cash",
+    timestamp: "2025-01-18 15:30:00", ticketType: "Regular", category: "50K Trail",
+    note: "Waiting for cash payment confirmation",
+    log: [
+      { timestamp: "2025-01-18 15:30:00", type: "registration", description: "ลงทะเบียน 50K Trail (Regular)" },
+      { timestamp: "2025-01-18 15:35:00", type: "payment", description: "แจ้งชำระเงินสด ฿1,800 — รอตรวจสอบ", amount: 1800 },
+    ],
+  },
+  {
+    id: "ORD-008", buyerName: "Marcus Weber", buyerEmail: "marcus.w@email.de",
+    amount: 2500, status: "issue_cash", paymentMethod: "Cash",
+    timestamp: "2025-01-19 09:00:00", ticketType: "Early Bird", category: "100K Ultra",
+    note: "Amount mismatch",
+    slipUrl: "https://example.com/slip-ord-008.jpg",
+    log: [
+      { timestamp: "2025-01-19 09:00:00", type: "registration", description: "ลงทะเบียน 100K Ultra (Early Bird)" },
+      { timestamp: "2025-01-19 09:10:00", type: "slip_uploaded", description: "อัปโหลดสลิปโอนเงิน" },
+      { timestamp: "2025-01-19 10:00:00", type: "status_change", description: "ตรวจสอบแล้วพบปัญหา: ยอดเงินไม่ตรง (ได้รับ ฿2,300 แต่ต้องการ ฿2,500)" },
+    ],
+  },
+  {
+    id: "ORD-009", buyerName: "Krit Pongpanich", buyerEmail: "krit.p@email.com",
+    amount: 1200, status: "submitted", paymentMethod: "Stripe",
+    timestamp: "2025-01-19 11:45:00", ticketType: "Early Bird", category: "25K Fun Run", note: "",
+    log: [
+      { timestamp: "2025-01-19 11:45:00", type: "registration", description: "ลงทะเบียน 25K Fun Run (Early Bird)" },
+      { timestamp: "2025-01-19 11:45:05", type: "payment", description: "ชำระเงิน ฿1,200 via Stripe — รอยืนยัน", amount: 1200 },
+    ],
+  },
+  {
+    id: "ORD-010", buyerName: "Lisa Anderson", buyerEmail: "lisa.a@email.com",
+    amount: 1800, status: "pending_refund", paymentMethod: "Stripe",
+    timestamp: "2025-01-20 08:10:00", ticketType: "Regular", category: "50K Trail", note: "",
+    log: [
+      { timestamp: "2025-01-20 08:10:00", type: "registration", description: "ลงทะเบียน 50K Trail (Regular)" },
+      { timestamp: "2025-01-20 08:10:05", type: "payment", description: "ชำระเงิน ฿1,800 via Stripe", amount: 1800 },
+      { timestamp: "2025-03-15 14:00:00", type: "refund_request", description: "ยื่นคำขอคืนเงิน ฿1,197 (70%) — วันที่ขอ 15/03/2025", amount: -1197 },
+    ],
+  },
+  {
+    id: "ORD-011", buyerName: "Akira Tanaka", buyerEmail: "akira.t@email.jp",
+    amount: 3000, status: "complete_stripe_wait_receipt", paymentMethod: "Stripe",
+    timestamp: "2025-01-20 13:22:00", ticketType: "Regular", category: "100K Ultra", note: "",
+    log: [
+      { timestamp: "2025-01-20 13:22:00", type: "registration", description: "ลงทะเบียน 100K Ultra (Regular)" },
+      { timestamp: "2025-01-20 13:22:05", type: "payment", description: "ชำระเงิน ฿3,000 via Stripe", amount: 3000 },
+    ],
+  },
+  {
+    id: "ORD-012", buyerName: "Wanchai Saengkaew", buyerEmail: "wanchai@email.com",
+    amount: 2500, status: "complete_wns", paymentMethod: "Stripe",
+    timestamp: "2025-01-21 10:05:00", ticketType: "Early Bird", category: "100K Ultra",
+    note: "DNS - notified organizer",
+    log: [
+      { timestamp: "2025-01-21 10:05:00", type: "registration", description: "ลงทะเบียน 100K Ultra (Early Bird)" },
+      { timestamp: "2025-01-21 10:05:05", type: "payment", description: "ชำระเงิน ฿2,500 via Stripe", amount: 2500 },
+      { timestamp: "2025-09-10 09:00:00", type: "note", description: "แจ้ง WNS — DNS, notified organizer" },
+    ],
+  },
+  {
+    id: "ORD-013", buyerName: "Chanya Moonmuang", buyerEmail: "chanya@email.com",
+    amount: 1800, status: "edit_trc", paymentMethod: "Stripe",
+    timestamp: "2025-01-21 14:50:00", ticketType: "Regular", category: "50K Trail", note: "",
+    log: [
+      { timestamp: "2025-01-21 14:50:00", type: "registration", description: "ลงทะเบียน 50K Trail (Regular)" },
+      { timestamp: "2025-01-21 14:50:05", type: "payment", description: "ชำระเงิน ฿1,800 via Stripe", amount: 1800 },
+      { timestamp: "2025-02-10 10:00:00", type: "document_issued", description: "ออก TRC แล้ว" },
+      { timestamp: "2025-02-20 11:00:00", type: "status_change", description: "แก้ไข TRC — ข้อมูลไม่ถูกต้อง" },
+    ],
+  },
+  {
+    id: "ORD-014", buyerName: "James Harrington", buyerEmail: "james.h@email.com",
+    amount: 0, status: "complete_sponsor", paymentMethod: "Sponsor",
+    timestamp: "2025-01-22 09:30:00", ticketType: "Sponsor", category: "100K Ultra",
+    note: "Sponsor - Race Thailand 2025",
+    log: [
+      { timestamp: "2025-01-22 09:30:00", type: "registration", description: "ลงทะเบียน 100K Ultra (Sponsor)" },
+      { timestamp: "2025-01-22 09:30:00", type: "payment", description: "Sponsor — ได้รับสิทธิ์ฟรี", amount: 0 },
+    ],
+  },
 ];
 
 export const mockParticipants: Participant[] = [
