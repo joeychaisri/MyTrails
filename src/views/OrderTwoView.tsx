@@ -27,6 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Order, OrderStatus, Participant, PaymentMethod } from "@/data/mockData";
 import { calculateRefund, REFUND_POLICY } from "@/lib/refundPolicy";
+import { calculateDistanceChange, CATEGORY_PRICES } from "@/lib/distanceChangePolicy";
 
 // ── constants ────────────────────────────────────────────────────────────────
 
@@ -996,4 +997,116 @@ function RefundCalculatorModal({ order, onClose, onConfirm, fmt }: RefundCalcula
     </Dialog>
   );
 }
-function DistanceChangeModal(_props: any) { return null; }
+interface DistanceChangeModalProps {
+  order: Order;
+  onClose: () => void;
+  onConfirm: (id: string, newCategory: string, result: ReturnType<typeof calculateDistanceChange>, requestDate: Date) => void;
+  fmt: (n: number) => string;
+}
+
+function DistanceChangeModal({ order, onClose, onConfirm, fmt }: DistanceChangeModalProps) {
+  const [newCategory, setNewCategory] = useState("");
+  const [requestDate, setRequestDate] = useState<Date>(new Date());
+
+  const categories = Object.keys(CATEGORY_PRICES).filter((c) => c !== order.category);
+  const result = newCategory ? calculateDistanceChange(order.category, newCategory, requestDate) : null;
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>เปลี่ยนแปลงระยะวิ่ง — {order.id}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          {/* Current */}
+          <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
+            <p className="text-xs text-muted-foreground mb-1">ระยะปัจจุบัน</p>
+            <p className="font-medium">{order.category} — {fmt(CATEGORY_PRICES[order.category] ?? 0)}</p>
+          </div>
+
+          {/* New Category */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">เปลี่ยนเป็น</Label>
+            <Select value={newCategory} onValueChange={setNewCategory}>
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="เลือกระยะใหม่..." />
+              </SelectTrigger>
+              <SelectContent className="bg-popover">
+                {categories.map((c) => (
+                  <SelectItem key={c} value={c}>{c} — {fmt(CATEGORY_PRICES[c])}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Request Date */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">วันที่ยื่นคำขอ</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full justify-start text-sm font-normal">
+                  {format(requestDate, "dd/MM/yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-popover" align="start">
+                <Calendar mode="single" selected={requestDate} onSelect={(d) => d && setRequestDate(d)} initialFocus />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Calculation Result */}
+          {result && (
+            <div className={`rounded-lg border p-3 space-y-2 text-sm ${result.allowed ? "border-border bg-muted/10" : "border-destructive/30 bg-destructive/5"}`}>
+              {!result.allowed ? (
+                <p className="text-destructive text-sm">{result.reason ?? "ไม่อนุญาตในช่วงเวลานี้"}</p>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                    {result.type === "upgrade" ? "⬆️ Upgrade" : "⬇️ Downgrade"} — {result.periodLabel}
+                  </p>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">ส่วนต่างราคา</span>
+                    <span>{fmt(result.priceDiff)}</span>
+                  </div>
+                  {result.fee > 0 && (
+                    <div className="flex justify-between text-destructive/80">
+                      <span>ค่าธรรมเนียมดำเนินการ</span>
+                      <span>{fmt(result.fee)}</span>
+                    </div>
+                  )}
+                  {result.type === "downgrade" && !result.refundAmount && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>คืนส่วนต่าง</span>
+                      <span>ไม่คืน (ช่วงเวลานี้)</span>
+                    </div>
+                  )}
+                  <div className="border-t border-border pt-2 flex justify-between font-semibold">
+                    <span>{result.type === "upgrade" ? "ลูกค้าต้องจ่ายเพิ่ม" : "ยอดที่คืนลูกค้า"}</span>
+                    <span className={result.type === "upgrade" ? "text-warning" : "text-success"}>
+                      {fmt(result.netAmount)}
+                    </span>
+                  </div>
+                  <div className={`rounded-md px-2 py-1 text-xs text-center font-medium mt-1 ${result.documentType === "tax_invoice" ? "bg-blue-500/10 text-blue-600" : "bg-amber-500/10 text-amber-600"}`}>
+                    เอกสาร: {result.documentType === "tax_invoice" ? "ใบกำกับภาษี (Tax Invoice)" : "ใบลดหนี้ (Credit Note)"}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" className="flex-1" onClick={onClose}>ยกเลิก</Button>
+            <Button
+              className="flex-1"
+              disabled={!result || !result.allowed || result.type === "same"}
+              onClick={() => result && onConfirm(order.id, newCategory, result, requestDate)}
+            >
+              ยืนยัน
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
