@@ -638,7 +638,245 @@ export default function OrderTwoView({ orders, setOrders, participants }: Props)
 
 // ── sub-components (stubs — will be replaced in later tasks) ────────────────────
 
-function OrderDetailModal(_props: any) { return null; }
+interface OrderDetailModalProps {
+  order: Order;
+  participants: Participant[];
+  onClose: () => void;
+  onStatusChange: (id: string, status: OrderStatus) => void;
+  onNoteChange: (id: string, note: string) => void;
+  onRefund: (order: Order) => void;
+  onDistanceChange: (order: Order) => void;
+  onSlipUpload: (id: string, url: string) => void;
+  ORDER_STATUS_LABEL: Record<OrderStatus, string>;
+  ORDER_STATUS_COLOR: Record<OrderStatus, string>;
+  ALL_STATUSES: OrderStatus[];
+  PAYMENT_METHOD_COLOR: Record<PaymentMethod, string>;
+  fmt: (n: number) => string;
+}
+
+const LOG_TYPE_ICON: Record<string, string> = {
+  registration: "📋",
+  payment: "💳",
+  status_change: "🔄",
+  refund_request: "↩️",
+  distance_change: "🏃",
+  document_issued: "📄",
+  slip_uploaded: "📎",
+  note: "📝",
+};
+
+function OrderDetailModal({
+  order, participants, onClose, onStatusChange, onNoteChange,
+  onRefund, onDistanceChange, onSlipUpload,
+  ORDER_STATUS_LABEL, ORDER_STATUS_COLOR, ALL_STATUSES, PAYMENT_METHOD_COLOR, fmt,
+}: OrderDetailModalProps) {
+  const [detailTab, setDetailTab] = useState<"info" | "log">("info");
+  const [slipInput, setSlipInput] = useState(order.slipUrl ?? "");
+
+  const linkedParticipant = participants.find(
+    (p) => p.email.toLowerCase() === order.buyerEmail.toLowerCase()
+  );
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <DialogTitle className="font-mono text-lg">{order.id}</DialogTitle>
+              <p className="mt-0.5 text-sm text-muted-foreground">{order.timestamp}</p>
+            </div>
+            <span className={`mt-1 inline-flex rounded-full px-3 py-1 text-xs font-medium ${ORDER_STATUS_COLOR[order.status]}`}>
+              {ORDER_STATUS_LABEL[order.status]}
+            </span>
+          </div>
+        </DialogHeader>
+
+        {/* Tabs */}
+        <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "info" | "log")} className="mt-2">
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="info">ข้อมูล</TabsTrigger>
+            <TabsTrigger value="log">ประวัติ ({order.log.length})</TabsTrigger>
+          </TabsList>
+
+          {/* Tab: Info */}
+          <TabsContent value="info" className="mt-4 space-y-4">
+            {/* Buyer + Order Info */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ผู้ซื้อ</p>
+                <div className="flex items-center gap-2 text-sm">
+                  <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="font-medium">{order.buyerName}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-muted-foreground break-all">{order.buyerEmail}</span>
+                </div>
+                {linkedParticipant && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground">{linkedParticipant.phone}</span>
+                  </div>
+                )}
+              </div>
+              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">รายละเอียดการสมัคร</p>
+                <div className="flex items-center gap-2 text-sm">
+                  <Hash className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  {linkedParticipant?.bibNo
+                    ? <span className="font-mono font-medium">BIB #{linkedParticipant.bibNo}</span>
+                    : <span className="text-muted-foreground">ยังไม่มี BIB</span>}
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-xs">🏃</span>
+                  <span>{order.category}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-muted-foreground">{order.ticketType}</span>
+                </div>
+                {linkedParticipant && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Shirt className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground">Shirt: {linkedParticipant.shirtSize}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Payment */}
+            <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">การชำระเงิน</p>
+              <div className="flex items-center justify-between">
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${PAYMENT_METHOD_COLOR[order.paymentMethod]}`}>
+                  {order.paymentMethod}
+                </span>
+                <span className="text-xl font-bold text-foreground">{fmt(order.amount)}</span>
+              </div>
+              {/* Cash Slip */}
+              {order.paymentMethod === "Cash" && (
+                <div className="mt-3 space-y-2 border-t border-border pt-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">หลักฐานการโอนเงิน</p>
+                  {order.slipUrl ? (
+                    <div className="flex items-center gap-2">
+                      <a href={order.slipUrl} target="_blank" rel="noreferrer" className="text-xs text-primary underline truncate max-w-[200px]">
+                        {order.slipUrl}
+                      </a>
+                      <Button
+                        variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground"
+                        onClick={() => { setSlipInput(""); onSlipUpload(order.id, ""); }}
+                      >
+                        เปลี่ยน
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        value={slipInput}
+                        onChange={(e) => setSlipInput(e.target.value)}
+                        placeholder="วาง URL สลิป..."
+                        className="h-8 text-xs bg-background"
+                      />
+                      <Button
+                        size="sm" className="h-8 text-xs"
+                        disabled={!slipInput.trim()}
+                        onClick={() => onSlipUpload(order.id, slipInput.trim())}
+                      >
+                        แนบ
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Status Change */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">เปลี่ยนสถานะ</Label>
+              <Select value={order.status} onValueChange={(val) => onStatusChange(order.id, val as OrderStatus)}>
+                <SelectTrigger className="bg-background">
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ORDER_STATUS_COLOR[order.status]}`}>
+                    {ORDER_STATUS_LABEL[order.status]}
+                  </span>
+                </SelectTrigger>
+                <SelectContent className="bg-popover max-h-64 overflow-y-auto">
+                  {ALL_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s} className="text-xs">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ORDER_STATUS_COLOR[s]}`}>
+                        {ORDER_STATUS_LABEL[s]}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Note */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Note (internal)</Label>
+              <Textarea
+                value={order.note}
+                onChange={(e) => onNoteChange(order.id, e.target.value)}
+                placeholder="เพิ่ม note สำหรับ order นี้..."
+                rows={2}
+                className="bg-background text-sm"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-2 pt-1 border-t border-border">
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => onRefund(order)}>
+                <RotateCcw className="h-3.5 w-3.5" />
+                Refund
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => onDistanceChange(order)}>
+                <ArrowRightLeft className="h-3.5 w-3.5" />
+                เปลี่ยนระยะวิ่ง
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Receipt className="h-3.5 w-3.5" />
+                Issue Tax Invoice
+              </Button>
+              <Button variant="ghost" size="sm" className="ml-auto text-muted-foreground" onClick={onClose}>
+                ปิด
+              </Button>
+            </div>
+          </TabsContent>
+
+          {/* Tab: Log */}
+          <TabsContent value="log" className="mt-4">
+            {order.log.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">ยังไม่มีประวัติ</p>
+            ) : (
+              <div className="relative pl-6 space-y-4">
+                <div className="absolute left-2 top-2 bottom-2 w-px bg-border" />
+                {[...order.log].reverse().map((entry, i) => (
+                  <div key={i} className="relative">
+                    <div className="absolute -left-4 top-1 h-2 w-2 rounded-full bg-primary" />
+                    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium">
+                          {LOG_TYPE_ICON[entry.type] ?? "•"} {entry.description}
+                        </span>
+                        {entry.amount !== undefined && (
+                          <span className={`text-xs font-semibold ${entry.amount >= 0 ? "text-success" : "text-destructive"}`}>
+                            {entry.amount >= 0 ? "+" : ""}{fmt(entry.amount)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{entry.timestamp}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
 interface RefundCalculatorProps {
   order: Order;
   onClose: () => void;
