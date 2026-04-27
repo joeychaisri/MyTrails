@@ -6,6 +6,16 @@ Functional prototype สำหรับส่งต่อให้ทีม Deve
 
 ---
 
+## Status
+
+- [x] Event Wizard (สร้าง/แก้ไขอีเวนต์)
+- [x] Event Manager Hub — Race Analytics, Participants, BIB Assignment, Promotions, Broadcast
+- [x] Orders / Finance — คำสั่งซื้อ, สลิปเงินสด, คืนเงิน, เปลี่ยนระยะทาง
+- [ ] **Orders / Finance** — รอ confirm กับ user (in review)
+- [ ] BIB Generation — auto-generate หมายเลข BIB ให้นักวิ่ง (in progress)
+
+---
+
 ## Platform Overview
 
 ```mermaid
