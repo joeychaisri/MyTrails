@@ -80,6 +80,15 @@ export interface OrderLogEntry {
        | 'distance_change' | 'document_issued' | 'slip_uploaded' | 'note';
   description: string;
   amount?: number;
+  actor?: string;
+}
+
+export interface OrderSlip {
+  uploaded: boolean;
+  ts: string;
+  bank: string;
+  ref: string;
+  declaredAmt: number;
 }
 
 export interface Order {
@@ -94,6 +103,7 @@ export interface Order {
   category: string;
   note: string;
   slipUrl?: string;
+  slip?: OrderSlip;
   log: OrderLogEntry[];
 }
 
@@ -372,9 +382,12 @@ export const mockOrders: Order[] = [
     amount: 1800, status: "pending_cash", paymentMethod: "Cash",
     timestamp: "2025-01-18 15:30:00", ticketType: "Regular", category: "50K Trail",
     note: "Waiting for cash payment confirmation",
+    slip: { uploaded: true, ts: "2025-01-18 15:35:00", bank: "ธนาคารกสิกรไทย (KBANK)", ref: "REF20250118001", declaredAmt: 1800 },
     log: [
-      { timestamp: "2025-01-18 15:30:00", type: "registration", description: "ลงทะเบียน 50K Trail (Regular)" },
-      { timestamp: "2025-01-18 15:35:00", type: "payment", description: "แจ้งชำระเงินสด ฿1,800 — รอตรวจสอบ", amount: 1800 },
+      { timestamp: "2025-01-18 15:30:00", type: "registration", description: "Order created — แจ้งชำระเงินสด ฿1,800", actor: "system" },
+      { timestamp: "2025-01-18 15:35:00", type: "slip_uploaded", description: "อัปโหลดสลิปโอนเงิน — KBANK REF20250118001 · ฿1,800", actor: "Natthaporn (ผู้สมัคร)" },
+      { timestamp: "2025-01-18 15:36:00", type: "status_change", description: "รอตรวจ · เงินสด — รอทีมยืนยัน", actor: "system" },
+      { timestamp: "2025-01-18 16:00:00", type: "note", description: "Note: Waiting for cash payment confirmation", actor: "นภา (บัญชี)" },
     ],
   },
   {
@@ -383,10 +396,12 @@ export const mockOrders: Order[] = [
     timestamp: "2025-01-19 09:00:00", ticketType: "Early Bird", category: "100K Ultra",
     note: "Amount mismatch",
     slipUrl: "https://example.com/slip-ord-008.jpg",
+    slip: { uploaded: true, ts: "2025-01-19 09:10:00", bank: "ธนาคารไทยพาณิชย์ (SCB)", ref: "REF20250119003", declaredAmt: 2000 },
     log: [
-      { timestamp: "2025-01-19 09:00:00", type: "registration", description: "ลงทะเบียน 100K Ultra (Early Bird)" },
-      { timestamp: "2025-01-19 09:10:00", type: "slip_uploaded", description: "อัปโหลดสลิปโอนเงิน" },
-      { timestamp: "2025-01-19 10:00:00", type: "status_change", description: "ตรวจสอบแล้วพบปัญหา: ยอดเงินไม่ตรง (ได้รับ ฿2,300 แต่ต้องการ ฿2,500)" },
+      { timestamp: "2025-01-19 09:00:00", type: "registration", description: "Order created — แจ้งชำระเงินสด ฿2,500", actor: "system" },
+      { timestamp: "2025-01-19 09:10:00", type: "slip_uploaded", description: "อัปโหลดสลิป — SCB REF20250119003 · ฿2,000 (ยอดไม่ตรง ต้องชำระ ฿2,500)", actor: "Marcus (ผู้สมัคร)" },
+      { timestamp: "2025-01-19 10:00:00", type: "note", description: "ยอดในสลิปไม่ตรงกับค่าสมัคร — ฿2,000 vs ฿2,500 ที่ต้องชำระ", actor: "นภา (บัญชี)" },
+      { timestamp: "2025-01-19 10:01:00", type: "status_change", description: "มีปัญหา · เงินสด — ยอดไม่ตรง รอแก้ไข", actor: "นภา (บัญชี)" },
     ],
   },
   {
