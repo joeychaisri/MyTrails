@@ -123,8 +123,8 @@ import {
 type HubSection = "overview2" | "overview3" | "orders" | "orders2" | "participants" | "bib" | "promotions" | "broadcast" | "settings";
 
 const sidebarItems: { id: HubSection; label: string; icon: typeof BarChart3 }[] = [
-  { id: "overview2", label: "Race Operations", icon: Activity },
-  { id: "overview3", label: "Race Operations 2", icon: Sparkles },
+  { id: "overview2", label: "Race Operations (Obsolete)", icon: Activity },
+  { id: "overview3", label: "Race Operations (New)", icon: Sparkles },
   { id: "orders", label: "Orders (Finance)", icon: DollarSign },
   { id: "orders2", label: "Order (Direction 2)", icon: Receipt },
   { id: "participants", label: "Participants", icon: Users },
