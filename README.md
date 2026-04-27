@@ -8,6 +8,8 @@ Functional prototype สำหรับส่งต่อให้ทีม Deve
 
 ## Status
 
+_Last updated: 27 Apr 2026 · 18:00 ICT_
+
 - [x] Orders / Finance — คำสั่งซื้อ, สลิปเงินสด, คืนเงิน, เปลี่ยนระยะทาง
 - [ ] **Orders / Finance (In Review)** — รอ confirm กับ user
 - [ ] BIB Generation — auto-generate หมายเลข BIB ให้นักวิ่ง (in progress)
