@@ -1,0 +1,156 @@
+<mxfile host="app.diagrams.net" version="21.0">
+  <diagram name="MyTrails Platform Overview" id="mytrails-overview">
+    <mxGraphModel dx="1422" dy="762" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===== TITLE ===== -->
+        <mxCell id="title" value="MyTrails — Platform Overview" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="760" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ===== RUNNER ===== -->
+        <mxCell id="runner" value="🏃 นักวิ่ง (Runner)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="90" width="190" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="r-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="runner" target="runner-feat" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="runner-feat" value="🌐 Public Event Page&#xa;ดูข้อมูลอีเวนต์ · สมัครแข่งขัน" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="35" y="210" width="220" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ===== ORGANIZER ===== -->
+        <mxCell id="organizer" value="📋 ผู้จัดอีเวนต์ (Organizer)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="90" width="680" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Organizer top-level features -->
+        <mxCell id="org-dash" value="📊 Dashboard&#xa;พอร์ตโฟลิโออีเวนต์&#xa;สถิติรายได้ / ตั๋วที่ขาย" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="340" y="210" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="org-wiz" value="✏️ Event Wizard&#xa;สร้าง / แก้ไขอีเวนต์&#xa;(4 ขั้นตอน)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="550" y="210" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="org-preview" value="👁️ Preview Page&#xa;ดูหน้าสาธารณะ&#xa;ก่อน Publish" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="760" y="210" width="190" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: Organizer → features -->
+        <mxCell id="e-od" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="organizer" target="org-dash" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-ow" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="organizer" target="org-wiz" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-op" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="organizer" target="org-preview" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-oh" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="organizer" target="hub-title" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== EVENT MANAGER HUB (container border) ===== -->
+        <mxCell id="hub-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f7ee;strokeColor=#82b366;dashed=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="330" y="315" width="700" height="310" as="geometry" />
+        </mxCell>
+        <mxCell id="hub-title" value="⚙️ Event Manager Hub" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="345" y="320" width="250" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Hub feature boxes (2 rows × 3 cols) -->
+        <mxCell id="hub-analytics" value="📈 Race Analytics&#xa;KPI · กราฟรายได้ · เดโมกราฟิก&#xa;สัดส่วนขนาดเสื้อ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="345" y="360" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="hub-orders" value="💰 Orders / Finance&#xa;คำสั่งซื้อ · ตรวจสลิปเงินสด&#xa;คืนเงิน · เปลี่ยนระยะทาง" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="565" y="360" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="hub-participants" value="👟 Participants&#xa;ข้อมูลนักวิ่ง · แก้ไขโปรไฟล์&#xa;Export CSV" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="785" y="360" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="hub-bib" value="🔢 BIB Assignment&#xa;กำหนดหมายเลข BIB&#xa;Import Excel/CSV" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="345" y="450" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="hub-promo" value="🏷️ Promotions&#xa;โค้ดส่วนลด · Bulk Generate&#xa;ติดตาม Usage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="565" y="450" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="hub-broadcast" value="📣 Broadcast&#xa;ส่ง Email / SMS&#xa;แบ่งกลุ่มตามระยะทาง" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="785" y="450" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ===== ADMIN ===== -->
+        <mxCell id="admin" value="🛡️ Admin แพลตฟอร์ม" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="90" width="210" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="adm-overview" value="📊 Platform Overview&#xa;KPI รายได้แพลตฟอร์ม&#xa;สถิติอีเวนต์รวม" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="210" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="adm-approve" value="✅ Event Approvals&#xa;อนุมัติ / ปฏิเสธอีเวนต์&#xa;Force Unpublish" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="300" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="adm-finance" value="💳 Financials&#xa;ตรวจสอบการชำระค่าลงประกาศ&#xa;Mark as Paid → Publish" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="390" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="adm-users" value="👤 User Management&#xa;บัญชีผู้จัด · Suspend&#xa;Reset Password" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="480" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="adm-settings" value="⚙️ Platform Settings&#xa;ค่าธรรมเนียมการลงประกาศ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="570" width="190" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: Admin → features -->
+        <mxCell id="e-a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="admin" target="adm-overview" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="admin" target="adm-approve" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-a3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="admin" target="adm-finance" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-a4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="admin" target="adm-users" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-a5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="admin" target="adm-settings" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== EVENT LIFECYCLE (admin → organizer flow) ===== -->
+        <mxCell id="lifecycle-label" value="Event Lifecycle:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="330" y="665" width="120" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lc1" value="draft" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="460" y="660" width="90" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lc2" value="pending_review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="660" width="115" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lc3" value="awaiting_payment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="725" y="660" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lc4" value="ready_to_publish" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="875" y="660" width="115" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lc5" value="live" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="660" width="60" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lc-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;" edge="1" source="lc1" target="lc2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;" edge="1" source="lc2" target="lc3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;" edge="1" source="lc3" target="lc4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lc-e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;" edge="1" source="lc4" target="lc5" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

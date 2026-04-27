@@ -93,6 +93,8 @@ import {
   Legend,
 } from "recharts";
 import Logo from "@/components/Logo";
+import OrderTwoView from "@/views/OrderTwoView";
+import OrderThreeView from "@/views/OrderThreeView";
 import StatusBadge from "@/components/StatusBadge";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
@@ -119,12 +121,14 @@ import {
   finisherShirtSizeBreakdown,
 } from "@/data/mockData";
 
-type HubSection = "overview2" | "overview3" | "orders" | "participants" | "bib" | "promotions" | "broadcast" | "settings";
+type HubSection = "overview2" | "overview3" | "orders" | "orders2" | "orders3" | "participants" | "bib" | "promotions" | "broadcast" | "settings";
 
 const sidebarItems: { id: HubSection; label: string; icon: typeof BarChart3 }[] = [
-  { id: "overview2", label: "Race Operations", icon: Activity },
-  { id: "overview3", label: "Race Operations 2", icon: Sparkles },
+  { id: "overview2", label: "Race Operations (Obsolete)", icon: Activity },
+  { id: "overview3", label: "Race Operations (New)", icon: Sparkles },
   { id: "orders", label: "Orders (Finance)", icon: DollarSign },
+  { id: "orders2", label: "Order (Direction 2)", icon: Receipt },
+  { id: "orders3", label: "Order (Direction 3)", icon: Receipt },
   { id: "participants", label: "Participants", icon: Users },
   { id: "bib", label: "BIB Assignment", icon: Hash },
   { id: "promotions", label: "Promotions", icon: Tag },
@@ -950,6 +954,24 @@ const EventManagerHub = () => {
           </div>
         );
       }
+
+      case "orders2":
+        return (
+          <OrderTwoView
+            orders={orders}
+            setOrders={setOrders}
+            participants={participants}
+          />
+        );
+
+      case "orders3":
+        return (
+          <OrderThreeView
+            orders={orders}
+            setOrders={setOrders}
+            participants={participants}
+          />
+        );
 
       case "orders": {
         const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
