@@ -1,5 +1,7 @@
 # MyTrails — UX Prototype Handoff
 
+![status](https://img.shields.io/badge/status-prototype-orange) ![stack](https://img.shields.io/badge/stack-React%20%2B%20TypeScript-61DAFB) ![styling](https://img.shields.io/badge/styling-Tailwind%20%2B%20shadcn-06B6D4) ![data](https://img.shields.io/badge/data-mock%20only-lightgrey)
+
 Functional prototype สำหรับส่งต่อให้ทีม Developer — ไม่ใช่ production code ข้อมูลทั้งหมดเป็น mock data ไม่มี backend call
 
 ---
