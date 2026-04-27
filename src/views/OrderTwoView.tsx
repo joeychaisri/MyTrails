@@ -260,7 +260,7 @@ export default function OrderTwoView({ orders, setOrders, participants }: Props)
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-foreground">Transaction History (Order Two)</h3>
+        <h3 className="text-lg font-semibold text-foreground">Order (Direction 2)</h3>
         <Button variant="outline" size="sm" onClick={exportCSV}>
           <Download className="mr-2 h-4 w-4" />
           Export {filteredOrders.length > 0 && `(${filteredOrders.length})`}
