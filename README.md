@@ -1,73 +1,74 @@
-# Welcome to your Lovable project
+# MyTrails — UX Prototype Handoff
 
-## Project info
+Functional prototype สำหรับส่งต่อให้ทีม Developer — ไม่ใช่ production code ข้อมูลทั้งหมดเป็น mock data ไม่มี backend call
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+---
 
-## How can I edit this code?
+## Platform Overview
 
-There are several ways of editing your application.
+```mermaid
+flowchart TB
+    subgraph R["🏃 นักวิ่ง (Runner)"]
+        R1["Public Event Page\nดูข้อมูลอีเวนต์ · สมัครแข่งขัน"]
+    end
 
-**Use Lovable**
+    subgraph O["📋 ผู้จัดอีเวนต์ (Organizer)"]
+        O1["📊 Dashboard\nพอร์ตโฟลิโออีเวนต์ · สถิติรายได้"]
+        O2["✏️ Event Wizard\nสร้าง / แก้ไขอีเวนต์ (4 ขั้นตอน)"]
+        O3["👁️ Preview Page\nดูหน้าสาธารณะก่อน Publish"]
+        subgraph H["⚙️ Event Manager Hub"]
+            H1["📈 Race Analytics\nKPI · กราฟรายได้ · เดโมกราฟิก"]
+            H2["💰 Orders / Finance\nคำสั่งซื้อ · สลิปเงินสด · คืนเงิน · เปลี่ยนระยะทาง"]
+            H3["👟 Participants\nข้อมูลนักวิ่ง · แก้ไขโปรไฟล์ · Export CSV"]
+            H4["🔢 BIB Assignment\nกำหนดหมายเลข · Import Excel/CSV"]
+            H5["🏷️ Promotions\nโค้ดส่วนลด · Bulk Generate · ติดตาม Usage"]
+            H6["📣 Broadcast\nส่ง Email / SMS แบ่งกลุ่มตามระยะทาง"]
+        end
+    end
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+    subgraph A["🛡️ Admin แพลตฟอร์ม"]
+        A1["📊 Platform Overview\nKPI รายได้รวม · สถิติอีเวนต์"]
+        A2["✅ Event Approvals\nอนุมัติ / ปฏิเสธ · Force Unpublish"]
+        A3["💳 Financials\nตรวจสอบชำระค่าลงประกาศ → Publish"]
+        A4["👤 User Management\nบัญชีผู้จัด · Suspend · Reset Password"]
+        A5["⚙️ Platform Settings\nค่าธรรมเนียมการลงประกาศ"]
+    end
 ```
 
-**Edit a file directly in GitHub**
+**Event Lifecycle (Admin-driven):**
+`draft` → `pending_review` → `awaiting_payment` → `ready_to_publish` → `live`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## Local Setup
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```sh
+npm install
+npm run dev
+# → http://localhost:5173
+```
 
-## What technologies are used for this project?
+| Email | Password | Role |
+|-------|----------|------|
+| ใดก็ได้ | ใดก็ได้ | Organizer |
+| `admin@mytrails.com` | ใดก็ได้ | Admin |
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Tech Stack
 
-## How can I deploy this project?
+| Layer | Library |
+|-------|---------|
+| Framework | React 18 + TypeScript + Vite |
+| Routing | react-router-dom v6 |
+| UI | shadcn/ui (Radix UI) + Tailwind CSS |
+| Charts | Recharts |
+| Icons | lucide-react |
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+## Mock Data → Real API
 
-Yes, you can!
+ข้อมูลทั้งหมดอยู่ใน `src/data/mockData.ts` — replace ด้วย API call ตรงนี้จุดเดียว views ไม่ต้องแก้
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Business logic (refund policy, distance change policy) อยู่ใน `src/lib/` แยกออกจาก UI — migrate ไป backend ได้เลย มี unit tests ใน `src/test/`
