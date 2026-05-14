@@ -54,10 +54,13 @@ const App = () => (
                 <Route path="/organizer/events/:id" element={<Navigate to="overview" replace />} />
                 <Route path="/organizer/admin" element={<ProtectedRoute allowedRole="admin"><AdminDashboard /></ProtectedRoute>} />
 
+                {/* Organizer events index → dashboard */}
+                <Route path="/organizer/events" element={<Navigate to="/organizer/dashboard" replace />} />
+
                 {/* Legacy redirects */}
                 <Route path="/login" element={<Navigate to="/organizer/login" replace />} />
                 <Route path="/dashboard" element={<Navigate to="/organizer/dashboard" replace />} />
-                <Route path="/events/*" element={<Navigate to="/organizer/events" replace />} />
+                <Route path="/events/*" element={<Navigate to="/organizer/dashboard" replace />} />
                 <Route path="/admin" element={<Navigate to="/organizer/admin" replace />} />
 
                 <Route path="*" element={<NotFound />} />
