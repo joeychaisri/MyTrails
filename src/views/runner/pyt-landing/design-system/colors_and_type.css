@@ -1,0 +1,80 @@
+/* My Trails — Colors & Type tokens */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+  --background: 0 0% 98%;
+  --foreground: 220 20% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 20% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 20% 10%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 10% 46%;
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 220 20% 20%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+
+  --primary: 24 95% 46%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 24 95% 46%;
+  --accent-foreground: 0 0% 100%;
+  --ring: 24 95% 46%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 76% 36%;
+  --success-foreground: 0 0% 100%;
+  --warning: 45 93% 47%;
+  --warning-foreground: 220 20% 10%;
+
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 220 20% 20%;
+  --sidebar-primary: 24 95% 46%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 24 95% 96%;
+  --sidebar-accent-foreground: 24 95% 40%;
+  --sidebar-border: 220 13% 91%;
+  --sidebar-ring: 24 95% 46%;
+
+  --radius: 0.75rem;
+  --radius-md: 0.625rem;
+  --radius-sm: 0.5rem;
+
+  --gradient-hero: linear-gradient(135deg, hsl(24 95% 46%) 0%, hsl(16 90% 40%) 100%);
+  --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 14% 98%) 100%);
+  --gradient-protect-top: linear-gradient(to top, hsl(220 20% 10% / 0.6) 0%, transparent 100%);
+  --gradient-protect-top-strong: linear-gradient(to top, hsl(220 20% 10% / 0.8) 0%, hsl(220 20% 10% / 0.4) 40%, transparent 100%);
+
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  --shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+
+  --font-sans: "Inter", system-ui, -apple-system, Segoe UI, sans-serif;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.25rem;
+  --fs-2xl: 1.5rem;
+  --fs-3xl: 1.875rem;
+  --fs-4xl: 2.25rem;
+  --fs-5xl: 3rem;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+}
+
+html, body {
+  font-family: var(--font-sans);
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.shadow-card      { box-shadow: var(--shadow-card); }
+.shadow-elevated  { box-shadow: var(--shadow-elevated); }
