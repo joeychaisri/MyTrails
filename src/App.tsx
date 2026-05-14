@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AuthView from "./views/AuthView";
 import DashboardView from "./views/DashboardView";
@@ -13,6 +12,7 @@ import EventManagerHub from "./views/EventManagerHub";
 import EventWizard from "./views/EventWizard";
 import PublicEventPage from "./views/PublicEventPage";
 import AdminDashboard from "./views/AdminDashboard";
+import RunnerLandingPage from "./views/runner/RunnerLandingPage";
 
 const queryClient = new QueryClient();
 
@@ -24,8 +24,8 @@ const ProtectedRoute = ({
   allowedRole?: "organizer" | "admin";
 }) => {
   const { role } = useAuth();
-  if (!role) return <Navigate to="/login" replace />;
-  if (allowedRole === "admin" && role !== "admin") return <Navigate to="/dashboard" replace />;
+  if (!role) return <Navigate to="/organizer/login" replace />;
+  if (allowedRole === "admin" && role !== "admin") return <Navigate to="/organizer/dashboard" replace />;
   return <>{children}</>;
 };
 
@@ -39,15 +39,25 @@ const App = () => (
           <BrowserRouter>
             <div className="flex-grow flex flex-col">
               <Routes>
-                <Route path="/login" element={<AuthView />} />
-                <Route path="/dashboard" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />
-                <Route path="/events/new" element={<ProtectedRoute><EventWizard /></ProtectedRoute>} />
-                <Route path="/events/:id/edit" element={<ProtectedRoute><EventWizard /></ProtectedRoute>} />
+                {/* Runner (public) */}
+                <Route path="/" element={<RunnerLandingPage />} />
                 <Route path="/events/:id/preview" element={<PublicEventPage />} />
-                <Route path="/events/:id/:section" element={<ProtectedRoute><EventManagerHub /></ProtectedRoute>} />
-                <Route path="/events/:id" element={<Navigate to="overview" replace />} />
-                <Route path="/admin" element={<ProtectedRoute allowedRole="admin"><AdminDashboard /></ProtectedRoute>} />
-                <Route path="/" element={<Index />} />
+
+                {/* Organizer portal */}
+                <Route path="/organizer/login" element={<AuthView />} />
+                <Route path="/organizer/dashboard" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />
+                <Route path="/organizer/events/new" element={<ProtectedRoute><EventWizard /></ProtectedRoute>} />
+                <Route path="/organizer/events/:id/edit" element={<ProtectedRoute><EventWizard /></ProtectedRoute>} />
+                <Route path="/organizer/events/:id/:section" element={<ProtectedRoute><EventManagerHub /></ProtectedRoute>} />
+                <Route path="/organizer/events/:id" element={<Navigate to="overview" replace />} />
+                <Route path="/organizer/admin" element={<ProtectedRoute allowedRole="admin"><AdminDashboard /></ProtectedRoute>} />
+
+                {/* Legacy redirects */}
+                <Route path="/login" element={<Navigate to="/organizer/login" replace />} />
+                <Route path="/dashboard" element={<Navigate to="/organizer/dashboard" replace />} />
+                <Route path="/events/*" element={<Navigate to="/organizer/events" replace />} />
+                <Route path="/admin" element={<Navigate to="/organizer/admin" replace />} />
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>
