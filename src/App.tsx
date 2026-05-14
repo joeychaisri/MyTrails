@@ -13,6 +13,7 @@ import EventWizard from "./views/EventWizard";
 import PublicEventPage from "./views/PublicEventPage";
 import AdminDashboard from "./views/AdminDashboard";
 import RunnerLandingPage from "./views/runner/RunnerLandingPage";
+import PongYaengTrailPage from "./views/runner/pyt-landing/PongYaengTrailPage";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
               <Routes>
                 {/* Runner (public) */}
                 <Route path="/" element={<RunnerLandingPage />} />
+                <Route path="/events/pong-yaeng-trail-2026" element={<PongYaengTrailPage />} />
                 <Route path="/events/:id/preview" element={<PublicEventPage />} />
 
                 {/* Organizer portal */}
