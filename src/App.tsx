@@ -25,8 +25,8 @@ const ProtectedRoute = ({
   allowedRole?: "organizer" | "admin";
 }) => {
   const { role } = useAuth();
-  if (!role) return <Navigate to="/organizer/login" replace />;
-  if (allowedRole === "admin" && role !== "admin") return <Navigate to="/organizer/dashboard" replace />;
+  const effectiveRole = role ?? "organizer";
+  if (allowedRole === "admin" && effectiveRole !== "admin") return <Navigate to="/organizer/dashboard" replace />;
   return <>{children}</>;
 };
 
