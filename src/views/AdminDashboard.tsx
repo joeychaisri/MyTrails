@@ -58,7 +58,7 @@ const breadcrumbLabels: Record<AdminPage, string> = {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const onLogout = () => { logout(); navigate("/login"); };
+  const onLogout = () => { logout(); navigate("/organizer/login"); };
   const [activePage, setActivePage] = useState<AdminPage>("overview");
   const [events, setEvents] = useState<AdminEvent[]>(mockAdminEvents);
   const [organizers, setOrganizers] = useState<AdminOrganizer[]>(mockAdminOrganizers);

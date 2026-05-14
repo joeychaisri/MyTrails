@@ -143,8 +143,8 @@ const EventManagerHub = () => {
   const navigate = useNavigate();
   const event = mockEvents.find((e) => e.id === id);
   const activeSection = ((section ?? "overview2") as HubSection);
-  const onBack = () => navigate("/dashboard");
-  const onEditWizard = () => navigate(`/events/${id}/edit`);
+  const onBack = () => navigate("/organizer/dashboard");
+  const onEditWizard = () => navigate(`/organizer/events/${id}/edit`);
   const [participantFilter, setParticipantFilter] = useState("all");
   const [participantSearch, setParticipantSearch] = useState("");
   const [genderFilter, setGenderFilter] = useState("all");
@@ -2963,7 +2963,7 @@ const EventManagerHub = () => {
               {sidebarItems.map((item) => (
                 <li key={item.id}>
                   <button
-                    onClick={() => navigate(`/events/${id}/${item.id}`)}
+                    onClick={() => navigate(`/organizer/events/${id}/${item.id}`)}
                     className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                       activeSection === item.id
                         ? "bg-primary/10 text-primary font-medium"
@@ -2985,7 +2985,7 @@ const EventManagerHub = () => {
             {sidebarItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => navigate(`/events/${id}/${item.id}`)}
+                onClick={() => navigate(`/organizer/events/${id}/${item.id}`)}
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-colors ${
                   activeSection === item.id
                     ? "bg-primary/10 text-primary font-medium"

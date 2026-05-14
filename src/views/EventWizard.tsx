@@ -88,9 +88,9 @@ const EventWizard = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const event = id ? mockEvents.find((e) => e.id === id) : undefined;
-  const onBack = () => navigate("/dashboard");
-  const onComplete = () => navigate("/dashboard");
-  const onLogout = () => { logout(); navigate("/login"); };
+  const onBack = () => navigate("/organizer/dashboard");
+  const onComplete = () => navigate("/organizer/dashboard");
+  const onLogout = () => { logout(); navigate("/organizer/login"); };
   const profile = mockProfile;
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(mockPaymentInfo);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);

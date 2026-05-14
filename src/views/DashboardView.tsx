@@ -24,10 +24,10 @@ import { mockEvents, mockProfile, mockPaymentInfo, Event, UserProfile, PaymentIn
 const DashboardView = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const onLogout = () => { logout(); navigate("/login"); };
-  const onSelectEvent = (event: Event) => navigate(`/events/${event.id}/overview`);
-  const onCreateEvent = () => navigate("/events/new");
-  const onEditEvent = (event: Event) => navigate(`/events/${event.id}/edit`);
+  const onLogout = () => { logout(); navigate("/organizer/login"); };
+  const onSelectEvent = (event: Event) => navigate(`/organizer/events/${event.id}/overview`);
+  const onCreateEvent = () => navigate("/organizer/events/new");
+  const onEditEvent = (event: Event) => navigate(`/organizer/events/${event.id}/edit`);
   const onPreviewEvent = (event: Event) => navigate(`/events/${event.id}/preview`);
   const [profile, setProfile] = useState<UserProfile>(mockProfile);
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(mockPaymentInfo);
