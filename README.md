@@ -1,55 +1,83 @@
 # MyTrails
 
-![stack](https://img.shields.io/badge/stack-React%20%2B%20TypeScript-61DAFB) ![styling](https://img.shields.io/badge/styling-Tailwind%20%2B%20shadcn-06B6D4) ![runner](https://img.shields.io/badge/runner%20side-live-orange)
+![stack](https://img.shields.io/badge/stack-React%20%2B%20TypeScript-61DAFB) ![styling](https://img.shields.io/badge/styling-Tailwind%20%2B%20shadcn-06B6D4) ![runner](https://img.shields.io/badge/runner%20side-in%20progress-orange) ![organizer](https://img.shields.io/badge/organizer%20side-prototype-blue)
 
-Trail running event platform for Thailand — ระบบค้นหาและสมัครงานวิ่งเทรล พร้อมระบบจัดการ Event สำหรับ Organizer
+แพลตฟอร์มค้นหาและสมัครงานวิ่งเทรลในไทย มี 2 ฝั่ง: **Runner** (นักวิ่ง) และ **Organizer** (ผู้จัดงาน)
 
 ---
 
-## Platform Overview
+## ภาพรวม Platform
 
 ```mermaid
 flowchart TB
-    subgraph Runner["🏃 Runner (Public)"]
-        R1["/ — Platform Home\nค้นหา Event · Browse races"]
-        R2["/events/:slug — Event Page\nรายละเอียด · สมัครวิ่ง"]
+    subgraph Runner["🏃 Runner Side — Public (ไม่ต้อง Login)"]
+        R1["/ — Platform Home
+        ค้นหา Event ทั้งหมด · Browse races
+        Hero · Featured Events · Race Categories
+        Why My Trails · CTA Strip · Footer"]
+        R2["/events/:slug — Event Landing Page
+        รายละเอียด Event เฉพาะงาน · Countdown · Categories
+        Course Map · Race Kit · Schedule · FAQ · Sponsors
+        ─────────────────────────────
+        ✅ /events/pong-yaeng-trail-2026 (built)"]
+        R3["🔜 Planned
+        /runner/login — Runner login
+        /runner/dashboard — ประวัติการสมัคร · BIB
+        /register/:eventId — ระบบสมัครและชำระเงิน"]
+        R1 --> R2
+        R2 --> R3
     end
 
-    subgraph Organizer["📋 Organizer Portal (/organizer/*)"]
-        O1["Dashboard\nพอร์ตโฟลิโออีเวนต์ · สถิติรายได้"]
-        O2["Event Wizard\nสร้าง / แก้ไขอีเวนต์ (4 ขั้นตอน)"]
-        subgraph Hub["Event Manager Hub"]
-            H1["Race Analytics"]
-            H2["Orders / Finance"]
-            H3["Participants"]
-            H4["BIB Assignment"]
-            H5["Promotions"]
-            H6["Broadcast"]
+    subgraph Organizer["📋 Organizer Side — /organizer/* (ต้อง Login)"]
+        O1["/organizer/login
+        Auth (mock — ใส่ email ใดก็ได้)"]
+        O2["/organizer/dashboard
+        พอร์ตโฟลิโออีเวนต์ · รายได้รวม · สถิติ"]
+        O3["/organizer/events/new · /edit
+        Event Wizard 4 ขั้นตอน
+        Basic Info → Categories → Schedule → Publish"]
+        subgraph Hub["/organizer/events/:id/:section — Event Manager Hub"]
+            H1["overview — Race Analytics
+            KPI · กราฟรายได้ · Demographics"]
+            H2["orders — Orders / Finance
+            คำสั่งซื้อ · สลิปเงินสด · คืนเงิน · เปลี่ยนระยะ"]
+            H3["participants — Participants
+            ข้อมูลนักวิ่ง · แก้ไข · Export CSV"]
+            H4["bibs — BIB Assignment
+            กำหนดหมายเลข · Import Excel/CSV"]
+            H5["promotions — Promotions
+            โค้ดส่วนลด · Bulk Generate · Usage"]
+            H6["broadcast — Broadcast
+            Email / SMS แบ่งกลุ่มตามระยะ"]
         end
+        O1 --> O2 --> O3 --> Hub
     end
 
-    subgraph Admin["🛡️ Admin (/organizer/admin)"]
-        A1["Platform Overview"]
-        A2["Event Approvals"]
-        A3["Financials"]
-        A4["User Management"]
+    subgraph Admin["🛡️ Admin — /organizer/admin (role: admin)"]
+        A1["Platform Overview — KPI รวม"]
+        A2["Event Approvals — อนุมัติ / ปฏิเสธ"]
+        A3["Financials — ตรวจสอบการชำระค่าลงประกาศ"]
+        A4["User Management — Suspend · Reset Password"]
     end
 ```
 
-**Event Lifecycle:** `draft` → `pending_review` → `awaiting_payment` → `ready_to_publish` → `live`
+**Event Lifecycle (Admin-driven):**
+`draft` → `pending_review` → `awaiting_payment` → `ready_to_publish` → `live`
 
 ---
 
-## Routes
+## สิ่งที่ Build แล้ว vs Planned
 
-| URL | Description |
-|-----|-------------|
-| `/` | Runner Landing — platform home, browse all events |
-| `/events/pong-yaeng-trail-2026` | Pong Yaeng Trail 2026 event page |
-| `/organizer/login` | Organizer login |
-| `/organizer/dashboard` | Organizer dashboard |
-| `/organizer/events/*` | Event management |
-| `/organizer/admin` | Platform admin |
+| Feature | Status |
+|---------|--------|
+| Runner — Platform Home (`/`) | ✅ Built |
+| Runner — Pong Yaeng Trail 2026 (`/events/pong-yaeng-trail-2026`) | ✅ Built |
+| Organizer — Login / Dashboard / Event Wizard / Hub | ✅ Built (mock data) |
+| Admin — Dashboard / Approvals / Financials / Users | ✅ Built (mock data) |
+| Runner — Login / Profile / Registration history | 🔜 Planned |
+| Runner — Registration & Payment flow | 🔜 Planned |
+| Runner — Generic event pages (`/events/:slug`) | 🔜 Planned |
+| Real backend / database | 🔜 Planned |
 
 ---
 
@@ -57,17 +85,32 @@ flowchart TB
 
 ```sh
 npm install
-npm run dev   # → https://localhost:8080
-npm run test  # vitest
-npm run build
+npm run dev   # → https://localhost:8080 (self-signed cert — browser warning ปกติ)
 ```
 
-**Login (mock):**
+> ถ้า port 8080 ถูกใช้อยู่ Vite จะขยับไป 8081, 8082 อัตโนมัติ
+
+### Login
 
 | Email | Password | Role |
 |-------|----------|------|
 | ใดก็ได้ | ใดก็ได้ | Organizer |
 | `admin@mytrails.com` | ใดก็ได้ | Admin |
+
+### Test flows ที่แนะนำ
+
+**Runner side:**
+1. เปิด `/` — ดู Platform Home, กด Browse Races, filter by region
+2. เปิด `/events/pong-yaeng-trail-2026` — ดู Hero video, เลื่อนดู Race Categories, Course Map, FAQ
+
+**Organizer side:**
+1. Login ด้วย email ใดก็ได้ → เข้า `/organizer/dashboard`
+2. กด "Create Event" → ทำ Event Wizard 4 ขั้นตอน
+3. เข้า Event ที่มีอยู่ → ลอง Orders / Finance, BIB Assignment, Promotions
+
+**Admin side:**
+1. Login ด้วย `admin@mytrails.com` → เข้า `/organizer/admin`
+2. ดู Event Approvals — approve หรือ reject event
 
 ---
 
@@ -77,10 +120,11 @@ npm run build
 |-------|---------|
 | Framework | React 18 + TypeScript + Vite |
 | Routing | react-router-dom v6 |
-| UI (Organizer) | shadcn/ui (Radix UI) + Tailwind CSS |
-| UI (Runner) | Inline styles + custom CSS design tokens |
+| UI — Organizer | shadcn/ui (Radix UI) + Tailwind CSS |
+| UI — Runner | Inline styles + CSS design tokens (ตาม Claude Design prototype) |
 | Charts | Recharts |
 | Icons | lucide-react |
+| Tests | Vitest |
 
 ---
 
@@ -89,15 +133,23 @@ npm run build
 ```
 src/
 ├── views/
-│   ├── AuthView, DashboardView, EventWizard, EventManagerHub, AdminDashboard
+│   ├── AuthView.tsx, DashboardView.tsx     # Organizer
+│   ├── EventWizard.tsx, EventManagerHub.tsx
+│   ├── PublicEventPage.tsx
+│   ├── admin/
 │   └── runner/
-│       ├── RunnerLandingPage.tsx      # platform home
-│       ├── RunnerComponents.tsx       # shared runner primitives
-│       └── pyt-landing/              # Pong Yaeng Trail 2026
-├── components/ui/                    # shadcn/ui
-├── contexts/AuthContext.tsx
-├── data/mockData.ts                  # ← replace with API calls here
-└── lib/                              # refundPolicy, distanceChangePolicy
+│       ├── RunnerLandingPage.tsx           # Platform home (/)
+│       ├── RunnerComponents.tsx            # Shared runner primitives
+│       └── pyt-landing/                   # /events/pong-yaeng-trail-2026
+│           ├── PongYaengTrailPage.tsx
+│           ├── hero-styles.css
+│           └── landing-styles.css
+├── components/ui/                          # shadcn/ui
+├── contexts/AuthContext.tsx                # Mock auth — replace with real
+├── data/mockData.ts                        # ← Replace ด้วย API calls ที่นี่
+└── lib/                                    # Business logic (unit-tested)
+    ├── refundPolicy.ts
+    └── distanceChangePolicy.ts
 ```
 
 ---
@@ -106,4 +158,8 @@ src/
 
 ข้อมูลทั้งหมดอยู่ใน `src/data/mockData.ts` — replace ด้วย API call ตรงนี้จุดเดียว views ไม่ต้องแก้
 
-Business logic ใน `src/lib/` แยกออกจาก UI — มี unit tests พร้อม migrate ไป backend
+Business logic ใน `src/lib/` แยกออกจาก UI พร้อม unit tests — migrate ไป backend ได้เลย
+
+```sh
+npm run test   # run unit tests
+```
