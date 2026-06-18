@@ -89,6 +89,18 @@ const AdminDashboard = () => {
     );
   };
 
+  const handleApproveCancellation = (eventId: string) => {
+    setEvents((prev) =>
+      prev.map((e) => (e.id === eventId ? { ...e, status: "cancelled" as const } : e))
+    );
+  };
+
+  const handleRejectCancellation = (eventId: string) => {
+    setEvents((prev) =>
+      prev.map((e) => (e.id === eventId ? { ...e, status: "live" as const } : e))
+    );
+  };
+
   const handleCreateOrganizer = (org: Omit<AdminOrganizer, "id" | "createdAt" | "eventsCount">) => {
     const newOrg: AdminOrganizer = {
       ...org,
@@ -120,6 +132,8 @@ const AdminDashboard = () => {
             onApprove={handleApprove}
             onReject={handleReject}
             onForceUnpublish={handleForceUnpublish}
+            onApproveCancellation={handleApproveCancellation}
+            onRejectCancellation={handleRejectCancellation}
           />
         );
       case "financials":

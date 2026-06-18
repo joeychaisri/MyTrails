@@ -6,7 +6,7 @@ export interface Event {
   date: string;
   endDate: string;
   province: string;
-  status: 'live' | 'pending' | 'draft';
+  status: 'live' | 'pending' | 'draft' | 'cancellation_requested' | 'cancelled';
   sold: number;
   capacity: number;
   revenue: number;

@@ -19,8 +19,10 @@ import StatsCard from "@/components/StatsCard";
 import ProfileModal from "@/components/ProfileModal";
 import PaymentModal from "@/components/PaymentModal";
 import AccountSecurityModal from "@/components/account/AccountSecurityModal";
+import EventActionDialog, { EventActionMode } from "@/components/event/EventActionDialog";
 import DateRangeFilter, { DateFilterOption } from "@/components/DateRangeFilter";
 import { mockEvents, mockProfile, mockPaymentInfo, Event, UserProfile, PaymentInfo } from "@/data/mockData";
+import { useToast } from "@/hooks/use-toast";
 
 const DashboardView = () => {
   const navigate = useNavigate();
@@ -36,7 +38,9 @@ const DashboardView = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
-  const [events] = useState<Event[]>(mockEvents);
+  const [events, setEvents] = useState<Event[]>(mockEvents);
+  const [eventAction, setEventAction] = useState<{ event: Event; mode: EventActionMode } | null>(null);
+  const { toast } = useToast();
   const [dateFilter, setDateFilter] = useState<DateFilterOption>("7days");
   const [customRange, setCustomRange] = useState<DateRange | undefined>();
 
@@ -71,6 +75,25 @@ const DashboardView = () => {
   // Apply multiplier for date-filtered stats
   const totalRevenue = Math.round(baseRevenue * statsMultiplier);
   const totalSold = Math.round(baseSold * statsMultiplier);
+
+  const requestDeleteEvent = (event: Event) => setEventAction({ event, mode: "delete" });
+  const requestCancelEvent = (event: Event) => setEventAction({ event, mode: "cancel" });
+
+  const confirmEventAction = (event: Event) => {
+    if (eventAction?.mode === "cancel") {
+      setEvents((prev) =>
+        prev.map((e) => (e.id === event.id ? { ...e, status: "cancellation_requested" as const } : e))
+      );
+      toast({
+        title: "Cancellation requested",
+        description: "Sent to the platform admin for approval. Runners are refunded once it's approved.",
+      });
+    } else {
+      setEvents((prev) => prev.filter((e) => e.id !== event.id));
+      toast({ title: "Event deleted", description: `"${event.title}" has been removed.` });
+    }
+    setEventAction(null);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("th-TH", {
@@ -202,7 +225,8 @@ const DashboardView = () => {
                   onEdit={onEditEvent}
                   onPreview={onPreviewEvent}
                   onManage={onSelectEvent}
-                  onDelete={event.status === "draft" ? () => {} : undefined}
+                  onDelete={requestDeleteEvent}
+                  onCancel={requestCancelEvent}
                 />
               ))}
             </div>
@@ -229,6 +253,14 @@ const DashboardView = () => {
         onOpenChange={setAccountModalOpen}
         email={profile.email}
         onEmailChange={(email) => setProfile({ ...profile, email })}
+      />
+
+      <EventActionDialog
+        open={!!eventAction}
+        onOpenChange={(o) => !o && setEventAction(null)}
+        event={eventAction?.event ?? null}
+        mode={eventAction?.mode ?? "delete"}
+        onConfirm={confirmEventAction}
       />
     </div>
   );

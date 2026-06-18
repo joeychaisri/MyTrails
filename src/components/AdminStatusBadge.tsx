@@ -12,6 +12,8 @@ const AdminStatusBadge = ({ status }: AdminStatusBadgeProps) => {
     ready_to_publish: "bg-success/15 text-success",
     live: "bg-success text-success-foreground",
     draft: "bg-muted text-muted-foreground",
+    cancellation_requested: "bg-warning text-warning-foreground",
+    cancelled: "bg-muted text-muted-foreground",
   };
 
   const labels: Record<AdminEventStatus, string> = {
@@ -20,6 +22,8 @@ const AdminStatusBadge = ({ status }: AdminStatusBadgeProps) => {
     ready_to_publish: "Ready to Publish",
     live: "Live",
     draft: "Draft",
+    cancellation_requested: "Cancellation Pending",
+    cancelled: "Cancelled",
   };
 
   return (

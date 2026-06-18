@@ -14,7 +14,9 @@ export type AdminEventStatus =
   | "awaiting_payment"
   | "ready_to_publish"
   | "live"
-  | "draft";
+  | "draft"
+  | "cancellation_requested"
+  | "cancelled";
 
 export interface AdminEvent {
   id: string;
@@ -29,6 +31,9 @@ export interface AdminEvent {
   date: string;
   capacity: number;
   sold: number;
+  // Present when an organizer has requested cancellation of a live event.
+  cancellationReason?: string;
+  refundAmount?: number;
 }
 
 export interface PlatformSettings {
@@ -53,6 +58,8 @@ export const mockAdminEvents: AdminEvent[] = [
   { id: "ae6", title: "Khao Yai Night Trail", organizerName: "Mountain Runners TH", organizerId: "org2", submittedDate: "2024-11-20", status: "live", feeAmount: 1500, province: "Nakhon Ratchasima", date: "2025-04-20", capacity: 300, sold: 187 },
   { id: "ae7", title: "Koh Chang Coastal Run", organizerName: "Gulf Coast Races", organizerId: "org5", submittedDate: "2025-01-22", status: "ready_to_publish", feeAmount: 1500, province: "Trat", date: "2025-08-05", capacity: 150, sold: 0 },
   { id: "ae8", title: "Chiang Rai Mountain Series", organizerName: "Trail Events Co.", organizerId: "org1", submittedDate: "2025-01-25", status: "draft", feeAmount: 1500, province: "Chiang Rai", date: "2025-09-10", capacity: 500, sold: 0 },
+  { id: "ae9", title: "Pai Canyon Sunset Run", organizerName: "Mountain Runners TH", organizerId: "org2", submittedDate: "2024-12-12", status: "cancellation_requested", feeAmount: 1500, province: "Mae Hong Son", date: "2025-05-10", capacity: 200, sold: 96, cancellationReason: "Trail damaged by a landslide; the course is unsafe for runners.", refundAmount: 240000 },
+  { id: "ae10", title: "Bangkok Riverside Night Run", organizerName: "Gulf Coast Races", organizerId: "org5", submittedDate: "2024-12-08", status: "cancellation_requested", feeAmount: 1500, province: "Bangkok", date: "2025-06-15", capacity: 500, sold: 312, cancellationReason: "Insufficient registrations to cover operating costs.", refundAmount: 780000 },
 ];
 
 export const mockPlatformRevenue = [

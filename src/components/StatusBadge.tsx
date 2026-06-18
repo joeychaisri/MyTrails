@@ -1,20 +1,24 @@
 import { cn } from "@/lib/utils";
 
 interface StatusBadgeProps {
-  status: "live" | "pending" | "draft";
+  status: "live" | "pending" | "draft" | "cancellation_requested" | "cancelled";
 }
 
 const StatusBadge = ({ status }: StatusBadgeProps) => {
-  const styles = {
+  const styles: Record<StatusBadgeProps["status"], string> = {
     live: "bg-success text-success-foreground",
     pending: "bg-warning text-warning-foreground",
     draft: "bg-muted text-muted-foreground",
+    cancellation_requested: "bg-warning text-warning-foreground",
+    cancelled: "bg-muted text-muted-foreground",
   };
 
-  const labels = {
+  const labels: Record<StatusBadgeProps["status"], string> = {
     live: "Live",
     pending: "Pending Review",
     draft: "Draft",
+    cancellation_requested: "Cancellation Pending",
+    cancelled: "Cancelled",
   };
 
   return (
