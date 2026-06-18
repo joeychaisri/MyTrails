@@ -2,6 +2,15 @@
 
 Trail running event platform for Thailand. Two distinct sides: **Organizer** (event management portal) and **Runner** (public-facing discovery & registration).
 
+## Working Style — IMPORTANT (read first)
+
+**Joey is the UX/designer for this project.** Treat this codebase like a **Figma prototype**, not a production app: most data is **mock data** (`src/data/mockData.ts`) that exists only to demonstrate flows, layout, and look-and-feel. Don't worry about real backend correctness or data integrity unless explicitly asked — the priority is **UX, layout, and design fidelity**.
+
+### Design System discipline (take this VERY seriously)
+
+- Whenever Joey asks for **any** new design or UI change, follow the **existing Design System strictly** — colors, spacing, typography, `--mt-*` tokens, shadcn primitives, and existing component patterns. Match what already exists; **do not improvise, invent new styles, or introduce new colors/values.**
+- **If you are unsure about ANYTHING** — a color, a token, spacing, which component to reuse, or any Design System decision — **STOP and ask Joey BEFORE implementing.** Never guess. Asking first is always preferred over building something off-system.
+
 ## Commands
 
 ```bash
@@ -60,6 +69,18 @@ src/
 - **Organizer side** — Tailwind CSS + shadcn/ui
 - **Runner side** — inline styles + custom CSS (`--mt-*` tokens) to match the Claude Design prototype pixel-for-pixel. Tokens are aliased in `src/index.css`.
 - CSS variables (`--mt-brand`, `--mt-fg`, etc.) mirror the existing shadcn `--primary`, `--foreground` etc. — same values, different names.
+
+## i18n (TH/EN)
+
+Runner side has a lightweight bilingual layer (mockup-grade, no external lib): `src/views/runner/i18n.tsx` — `LanguageProvider` + `useLang()` → `{ lang, locale, setLang, t }`, backed by `en`/`th` dictionaries. The "EN | ไทย" toggle lives in the landing TopNav; choice persists to localStorage. Any component calling `useLang()` must render inside `<LanguageProvider>` (the landing page wraps its tree).
+
+**Best practice when adding/editing runner UI:**
+- Never hardcode user-facing text — add the key to **both** `en` and `th`, render via `t('section.key')`.
+- Interpolate: `t('key', { name })` ↔ `"…{name}…"`. For counts add `key_one`/`key_other` and call `t('key', { count })`.
+- Don't translate proper nouns (event titles, provinces) — they come from data.
+- Dates/months via `Intl.DateTimeFormat(locale, …)`, not hardcoded strings. Keep the year Gregorian (append the number yourself) so `th-TH` doesn't flip to the Buddhist era.
+
+Scope today: landing page + Calendar. Same pattern extends to other pages, and is swappable for react-i18next later since everything already goes through `t()`.
 
 ## Auth (Mock)
 
