@@ -2,43 +2,10 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import heroImg from "@/assets/hero-trail.jpg";
 import { Button, I, Logo, IconDisc, ProgressBar } from "./RunnerComponents";
+import CalendarView from "./CalendarView";
+import { MOCK_EVENTS, REGIONS, type RunnerEvent } from "./runnerEvents";
 
-// ————— DATA —————
-
-const UNSPLASH = (id: string, w = 800) =>
-  `https://images.unsplash.com/${id}?w=${w}&q=80&auto=format&fit=crop`;
-
-interface Event {
-  id: string;
-  title: string;
-  province: string;
-  region: string;
-  date: string;
-  dateShort: string;
-  distances: string[];
-  elevation: string;
-  price: number;
-  sold: number;
-  capacity: number;
-  image: string;
-  tag: string;
-}
-
-const MOCK_EVENTS: Event[] = [
-  { id: "doi-inthanon", title: "Doi Inthanon Sky Trail 2026", province: "Chiang Mai", region: "north", date: "Apr 27, 2026", dateShort: "27 APR", distances: ["21K", "42K", "70K"], elevation: "3,800m", price: 1500, sold: 847, capacity: 1200, image: UNSPLASH("photo-1464822759023-fed622ff2c3b"), tag: "Featured" },
-  { id: "khao-yai", title: "Khao Yai Forest Ultra", province: "Nakhon Ratchasima", region: "central", date: "May 18, 2026", dateShort: "18 MAY", distances: ["12K", "25K", "50K"], elevation: "2,100m", price: 1200, sold: 320, capacity: 800, image: UNSPLASH("photo-1486870591958-9b9d0d1dda99"), tag: "Open" },
-  { id: "phu-kradueng", title: "Phu Kradueng Ridge Run", province: "Loei", region: "north", date: "Jun 7, 2026", dateShort: "07 JUN", distances: ["10K", "21K", "42K"], elevation: "1,600m", price: 1100, sold: 612, capacity: 900, image: UNSPLASH("photo-1551524559-8af4e6624178"), tag: "Early Bird" },
-  { id: "krabi-coast", title: "Krabi Coast & Cliff 42", province: "Krabi", region: "south", date: "Jul 12, 2026", dateShort: "12 JUL", distances: ["15K", "30K", "42K"], elevation: "1,400m", price: 1400, sold: 188, capacity: 600, image: UNSPLASH("photo-1551632811-561732d1e306"), tag: "New" },
-  { id: "pai-jungle", title: "Pai Jungle Marathon", province: "Mae Hong Son", region: "north", date: "Aug 24, 2026", dateShort: "24 AUG", distances: ["10K", "21K", "42K"], elevation: "1,900m", price: 1300, sold: 95, capacity: 500, image: UNSPLASH("photo-1469474968028-56623f02e42e"), tag: "Open" },
-  { id: "kanchanaburi", title: "Erawan Falls Trail 21", province: "Kanchanaburi", region: "central", date: "Sep 14, 2026", dateShort: "14 SEP", distances: ["10K", "21K"], elevation: "900m", price: 950, sold: 432, capacity: 700, image: UNSPLASH("photo-1455218873509-8097305ee378"), tag: "Open" },
-];
-
-const REGIONS = [
-  { value: "all",     label: "All Regions" },
-  { value: "north",   label: "North" },
-  { value: "central", label: "Central" },
-  { value: "south",   label: "South" },
-];
+type ViewMode = "grid" | "list" | "calendar";
 
 const RACE_TIERS = [
   { name: "Trail 10K",  km: "10 km",  use: "Your first taste of the trail",     elev: "300–700 m",     time: "1–2 hrs",   icon: "trendUp" },
@@ -85,7 +52,7 @@ function TopNav({ onCTA }: { onCTA: () => void }) {
 
 // ————— HERO —————
 
-function HeroEditorial({ onBrowse }: { onBrowse: () => void }) {
+function HeroEditorial({ onBrowse, onCalendar }: { onBrowse: () => void; onCalendar: () => void }) {
   return (
     <section style={{ position: "relative", minHeight: 640, overflow: "hidden", background: "hsl(var(--mt-fg))" }}>
       <img src={heroImg} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.85 }} />
@@ -113,7 +80,7 @@ function HeroEditorial({ onBrowse }: { onBrowse: () => void }) {
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 56 }}>
           <Button variant="primary" size="lg" onClick={onBrowse} rightIcon="chevRight">Browse Races</Button>
-          <Button size="lg" style={{ background: "hsl(0 0% 100% / .14)", color: "#fff", border: "1px solid hsl(0 0% 100% / .25)", backdropFilter: "blur(8px)" }}>
+          <Button size="lg" onClick={onCalendar} style={{ background: "hsl(0 0% 100% / .14)", color: "#fff", border: "1px solid hsl(0 0% 100% / .25)", backdropFilter: "blur(8px)" }}>
             <I name="calendar" size={16} /> View Calendar
           </Button>
         </div>
@@ -138,7 +105,7 @@ function HeroEditorial({ onBrowse }: { onBrowse: () => void }) {
 
 // ————— EVENT CARD —————
 
-function EventCard({ event, layout = "grid", onOpen }: { event: Event; layout?: "grid" | "list"; onOpen?: (e: Event) => void }) {
+function EventCard({ event, layout = "grid", onOpen }: { event: RunnerEvent; layout?: "grid" | "list"; onOpen?: (e: RunnerEvent) => void }) {
   const pct = (event.sold / event.capacity) * 100;
   const fmt = (n: number) => new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(n);
 
@@ -229,10 +196,9 @@ function EventCard({ event, layout = "grid", onOpen }: { event: Event; layout?: 
 
 // ————— FEATURED EVENTS —————
 
-function FeaturedEvents({ onOpen }: { onOpen?: (e: Event) => void }) {
+function FeaturedEvents({ view, setView, onOpen }: { view: ViewMode; setView: (v: ViewMode) => void; onOpen?: (e: RunnerEvent) => void }) {
   const [region, setRegion] = useState("all");
   const [query, setQuery] = useState("");
-  const [layout, setLayout] = useState<"grid" | "list">("grid");
 
   const filtered = useMemo(() => MOCK_EVENTS.filter((e) =>
     (region === "all" || e.region === region) &&
@@ -252,8 +218,8 @@ function FeaturedEvents({ onOpen }: { onOpen?: (e: Event) => void }) {
               Curated weekly. Every event is vetted before it goes live — no missing bibs, no phantom races.
             </p>
           </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <div style={{ position: "relative", minWidth: 280 }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ position: "relative", flex: "1 1 240px", minWidth: 200 }}>
               <I name="search" size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "hsl(var(--mt-fg-muted))" } as React.CSSProperties} />
               <input
                 value={query} onChange={(e) => setQuery(e.target.value)}
@@ -261,9 +227,28 @@ function FeaturedEvents({ onOpen }: { onOpen?: (e: Event) => void }) {
                 style={{ width: "100%", height: 44, paddingLeft: 40, paddingRight: 14, borderRadius: 10, border: "1px solid hsl(var(--mt-input))", background: "hsl(var(--mt-card))", font: "400 14px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", outline: "none" }}
               />
             </div>
-            <Button variant="outline" size="md" onClick={() => setLayout(layout === "grid" ? "list" : "grid")}>
-              {layout === "grid" ? "List" : "Grid"}
-            </Button>
+            <div style={{ display: "flex", gap: 4, padding: 4, background: "hsl(var(--mt-muted))", borderRadius: 10 }}>
+              {([["grid", "Grid"], ["list", "List"], ["calendar", "Calendar"]] as [ViewMode, string][]).map(([v, label]) => {
+                const active = view === v;
+                return (
+                  <button
+                    key={v}
+                    onClick={() => setView(v)}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      font: "500 13px/1 var(--mt-font-sans)", padding: "8px 14px",
+                      borderRadius: 8, border: 0, cursor: "pointer", transition: "all .15s",
+                      background: active ? "hsl(var(--mt-card))" : "transparent",
+                      color: active ? "hsl(var(--mt-fg))" : "hsl(var(--mt-fg-muted))",
+                      boxShadow: active ? "var(--mt-shadow-card)" : "none",
+                    }}
+                  >
+                    {v === "calendar" && <I name="calendar" size={14} />}
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -278,20 +263,24 @@ function FeaturedEvents({ onOpen }: { onOpen?: (e: Event) => void }) {
           })}
         </div>
 
-        {filtered.length === 0 ? (
+        {view === "calendar" ? (
+          <CalendarView events={filtered} onOpen={onOpen} />
+        ) : filtered.length === 0 ? (
           <div style={{ padding: 64, textAlign: "center", border: "1px dashed hsl(var(--mt-border))", borderRadius: 12, background: "hsl(var(--mt-card))" }}>
             <div style={{ font: "600 18px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", marginBottom: 8 }}>No races match</div>
             <div style={{ font: "400 14px/1.5 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))" }}>Try a different region or clear your search.</div>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: layout === "list" ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: 24 }}>
-            {filtered.map((e) => <EventCard key={e.id} event={e} layout={layout} onOpen={onOpen} />)}
+          <div style={{ display: "grid", gridTemplateColumns: view === "list" ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: 24 }}>
+            {filtered.map((e) => <EventCard key={e.id} event={e} layout={view} onOpen={onOpen} />)}
           </div>
         )}
 
-        <div style={{ marginTop: 48, textAlign: "center" }}>
-          <Button variant="outline" size="lg" rightIcon="chevRight">View all 47 races</Button>
-        </div>
+        {view !== "calendar" && (
+          <div style={{ marginTop: 48, textAlign: "center" }}>
+            <Button variant="outline" size="lg" rightIcon="chevRight">View all 47 races</Button>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -403,7 +392,7 @@ function CTAStrip({ onBrowse }: { onBrowse: () => void }) {
 
 // ————— FOOTER —————
 
-function Footer() {
+function Footer({ onCalendar }: { onCalendar: () => void }) {
   const navigate = useNavigate();
   const colTitle: React.CSSProperties = { font: "600 13px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 18 };
   const link: React.CSSProperties = { display: "block", font: "400 14px/1.8 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", textDecoration: "none" };
@@ -425,7 +414,7 @@ function Footer() {
           <div>
             <div style={colTitle}>Runners</div>
             <a href="#events" style={link}>Find Events</a>
-            <a href="#" style={link}>Race Calendar</a>
+            <a href="#events" style={link} onClick={(e) => { e.preventDefault(); onCalendar(); }}>Race Calendar</a>
             <a href="#" style={link}>My Registrations</a>
             <a href="#" style={link}>Training Tips</a>
           </div>
@@ -468,20 +457,26 @@ function Footer() {
 // ————— PAGE —————
 
 export default function RunnerLandingPage() {
+  const [view, setView] = useState<ViewMode>("grid");
+  const navigate = useNavigate();
+
   const browseRef = () => {
     document.getElementById("events")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-  const navigate = useNavigate();
+  const showCalendar = () => {
+    setView("calendar");
+    browseRef();
+  };
 
   return (
     <div style={{ fontFamily: "var(--mt-font-sans)" }}>
       <TopNav onCTA={() => navigate("/runner/login")} />
-      <HeroEditorial onBrowse={browseRef} />
-      <FeaturedEvents />
+      <HeroEditorial onBrowse={browseRef} onCalendar={showCalendar} />
+      <FeaturedEvents view={view} setView={setView} />
       <RaceCategoriesExplainer />
       <WhyMyTrails />
       <CTAStrip onBrowse={browseRef} />
-      <Footer />
+      <Footer onCalendar={showCalendar} />
     </div>
   );
 }
