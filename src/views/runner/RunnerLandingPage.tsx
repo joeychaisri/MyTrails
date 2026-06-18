@@ -4,26 +4,57 @@ import heroImg from "@/assets/hero-trail.jpg";
 import { Button, I, Logo, IconDisc, ProgressBar } from "./RunnerComponents";
 import CalendarView from "./CalendarView";
 import { MOCK_EVENTS, REGIONS, type RunnerEvent } from "./runnerEvents";
+import { LanguageProvider, useLang } from "./i18n";
 
 type ViewMode = "grid" | "list" | "calendar";
 
 const RACE_TIERS = [
-  { name: "Trail 10K",  km: "10 km",  use: "Your first taste of the trail",     elev: "300–700 m",     time: "1–2 hrs",   icon: "trendUp" },
-  { name: "Trail 21K",  km: "21 km",  use: "Half-marathon, weekend warrior",    elev: "800–1,400 m",   time: "2.5–4 hrs", icon: "mountain" },
-  { name: "Trail 42K",  km: "42 km",  use: "Full marathon, technical sections", elev: "1,800–2,600 m", time: "6–10 hrs",  icon: "award" },
-  { name: "Ultra 70K+", km: "70 km+", use: "Multi-summit, headlamp & cut-offs", elev: "3,000+ m",      time: "12–20 hrs", icon: "clock" },
+  { key: "tier1", km: "10 km",  elev: "300–700 m",     time: "1–2 hrs",   icon: "trendUp" },
+  { key: "tier2", km: "21 km",  elev: "800–1,400 m",   time: "2.5–4 hrs", icon: "mountain" },
+  { key: "tier3", km: "42 km",  elev: "1,800–2,600 m", time: "6–10 hrs",  icon: "award" },
+  { key: "tier4", km: "70 km+", elev: "3,000+ m",      time: "12–20 hrs", icon: "clock" },
 ];
 
 const WHY_POINTS = [
-  { icon: "clipboardCheck", title: "Vetted organizers",     body: "Every event on My Trails is reviewed by our team before it goes live. No phantom races, no missing bibs." },
-  { icon: "card",           title: "One-tap registration",  body: "Pay with PromptPay, credit card, or QR. Race-pack and BIB confirmation lands in your inbox the same day." },
-  { icon: "users",          title: "A real trail community", body: "Follow organizers, save races to your calendar, and meet other runners on the start line — not in a feed." },
+  { key: "point1", icon: "clipboardCheck" },
+  { key: "point2", icon: "card" },
+  { key: "point3", icon: "users" },
 ];
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// ————— LANGUAGE TOGGLE —————
+
+function LangToggle() {
+  const { lang, setLang } = useLang();
+  const item = (l: "en" | "th", label: string) => (
+    <button
+      onClick={() => setLang(l)}
+      aria-pressed={lang === l}
+      style={{
+        background: "none", border: 0, cursor: "pointer", padding: "4px 2px",
+        font: `${lang === l ? 600 : 500} 14px/1 var(--mt-font-sans)`,
+        color: lang === l ? "hsl(var(--mt-fg))" : "hsl(var(--mt-fg-muted))",
+        transition: "color .15s",
+      }}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+      {item("en", "EN")}
+      <span style={{ color: "hsl(var(--mt-border))", font: "400 13px/1 var(--mt-font-sans)" }}>|</span>
+      {item("th", "ไทย")}
+    </div>
+  );
+}
 
 // ————— NAV —————
 
 function TopNav({ onCTA }: { onCTA: () => void }) {
   const navigate = useNavigate();
+  const { t } = useLang();
   const link: React.CSSProperties = {
     color: "hsl(var(--mt-fg))", font: "500 14px/1 var(--mt-font-sans)",
     textDecoration: "none", padding: "8px 4px", transition: "color .15s",
@@ -37,13 +68,14 @@ function TopNav({ onCTA }: { onCTA: () => void }) {
       <div style={{ maxWidth: 1280, margin: "0 auto", height: "100%", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Logo size="sm" />
         <div className="runner-nav-links" style={{ display: "flex", alignItems: "center", gap: 28 }}>
-          <a href="#events"     style={link}>Find Events</a>
-          <a href="#categories" style={link}>Race Categories</a>
-          <a href="#why"        style={link}>Why My Trails</a>
+          <a href="#events"     style={link}>{t("nav.findEvents")}</a>
+          <a href="#categories" style={link}>{t("nav.categories")}</a>
+          <a href="#why"        style={link}>{t("nav.why")}</a>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/organizer/login")}>Log In</Button>
-          <Button variant="primary" size="sm" onClick={onCTA}>Sign Up</Button>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <LangToggle />
+          <Button variant="ghost" size="sm" onClick={() => navigate("/organizer/login")}>{t("nav.login")}</Button>
+          <Button variant="primary" size="sm" onClick={onCTA}>{t("nav.signup")}</Button>
         </div>
       </div>
     </nav>
@@ -53,6 +85,13 @@ function TopNav({ onCTA }: { onCTA: () => void }) {
 // ————— HERO —————
 
 function HeroEditorial({ onBrowse, onCalendar }: { onBrowse: () => void; onCalendar: () => void }) {
+  const { t } = useLang();
+  const stats = [
+    { v: "47",   k: "statEvents" },
+    { v: "12K+", k: "statRunners" },
+    { v: "76",   k: "statOrganizers" },
+    { v: "4.9★", k: "statRating" },
+  ];
   return (
     <section style={{ position: "relative", minHeight: 640, overflow: "hidden", background: "hsl(var(--mt-fg))" }}>
       <img src={heroImg} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.85 }} />
@@ -67,34 +106,29 @@ function HeroEditorial({ onBrowse, onCalendar }: { onBrowse: () => void; onCalen
           letterSpacing: ".05em", textTransform: "uppercase", marginBottom: 24,
         }}>
           <span style={{ width: 6, height: 6, borderRadius: 9999, background: "hsl(var(--mt-brand))" }} />
-          47 races live across Thailand
+          {t("hero.badge")}
         </div>
 
         <h1 style={{ font: "700 clamp(48px, 7vw, 88px)/1.02 var(--mt-font-sans)", letterSpacing: "-0.03em", margin: "0 0 24px", maxWidth: 880 }}>
-          Run wild.<br />Run <span style={{ color: "hsl(24 95% 60%)" }}>Thailand.</span>
+          {t("hero.headline1")}<br />{t("hero.headline2pre")}<span style={{ color: "hsl(24 95% 60%)" }}>{t("hero.headline2accent")}</span>
         </h1>
 
         <p style={{ font: "400 19px/1.55 var(--mt-font-sans)", color: "hsl(0 0% 100% / .85)", maxWidth: 560, margin: "0 0 36px" }}>
-          From mist-soaked ridges in Chiang Mai to limestone cliffs in Krabi — discover, register, and toe the line at Thailand's best trail races.
+          {t("hero.subcopy")}
         </p>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 56 }}>
-          <Button variant="primary" size="lg" onClick={onBrowse} rightIcon="chevRight">Browse Races</Button>
+          <Button variant="primary" size="lg" onClick={onBrowse} rightIcon="chevRight">{t("hero.browse")}</Button>
           <Button size="lg" onClick={onCalendar} style={{ background: "hsl(0 0% 100% / .14)", color: "#fff", border: "1px solid hsl(0 0% 100% / .25)", backdropFilter: "blur(8px)" }}>
-            <I name="calendar" size={16} /> View Calendar
+            <I name="calendar" size={16} /> {t("hero.viewCalendar")}
           </Button>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 32, paddingTop: 32, borderTop: "1px solid hsl(0 0% 100% / .15)", maxWidth: 760 }}>
-          {[
-            { v: "47",   l: "Events live" },
-            { v: "12K+", l: "Runners registered" },
-            { v: "76",   l: "Organizers" },
-            { v: "4.9★", l: "Avg race rating" },
-          ].map((s) => (
-            <div key={s.l}>
+          {stats.map((s) => (
+            <div key={s.k}>
               <div style={{ font: "700 28px/1 var(--mt-font-sans)", letterSpacing: "-0.02em" }}>{s.v}</div>
-              <div style={{ font: "500 12px/1 var(--mt-font-sans)", color: "hsl(0 0% 100% / .65)", marginTop: 8, textTransform: "uppercase", letterSpacing: ".06em" }}>{s.l}</div>
+              <div style={{ font: "500 12px/1 var(--mt-font-sans)", color: "hsl(0 0% 100% / .65)", marginTop: 8, textTransform: "uppercase", letterSpacing: ".06em" }}>{t(`hero.${s.k}`)}</div>
             </div>
           ))}
         </div>
@@ -106,6 +140,7 @@ function HeroEditorial({ onBrowse, onCalendar }: { onBrowse: () => void; onCalen
 // ————— EVENT CARD —————
 
 function EventCard({ event, layout = "grid", onOpen }: { event: RunnerEvent; layout?: "grid" | "list"; onOpen?: (e: RunnerEvent) => void }) {
+  const { t } = useLang();
   const pct = (event.sold / event.capacity) * 100;
   const fmt = (n: number) => new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(n);
 
@@ -138,9 +173,9 @@ function EventCard({ event, layout = "grid", onOpen }: { event: RunnerEvent; lay
           </div>
         </div>
         <div style={{ padding: "24px 28px 24px 0", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-end", gap: 12 }}>
-          <div style={{ font: "400 12px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", textTransform: "uppercase", letterSpacing: ".06em" }}>From</div>
+          <div style={{ font: "400 12px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", textTransform: "uppercase", letterSpacing: ".06em" }}>{t("card.from")}</div>
           <div style={{ font: "700 22px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))" }}>{fmt(event.price)}</div>
-          <Button variant="primary" size="sm" rightIcon="chevRight">Register</Button>
+          <Button variant="primary" size="sm" rightIcon="chevRight">{t("card.register")}</Button>
         </div>
       </div>
     );
@@ -178,16 +213,16 @@ function EventCard({ event, layout = "grid", onOpen }: { event: RunnerEvent; lay
           ))}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, font: "500 12px/1 var(--mt-font-sans)" }}>
-          <span style={{ color: "hsl(var(--mt-fg-muted))" }}>{event.sold} / {event.capacity} runners</span>
+          <span style={{ color: "hsl(var(--mt-fg-muted))" }}>{t("card.runners", { sold: event.sold, capacity: event.capacity })}</span>
           <span style={{ color: "hsl(var(--mt-fg))" }}>{Math.round(pct)}%</span>
         </div>
         <ProgressBar value={event.sold} max={event.capacity} height={6} />
         <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid hsl(var(--mt-border))", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ font: "400 11px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", textTransform: "uppercase", letterSpacing: ".06em" }}>From</div>
+            <div style={{ font: "400 11px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", textTransform: "uppercase", letterSpacing: ".06em" }}>{t("card.from")}</div>
             <div style={{ font: "700 18px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", marginTop: 4 }}>{fmt(event.price)}</div>
           </div>
-          <Button variant="primary" size="sm" rightIcon="chevRight">Register</Button>
+          <Button variant="primary" size="sm" rightIcon="chevRight">{t("card.register")}</Button>
         </div>
       </div>
     </div>
@@ -197,25 +232,31 @@ function EventCard({ event, layout = "grid", onOpen }: { event: RunnerEvent; lay
 // ————— FEATURED EVENTS —————
 
 function FeaturedEvents({ view, setView, onOpen }: { view: ViewMode; setView: (v: ViewMode) => void; onOpen?: (e: RunnerEvent) => void }) {
+  const { t } = useLang();
   const [region, setRegion] = useState("all");
   const [query, setQuery] = useState("");
+
+  const regionLabel = (value: string) => t(`events.region${cap(value)}`);
 
   const filtered = useMemo(() => MOCK_EVENTS.filter((e) =>
     (region === "all" || e.region === region) &&
     (query === "" || e.title.toLowerCase().includes(query.toLowerCase()) || e.province.toLowerCase().includes(query.toLowerCase()))
   ), [region, query]);
 
+  const heading = t("events.heading", { count: filtered.length }) +
+    (region !== "all" ? t("events.headingRegion", { region: regionLabel(region) }) : "");
+
   return (
     <section id="events" style={{ background: "hsl(var(--mt-bg))", padding: "96px 32px" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 24, marginBottom: 40 }}>
           <div>
-            <div className="mt-eyebrow" style={{ color: "hsl(var(--mt-brand))", marginBottom: 12 }}>Upcoming races</div>
+            <div className="mt-eyebrow" style={{ color: "hsl(var(--mt-brand))", marginBottom: 12 }}>{t("events.eyebrow")}</div>
             <h2 style={{ font: "700 clamp(32px, 4vw, 44px)/1.1 var(--mt-font-sans)", letterSpacing: "-0.02em", color: "hsl(var(--mt-fg))", margin: 0 }}>
-              {filtered.length} races{region !== "all" ? ` in the ${REGIONS.find((r) => r.value === region)?.label}` : ""}
+              {heading}
             </h2>
             <p style={{ font: "400 16px/1.6 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", margin: "12px 0 0", maxWidth: 520 }}>
-              Curated weekly. Every event is vetted before it goes live — no missing bibs, no phantom races.
+              {t("events.subcopy")}
             </p>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -223,12 +264,12 @@ function FeaturedEvents({ view, setView, onOpen }: { view: ViewMode; setView: (v
               <I name="search" size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "hsl(var(--mt-fg-muted))" } as React.CSSProperties} />
               <input
                 value={query} onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by race or province…"
+                placeholder={t("events.searchPlaceholder")}
                 style={{ width: "100%", height: 44, paddingLeft: 40, paddingRight: 14, borderRadius: 10, border: "1px solid hsl(var(--mt-input))", background: "hsl(var(--mt-card))", font: "400 14px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", outline: "none" }}
               />
             </div>
             <div style={{ display: "flex", gap: 4, padding: 4, background: "hsl(var(--mt-muted))", borderRadius: 10 }}>
-              {([["grid", "Grid"], ["list", "List"], ["calendar", "Calendar"]] as [ViewMode, string][]).map(([v, label]) => {
+              {(["grid", "list", "calendar"] as ViewMode[]).map((v) => {
                 const active = view === v;
                 return (
                   <button
@@ -244,7 +285,7 @@ function FeaturedEvents({ view, setView, onOpen }: { view: ViewMode; setView: (v
                     }}
                   >
                     {v === "calendar" && <I name="calendar" size={14} />}
-                    {label}
+                    {t(`events.view${cap(v)}`)}
                   </button>
                 );
               })}
@@ -257,7 +298,7 @@ function FeaturedEvents({ view, setView, onOpen }: { view: ViewMode; setView: (v
             const active = r.value === region;
             return (
               <button key={r.value} onClick={() => setRegion(r.value)} style={{ font: "500 14px/1 var(--mt-font-sans)", padding: "10px 18px", borderRadius: 9999, background: active ? "hsl(var(--mt-fg))" : "hsl(var(--mt-card))", color: active ? "#fff" : "hsl(var(--mt-fg))", border: `1px solid ${active ? "hsl(var(--mt-fg))" : "hsl(var(--mt-border))"}`, cursor: "pointer", transition: "all .15s" }}>
-                {r.label}
+                {regionLabel(r.value)}
               </button>
             );
           })}
@@ -267,8 +308,8 @@ function FeaturedEvents({ view, setView, onOpen }: { view: ViewMode; setView: (v
           <CalendarView events={filtered} onOpen={onOpen} />
         ) : filtered.length === 0 ? (
           <div style={{ padding: 64, textAlign: "center", border: "1px dashed hsl(var(--mt-border))", borderRadius: 12, background: "hsl(var(--mt-card))" }}>
-            <div style={{ font: "600 18px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", marginBottom: 8 }}>No races match</div>
-            <div style={{ font: "400 14px/1.5 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))" }}>Try a different region or clear your search.</div>
+            <div style={{ font: "600 18px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", marginBottom: 8 }}>{t("events.emptyTitle")}</div>
+            <div style={{ font: "400 14px/1.5 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))" }}>{t("events.emptyBody")}</div>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: view === "list" ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: 24 }}>
@@ -278,7 +319,7 @@ function FeaturedEvents({ view, setView, onOpen }: { view: ViewMode; setView: (v
 
         {view !== "calendar" && (
           <div style={{ marginTop: 48, textAlign: "center" }}>
-            <Button variant="outline" size="lg" rightIcon="chevRight">View all 47 races</Button>
+            <Button variant="outline" size="lg" rightIcon="chevRight">{t("events.viewAll")}</Button>
           </div>
         )}
       </div>
@@ -289,35 +330,36 @@ function FeaturedEvents({ view, setView, onOpen }: { view: ViewMode; setView: (v
 // ————— RACE CATEGORIES —————
 
 function RaceCategoriesExplainer() {
+  const { t } = useLang();
   return (
     <section id="categories" style={{ background: "hsl(var(--mt-card))", padding: "96px 32px", borderTop: "1px solid hsl(var(--mt-border))", borderBottom: "1px solid hsl(var(--mt-border))" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         <div style={{ maxWidth: 720, marginBottom: 56 }}>
-          <div className="mt-eyebrow" style={{ color: "hsl(var(--mt-brand))", marginBottom: 12 }}>Race categories</div>
+          <div className="mt-eyebrow" style={{ color: "hsl(var(--mt-brand))", marginBottom: 12 }}>{t("categories.eyebrow")}</div>
           <h2 style={{ font: "700 clamp(32px, 4vw, 44px)/1.1 var(--mt-font-sans)", letterSpacing: "-0.02em", color: "hsl(var(--mt-fg))", margin: 0 }}>
-            Pick your distance.
+            {t("categories.heading")}
           </h2>
           <p style={{ font: "400 17px/1.6 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", margin: "16px 0 0" }}>
-            Whether you're chasing your first 10K or signing up for a 100K ultra — every race on My Trails lists the same details so you know what you're in for.
+            {t("categories.subcopy")}
           </p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-          {RACE_TIERS.map((t) => (
-            <div key={t.name} style={{ padding: 28, borderRadius: 14, background: "hsl(var(--mt-bg))", border: "1px solid hsl(var(--mt-border))", position: "relative", overflow: "hidden" }}>
+          {RACE_TIERS.map((tier) => (
+            <div key={tier.key} style={{ padding: 28, borderRadius: 14, background: "hsl(var(--mt-bg))", border: "1px solid hsl(var(--mt-border))", position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", top: -24, right: -24, width: 96, height: 96, borderRadius: 9999, background: "hsl(var(--mt-brand) / .08)" }} />
               <div style={{ position: "relative" }}>
-                <IconDisc name={t.icon} size={44} />
-                <div style={{ font: "400 12px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", marginTop: 18, textTransform: "uppercase", letterSpacing: ".06em" }}>{t.km}</div>
-                <h3 style={{ font: "700 22px/1.2 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", margin: "6px 0 12px", letterSpacing: "-0.01em" }}>{t.name}</h3>
-                <p style={{ font: "400 14px/1.55 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", margin: "0 0 20px" }}>{t.use}</p>
+                <IconDisc name={tier.icon} size={44} />
+                <div style={{ font: "400 12px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", marginTop: 18, textTransform: "uppercase", letterSpacing: ".06em" }}>{tier.km}</div>
+                <h3 style={{ font: "700 22px/1.2 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", margin: "6px 0 12px", letterSpacing: "-0.01em" }}>{t(`categories.${tier.key}Name`)}</h3>
+                <p style={{ font: "400 14px/1.55 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", margin: "0 0 20px" }}>{t(`categories.${tier.key}Use`)}</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 16, borderTop: "1px solid hsl(var(--mt-border))" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", font: "500 13px/1 var(--mt-font-sans)" }}>
-                    <span style={{ color: "hsl(var(--mt-fg-muted))" }}>Elevation</span>
-                    <span style={{ color: "hsl(var(--mt-fg))" }}>{t.elev}</span>
+                    <span style={{ color: "hsl(var(--mt-fg-muted))" }}>{t("categories.labelElevation")}</span>
+                    <span style={{ color: "hsl(var(--mt-fg))" }}>{tier.elev}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", font: "500 13px/1 var(--mt-font-sans)" }}>
-                    <span style={{ color: "hsl(var(--mt-fg-muted))" }}>Finish time</span>
-                    <span style={{ color: "hsl(var(--mt-fg))" }}>{t.time}</span>
+                    <span style={{ color: "hsl(var(--mt-fg-muted))" }}>{t("categories.labelFinish")}</span>
+                    <span style={{ color: "hsl(var(--mt-fg))" }}>{tier.time}</span>
                   </div>
                 </div>
               </div>
@@ -332,25 +374,26 @@ function RaceCategoriesExplainer() {
 // ————— WHY MYTRAILS —————
 
 function WhyMyTrails() {
+  const { t } = useLang();
   return (
     <section id="why" style={{ background: "hsl(var(--mt-bg))", padding: "96px 32px" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 80, alignItems: "start" }}>
         <div>
-          <div className="mt-eyebrow" style={{ color: "hsl(var(--mt-brand))", marginBottom: 12 }}>Why My Trails</div>
+          <div className="mt-eyebrow" style={{ color: "hsl(var(--mt-brand))", marginBottom: 12 }}>{t("why.eyebrow")}</div>
           <h2 style={{ font: "700 clamp(32px, 4vw, 44px)/1.1 var(--mt-font-sans)", letterSpacing: "-0.02em", color: "hsl(var(--mt-fg))", margin: 0 }}>
-            Built for runners.<br />By runners.
+            {t("why.heading1")}<br />{t("why.heading2")}
           </h2>
           <p style={{ font: "400 16px/1.65 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", margin: "20px 0 0" }}>
-            We started My Trails because finding a real, well-run trail race in Thailand shouldn't mean trawling Facebook groups at midnight.
+            {t("why.subcopy")}
           </p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {WHY_POINTS.map((p, i) => (
-            <div key={p.title} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 24, padding: "32px 0", borderTop: i === 0 ? "1px solid hsl(var(--mt-border))" : "none", borderBottom: "1px solid hsl(var(--mt-border))" }}>
+            <div key={p.key} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 24, padding: "32px 0", borderTop: i === 0 ? "1px solid hsl(var(--mt-border))" : "none", borderBottom: "1px solid hsl(var(--mt-border))" }}>
               <IconDisc name={p.icon} size={48} />
               <div>
-                <h3 style={{ font: "600 20px/1.3 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", margin: "0 0 8px", letterSpacing: "-0.01em" }}>{p.title}</h3>
-                <p style={{ font: "400 15px/1.6 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", margin: 0 }}>{p.body}</p>
+                <h3 style={{ font: "600 20px/1.3 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", margin: "0 0 8px", letterSpacing: "-0.01em" }}>{t(`why.${p.key}Title`)}</h3>
+                <p style={{ font: "400 15px/1.6 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", margin: 0 }}>{t(`why.${p.key}Body`)}</p>
               </div>
             </div>
           ))}
@@ -363,6 +406,7 @@ function WhyMyTrails() {
 // ————— CTA STRIP —————
 
 function CTAStrip({ onBrowse }: { onBrowse: () => void }) {
+  const { t } = useLang();
   return (
     <section style={{ padding: "32px" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto", borderRadius: 20, overflow: "hidden", background: "var(--mt-gradient-hero)", position: "relative" }}>
@@ -370,18 +414,18 @@ function CTAStrip({ onBrowse }: { onBrowse: () => void }) {
         <div style={{ position: "relative", padding: "64px 56px", display: "grid", gridTemplateColumns: "1.5fr auto", gap: 32, alignItems: "center" }}>
           <div>
             <h2 style={{ font: "700 clamp(28px, 3.5vw, 40px)/1.1 var(--mt-font-sans)", color: "#fff", letterSpacing: "-0.02em", margin: "0 0 12px" }}>
-              Ready to find your next trail?
+              {t("cta.heading")}
             </h2>
             <p style={{ font: "400 17px/1.55 var(--mt-font-sans)", color: "hsl(0 0% 100% / .85)", margin: 0, maxWidth: 560 }}>
-              Browse the full calendar, save your favorites, and get notified when registration opens — สมัครได้เลย, ไม่มีค่าธรรมเนียม.
+              {t("cta.body")}
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <Button size="lg" onClick={onBrowse} rightIcon="chevRight" style={{ background: "#fff", color: "hsl(var(--mt-brand-deep, 16 90% 40%))", boxShadow: "0 4px 12px hsl(220 20% 10% / .15)" }}>
-              Browse All Races
+              {t("cta.browse")}
             </Button>
             <Button size="lg" style={{ background: "hsl(0 0% 100% / .14)", color: "#fff", border: "1px solid hsl(0 0% 100% / .3)" }}>
-              <I name="send" size={16} /> Get Race Alerts
+              <I name="send" size={16} /> {t("cta.alerts")}
             </Button>
           </div>
         </div>
@@ -394,6 +438,7 @@ function CTAStrip({ onBrowse }: { onBrowse: () => void }) {
 
 function Footer({ onCalendar }: { onCalendar: () => void }) {
   const navigate = useNavigate();
+  const { t } = useLang();
   const colTitle: React.CSSProperties = { font: "600 13px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 18 };
   const link: React.CSSProperties = { display: "block", font: "400 14px/1.8 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", textDecoration: "none" };
   return (
@@ -403,7 +448,7 @@ function Footer({ onCalendar }: { onCalendar: () => void }) {
           <div>
             <Logo size="md" />
             <p style={{ font: "400 14px/1.65 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", margin: "20px 0 0", maxWidth: 320 }}>
-              Trail running event-management platform for Thailand. Find races, register, and run wild.
+              {t("footer.tagline")}
             </p>
             <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
               {["IG", "FB", "TT", "X"].map((s) => (
@@ -412,41 +457,41 @@ function Footer({ onCalendar }: { onCalendar: () => void }) {
             </div>
           </div>
           <div>
-            <div style={colTitle}>Runners</div>
-            <a href="#events" style={link}>Find Events</a>
-            <a href="#events" style={link} onClick={(e) => { e.preventDefault(); onCalendar(); }}>Race Calendar</a>
-            <a href="#" style={link}>My Registrations</a>
-            <a href="#" style={link}>Training Tips</a>
+            <div style={colTitle}>{t("footer.colRunners")}</div>
+            <a href="#events" style={link}>{t("footer.findEvents")}</a>
+            <a href="#events" style={link} onClick={(e) => { e.preventDefault(); onCalendar(); }}>{t("footer.raceCalendar")}</a>
+            <a href="#" style={link}>{t("footer.myReg")}</a>
+            <a href="#" style={link}>{t("footer.training")}</a>
           </div>
           <div>
-            <div style={colTitle}>Organizers</div>
-            <a href="#" style={link} onClick={(e) => { e.preventDefault(); navigate("/organizer/login"); }}>Organizer Login</a>
-            <a href="#" style={link}>List Your Event</a>
-            <a href="#" style={link}>Pricing</a>
-            <a href="#" style={link}>Resources</a>
+            <div style={colTitle}>{t("footer.colOrganizers")}</div>
+            <a href="#" style={link} onClick={(e) => { e.preventDefault(); navigate("/organizer/login"); }}>{t("footer.orgLogin")}</a>
+            <a href="#" style={link}>{t("footer.listEvent")}</a>
+            <a href="#" style={link}>{t("footer.pricing")}</a>
+            <a href="#" style={link}>{t("footer.resources")}</a>
           </div>
           <div>
-            <div style={colTitle}>Company</div>
-            <a href="#" style={link}>About</a>
-            <a href="#" style={link}>Blog</a>
-            <a href="#" style={link}>Contact</a>
-            <a href="#" style={link}>Careers</a>
+            <div style={colTitle}>{t("footer.colCompany")}</div>
+            <a href="#" style={link}>{t("footer.about")}</a>
+            <a href="#" style={link}>{t("footer.blog")}</a>
+            <a href="#" style={link}>{t("footer.contact")}</a>
+            <a href="#" style={link}>{t("footer.careers")}</a>
           </div>
           <div>
-            <div style={colTitle}>Support</div>
-            <a href="#" style={link}>Help Center</a>
-            <a href="#" style={link}>Refund Policy</a>
-            <a href="#" style={link}>Terms</a>
-            <a href="#" style={link}>Privacy</a>
+            <div style={colTitle}>{t("footer.colSupport")}</div>
+            <a href="#" style={link}>{t("footer.help")}</a>
+            <a href="#" style={link}>{t("footer.refund")}</a>
+            <a href="#" style={link}>{t("footer.terms")}</a>
+            <a href="#" style={link}>{t("footer.privacy")}</a>
           </div>
         </div>
         <div style={{ paddingTop: 24, borderTop: "1px solid hsl(var(--mt-border))", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
           <div style={{ font: "400 13px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))" }}>
-            © 2026 My Trails Co., Ltd. · Bangkok, Thailand
+            {t("footer.copyright")}
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", font: "400 13px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))" }}>
             <span style={{ width: 6, height: 6, borderRadius: 9999, background: "hsl(var(--mt-success))" }} />
-            All systems operational · TH/EN
+            {t("footer.status")} · TH/EN
           </div>
         </div>
       </div>
@@ -456,7 +501,7 @@ function Footer({ onCalendar }: { onCalendar: () => void }) {
 
 // ————— PAGE —————
 
-export default function RunnerLandingPage() {
+function RunnerLanding() {
   const [view, setView] = useState<ViewMode>("grid");
   const navigate = useNavigate();
 
@@ -478,5 +523,13 @@ export default function RunnerLandingPage() {
       <CTAStrip onBrowse={browseRef} />
       <Footer onCalendar={showCalendar} />
     </div>
+  );
+}
+
+export default function RunnerLandingPage() {
+  return (
+    <LanguageProvider>
+      <RunnerLanding />
+    </LanguageProvider>
   );
 }

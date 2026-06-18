@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { Button, I, ProgressBar } from "./RunnerComponents";
 import type { RunnerEvent } from "./runnerEvents";
+import { useLang } from "./i18n";
 import {
   parseEventDate,
   groupEventsByMonth,
   monthHistogram,
   yearsWithEvents,
-  MONTH_LABELS_SHORT,
 } from "@/lib/eventCalendar";
 
 const fmtPrice = (n: number) =>
@@ -15,17 +15,17 @@ const fmtPrice = (n: number) =>
 const scrollToMonth = (key: string) =>
   document.getElementById(`cal-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
-// ——— MONTH OVERVIEW STRIP ———
+// ————— MONTH OVERVIEW STRIP ———
 
 function MonthStrip({
   histogram,
   populatedKeys,
-  year,
 }: {
   histogram: number[];
   populatedKeys: Record<number, string>; // monthIndex -> group key
-  year: number;
 }) {
+  const { t, locale } = useLang();
+  const monthShort = (m: number) => new Intl.DateTimeFormat(locale, { month: "short" }).format(new Date(2000, m, 1));
   return (
     <div
       style={{
@@ -36,15 +36,15 @@ function MonthStrip({
         scrollbarWidth: "thin",
       }}
     >
-      {MONTH_LABELS_SHORT.map((label, i) => {
+      {Array.from({ length: 12 }, (_, i) => {
         const count = histogram[i];
         const active = count > 0;
         return (
           <button
-            key={label}
+            key={i}
             disabled={!active}
             onClick={() => active && scrollToMonth(populatedKeys[i])}
-            title={active ? `${count} race${count > 1 ? "s" : ""} in ${label} ${year}` : `No races in ${label}`}
+            title={active ? t("calendar.monthRaces", { count }) : undefined}
             style={{
               flex: "1 0 auto",
               minWidth: 60,
@@ -62,14 +62,14 @@ function MonthStrip({
               transition: "background .15s, border-color .15s",
             }}
           >
-            <span style={{ font: "600 13px/1 var(--mt-font-sans)", letterSpacing: ".02em" }}>{label}</span>
+            <span style={{ font: "600 13px/1 var(--mt-font-sans)", letterSpacing: ".02em" }}>{monthShort(i)}</span>
             <span
               style={{
                 font: "600 11px/1 var(--mt-font-sans)",
                 color: active ? "hsl(var(--mt-brand))" : "hsl(var(--mt-fg-muted))",
               }}
             >
-              {active ? `${count} race${count > 1 ? "s" : ""}` : "—"}
+              {active ? t("calendar.monthRaces", { count }) : "—"}
             </span>
           </button>
         );
@@ -78,14 +78,15 @@ function MonthStrip({
   );
 }
 
-// ——— AGENDA ROW ———
+// ————— AGENDA ROW ———
 
 function CalendarRow({ event, onOpen }: { event: RunnerEvent; onOpen?: (e: RunnerEvent) => void }) {
+  const { t, locale } = useLang();
   const d = parseEventDate(event.date);
   const day = isNaN(d.getTime()) ? event.dateShort.split(" ")[0] : String(d.getDate());
   const mon = isNaN(d.getTime())
     ? event.dateShort.split(" ")[1] ?? ""
-    : MONTH_LABELS_SHORT[d.getMonth()].toUpperCase();
+    : new Intl.DateTimeFormat(locale, { month: "short" }).format(d).toUpperCase();
   const pct = Math.round((event.sold / event.capacity) * 100);
   const almostFull = pct >= 90;
 
@@ -149,7 +150,7 @@ function CalendarRow({ event, onOpen }: { event: RunnerEvent; onOpen?: (e: Runne
         <div style={{ maxWidth: 320 }}>
           <div style={{ display: "flex", justifyContent: "space-between", font: "500 11px/1 var(--mt-font-sans)", marginBottom: 5 }}>
             <span style={{ color: almostFull ? "hsl(var(--mt-brand))" : "hsl(var(--mt-fg-muted))" }}>
-              {almostFull ? "Almost full" : `${event.capacity - event.sold} spots left`}
+              {almostFull ? t("calendar.almostFull") : t("calendar.spotsLeft", { count: event.capacity - event.sold })}
             </span>
             <span style={{ color: "hsl(var(--mt-fg-muted))" }}>{pct}%</span>
           </div>
@@ -160,16 +161,16 @@ function CalendarRow({ event, onOpen }: { event: RunnerEvent; onOpen?: (e: Runne
       {/* Price + CTA */}
       <div style={{ flex: "0 0 auto", marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
         <div>
-          <div style={{ font: "400 10px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", textTransform: "uppercase", letterSpacing: ".06em", textAlign: "right" }}>From</div>
+          <div style={{ font: "400 10px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))", textTransform: "uppercase", letterSpacing: ".06em", textAlign: "right" }}>{t("card.from")}</div>
           <div style={{ font: "700 20px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", marginTop: 4 }}>{fmtPrice(event.price)}</div>
         </div>
-        <Button variant="primary" size="sm" rightIcon="chevRight">Register</Button>
+        <Button variant="primary" size="sm" rightIcon="chevRight">{t("card.register")}</Button>
       </div>
     </div>
   );
 }
 
-// ——— CALENDAR VIEW ———
+// ————— CALENDAR VIEW ———
 
 export default function CalendarView({
   events,
@@ -178,6 +179,7 @@ export default function CalendarView({
   events: RunnerEvent[];
   onOpen?: (e: RunnerEvent) => void;
 }) {
+  const { t, locale } = useLang();
   const years = useMemo(() => yearsWithEvents(events), [events]);
   const [year, setYear] = useState(() => years[0] ?? new Date().getFullYear());
 
@@ -196,6 +198,12 @@ export default function CalendarView({
     return map;
   }, [groups]);
 
+  // Month name localised via Intl, year appended as a plain number so it stays
+  // Gregorian (matches the year navigator and event data) — th-TH's Intl year
+  // would otherwise switch to the Buddhist era and disagree with the nav.
+  const monthLong = (y: number, m: number) =>
+    `${new Intl.DateTimeFormat(locale, { month: "long" }).format(new Date(y, m, 1))} ${y}`;
+
   const yearIdx = years.indexOf(activeYear);
   const prevYear = yearIdx > 0 ? years[yearIdx - 1] : null;
   const nextYear = yearIdx >= 0 && yearIdx < years.length - 1 ? years[yearIdx + 1] : null;
@@ -204,8 +212,8 @@ export default function CalendarView({
   if (events.length === 0) {
     return (
       <div style={{ padding: 64, textAlign: "center", border: "1px dashed hsl(var(--mt-border))", borderRadius: 12, background: "hsl(var(--mt-card))" }}>
-        <div style={{ font: "600 18px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", marginBottom: 8 }}>No races on the calendar</div>
-        <div style={{ font: "400 14px/1.5 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))" }}>Try a different region or clear your search.</div>
+        <div style={{ font: "600 18px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", marginBottom: 8 }}>{t("calendar.emptyTitle")}</div>
+        <div style={{ font: "400 14px/1.5 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))" }}>{t("calendar.emptyBody")}</div>
       </div>
     );
   }
@@ -222,7 +230,7 @@ export default function CalendarView({
               disabled={prevYear === null}
               onClick={() => prevYear !== null && setYear(prevYear)}
               style={{ opacity: prevYear === null ? 0.4 : 1 }}
-              aria-label="Previous year"
+              aria-label={t("calendar.prevYear")}
             >
               <I name="chevRight" size={16} style={{ transform: "scaleX(-1)" }} />
             </Button>
@@ -235,16 +243,16 @@ export default function CalendarView({
               disabled={nextYear === null}
               onClick={() => nextYear !== null && setYear(nextYear)}
               style={{ opacity: nextYear === null ? 0.4 : 1 }}
-              aria-label="Next year"
+              aria-label={t("calendar.nextYear")}
             >
               <I name="chevRight" size={16} />
             </Button>
           </div>
           <div style={{ font: "500 13px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))" }}>
-            {totalRaces} race{totalRaces !== 1 ? "s" : ""} this year
+            {t("calendar.racesThisYear", { count: totalRaces })}
           </div>
         </div>
-        <MonthStrip histogram={histogram} populatedKeys={populatedKeys} year={activeYear} />
+        <MonthStrip histogram={histogram} populatedKeys={populatedKeys} />
       </div>
 
       {/* Month-grouped agenda */}
@@ -252,9 +260,9 @@ export default function CalendarView({
         {groups.map((g) => (
           <section key={g.key} id={`cal-${g.key}`} style={{ scrollMarginTop: 80 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid hsl(var(--mt-border))" }}>
-              <h3 style={{ font: "700 20px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", margin: 0, letterSpacing: "-0.01em" }}>{g.label}</h3>
+              <h3 style={{ font: "700 20px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg))", margin: 0, letterSpacing: "-0.01em" }}>{monthLong(g.year, g.month)}</h3>
               <span style={{ font: "500 13px/1 var(--mt-font-sans)", color: "hsl(var(--mt-fg-muted))" }}>
-                {g.events.length} race{g.events.length > 1 ? "s" : ""}
+                {t("calendar.monthRaces", { count: g.events.length })}
               </span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
