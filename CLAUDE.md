@@ -17,7 +17,7 @@ Trail running event platform for Thailand. Two distinct sides: **Organizer** (ev
 npm run dev      # dev server → https://localhost:8080 (self-signed cert)
 npm run build    # production build → dist/
 npm run test     # vitest unit tests
-npx tsc --noEmit # type check only
+npm run typecheck # type check only (tsc -p tsconfig.app.json --noEmit — plain `npx tsc --noEmit` checks NOTHING because root tsconfig has files:[])
 ```
 
 Caddy reverse-proxies `mytrails.theingress.co` → `https://localhost:8080`.
@@ -41,14 +41,18 @@ Caddy reverse-proxies `mytrails.theingress.co` → `https://localhost:8080`.
 
 ```
 src/
+├── hooks/data/             # data-layer seam: useEvents/useOrders/... return {data,isLoading,error}; swap mock → React Query here
 ├── views/
-│   ├── organizer/          # (files live at views/ root for now)
+│   ├── organizer/
 │   │   AuthView.tsx
 │   │   DashboardView.tsx
 │   │   EventWizard.tsx
-│   │   EventManagerHub.tsx
+│   │   EventManagerHub.tsx   # thin orchestrator (~300 lines); sections in event-manager/
 │   │   PublicEventPage.tsx
-│   │   admin/
+│   │   event-manager/        # OrdersSection, ParticipantsSection, BibSection, PromotionsSection, Overview*Section, orderConstants
+│   ├── admin/
+│   ├── OrderTwoView.tsx      # order-flow UX experiments (Direction 2/3) — pending decision, do not invest
+│   ├── OrderThreeView.tsx
 │   └── runner/
 │       ├── RunnerLandingPage.tsx     # platform home
 │       ├── RunnerComponents.tsx      # Button, Logo, I, IconDisc, ProgressBar
