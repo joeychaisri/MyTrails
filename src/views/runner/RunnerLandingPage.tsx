@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import heroImg from "@/assets/hero-trail.jpg";
+import heroImg from "@/assets/hero-trail.webp";
 import { Button, I, Logo, IconDisc, ProgressBar } from "./RunnerComponents";
 import CalendarView from "./CalendarView";
 import { MOCK_EVENTS, REGIONS, type RunnerEvent } from "./runnerEvents";
@@ -94,7 +94,7 @@ function HeroEditorial({ onBrowse, onCalendar }: { onBrowse: () => void; onCalen
   ];
   return (
     <section style={{ position: "relative", minHeight: 640, overflow: "hidden", background: "hsl(var(--mt-fg))" }}>
-      <img src={heroImg} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.85 }} />
+      <img src={heroImg} alt="" width={1920} height={1080} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.85 }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, hsl(220 20% 10% / .85) 0%, hsl(220 20% 10% / .55) 45%, hsl(220 20% 10% / .25) 100%)" }} />
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 20% 70%, hsl(24 95% 46% / .18) 0%, transparent 55%)" }} />
 

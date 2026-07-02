@@ -10,7 +10,7 @@ import {
 import StatusBadge from "./StatusBadge";
 import { Event } from "@/data/mockData";
 import { format } from "date-fns";
-import heroImage from "@/assets/hero-trail.jpg";
+import heroImage from "@/assets/hero-trail-card.webp";
 
 interface EventCardProps {
   event: Event;
@@ -35,6 +35,10 @@ const EventCard = ({ event, onEdit, onPreview, onManage, onDelete, onCancel }: E
         <img
           src={event.coverImage || heroImage}
           alt={event.title}
+          width={800}
+          height={450}
+          loading="lazy"
+          decoding="async"
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
         <div className="absolute right-3 top-3">
