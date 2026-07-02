@@ -21,7 +21,9 @@ import PaymentModal from "@/components/PaymentModal";
 import AccountSecurityModal from "@/components/account/AccountSecurityModal";
 import EventActionDialog, { EventActionMode } from "@/components/event/EventActionDialog";
 import DateRangeFilter, { DateFilterOption } from "@/components/DateRangeFilter";
-import { mockEvents, mockProfile, mockPaymentInfo, Event, UserProfile, PaymentInfo } from "@/data/mockData";
+import { Event, UserProfile, PaymentInfo } from "@/data/mockData";
+import { useEvents } from "@/hooks/data/useEvents";
+import { useOrganizerProfile } from "@/hooks/data/useOrganizerProfile";
 import { useToast } from "@/hooks/use-toast";
 
 const DashboardView = () => {
@@ -32,13 +34,15 @@ const DashboardView = () => {
   const onCreateEvent = () => navigate("/organizer/events/new");
   const onEditEvent = (event: Event) => navigate(`/organizer/events/${event.id}/edit`);
   const onPreviewEvent = (event: Event) => navigate(`/events/${event.id}/preview`);
-  const [profile, setProfile] = useState<UserProfile>(mockProfile);
-  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(mockPaymentInfo);
+  const { data: organizerAccount } = useOrganizerProfile();
+  const { data: initialEvents } = useEvents();
+  const [profile, setProfile] = useState<UserProfile>(organizerAccount.profile);
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(organizerAccount.paymentInfo);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
-  const [events, setEvents] = useState<Event[]>(mockEvents);
+  const [events, setEvents] = useState<Event[]>(initialEvents);
   const [eventAction, setEventAction] = useState<{ event: Event; mode: EventActionMode } | null>(null);
   const { toast } = useToast();
   const [dateFilter, setDateFilter] = useState<DateFilterOption>("7days");

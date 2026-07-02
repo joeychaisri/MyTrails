@@ -28,13 +28,11 @@ import AdminFinancials from "@/views/admin/AdminFinancials";
 import AdminUserManagement from "@/views/admin/AdminUserManagement";
 import AdminSettings from "@/views/admin/AdminSettings";
 import {
-  mockAdminEvents,
-  mockAdminOrganizers,
-  mockPlatformSettings,
   AdminEvent,
   AdminOrganizer,
   PlatformSettings,
 } from "@/data/adminMockData";
+import { useAdminData } from "@/hooks/data/useAdminData";
 import { cn } from "@/lib/utils";
 
 type AdminPage = "overview" | "approvals" | "financials" | "users" | "settings";
@@ -59,10 +57,11 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const onLogout = () => { logout(); navigate("/organizer/login"); };
+  const { data: adminData } = useAdminData();
   const [activePage, setActivePage] = useState<AdminPage>("overview");
-  const [events, setEvents] = useState<AdminEvent[]>(mockAdminEvents);
-  const [organizers, setOrganizers] = useState<AdminOrganizer[]>(mockAdminOrganizers);
-  const [platformSettings, setPlatformSettings] = useState<PlatformSettings>(mockPlatformSettings);
+  const [events, setEvents] = useState<AdminEvent[]>(adminData.events);
+  const [organizers, setOrganizers] = useState<AdminOrganizer[]>(adminData.organizers);
+  const [platformSettings, setPlatformSettings] = useState<PlatformSettings>(adminData.platformSettings);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleApprove = (eventId: string) => {

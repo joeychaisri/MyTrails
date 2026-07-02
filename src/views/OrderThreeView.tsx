@@ -734,7 +734,7 @@ function OrderDetailModal3({
             { key: "info", label: "ข้อมูล" },
             { key: "log", label: "ประวัติ", badge: order.log.length },
             { key: "slip", label: "สลิปโอนเงิน", badge: slipBadge, warn: !!slipBadge },
-          ] as const).map((t) => (
+          ] as { key: "info" | "log" | "slip"; label: string; badge?: number | "!" | null; warn?: boolean }[]).map((t) => (
             <button
               key={t.key}
               onClick={() => setDetailTab(t.key)}

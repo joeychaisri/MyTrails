@@ -44,7 +44,9 @@ import {
 } from "lucide-react";
 import Logo from "@/components/Logo";
 import PaymentModal from "@/components/PaymentModal";
-import { Event, Category, Ticket, Checkpoint, mockProfile, mockPaymentInfo, mockEvents, PaymentInfo } from "@/data/mockData";
+import { Event, Category, Ticket, Checkpoint, PaymentInfo } from "@/data/mockData";
+import { useEvent } from "@/hooks/data/useEvents";
+import { useOrganizerProfile } from "@/hooks/data/useOrganizerProfile";
 
 type WizardStep = 1 | 2 | 3 | 4;
 
@@ -87,12 +89,13 @@ const EventWizard = () => {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const event = id ? mockEvents.find((e) => e.id === id) : undefined;
+  const { data: event } = useEvent(id);
+  const { data: organizerAccount } = useOrganizerProfile();
   const onBack = () => navigate("/organizer/dashboard");
   const onComplete = () => navigate("/organizer/dashboard");
   const onLogout = () => { logout(); navigate("/organizer/login"); };
-  const profile = mockProfile;
-  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(mockPaymentInfo);
+  const profile = organizerAccount.profile;
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(organizerAccount.paymentInfo);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [showSuccess, setShowSuccess] = useState(false);

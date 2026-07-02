@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Logo from "@/components/Logo";
-import heroImage from "@/assets/hero-trail.jpg";
+import heroImage from "@/assets/hero-trail.webp";
 import { useAuth } from "@/contexts/AuthContext";
 
 const AuthView = () => {
@@ -32,6 +32,8 @@ const AuthView = () => {
         <img
           src={heroImage}
           alt="Mountain trail at sunrise"
+          width={1920}
+          height={1080}
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-transparent" />
