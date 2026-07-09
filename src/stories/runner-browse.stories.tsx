@@ -20,4 +20,4 @@ CalendarView.storyName = "Calendar view";
 export const FilteredNorth: Story = () => (
   <RunnerLandingPage initialView="grid" initialRegion="north" />
 );
-FilteredNorth.storyName = "Filtered — North region";
+FilteredNorth.storyName = "Filtered - North region";

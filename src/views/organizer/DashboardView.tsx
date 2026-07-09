@@ -26,7 +26,20 @@ import { useEvents } from "@/hooks/data/useEvents";
 import { useOrganizerProfile } from "@/hooks/data/useOrganizerProfile";
 import { useToast } from "@/hooks/use-toast";
 
-const DashboardView = () => {
+interface DashboardViewProps {
+  /** Story/seed only — pins the initially-selected event tab. Defaults to the live app's "all". */
+  initialTab?: string;
+  /** Story/seed only — opens the Edit Profile modal on mount. Defaults to closed. */
+  initialProfileModalOpen?: boolean;
+  /** Story/seed only — opens the Payment modal on mount. Defaults to closed. */
+  initialPaymentModalOpen?: boolean;
+}
+
+const DashboardView = ({
+  initialTab = "all",
+  initialProfileModalOpen = false,
+  initialPaymentModalOpen = false,
+}: DashboardViewProps = {}) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const onLogout = () => { logout(); navigate("/organizer/login"); };
@@ -38,10 +51,10 @@ const DashboardView = () => {
   const { data: initialEvents } = useEvents();
   const [profile, setProfile] = useState<UserProfile>(organizerAccount.profile);
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(organizerAccount.paymentInfo);
-  const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(initialProfileModalOpen);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(initialPaymentModalOpen);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [events, setEvents] = useState<Event[]>(initialEvents);
   const [eventAction, setEventAction] = useState<{ event: Event; mode: EventActionMode } | null>(null);
   const { toast } = useToast();

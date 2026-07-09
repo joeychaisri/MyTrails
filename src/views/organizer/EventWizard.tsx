@@ -2,10 +2,6 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -19,14 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ArrowLeft,
@@ -34,19 +22,18 @@ import {
   Check,
   ChevronDown,
   CreditCard,
-  Image as ImageIcon,
   LogOut,
-  Plus,
-  Trash2,
-  Upload,
   User,
-  X,
 } from "lucide-react";
 import Logo from "@/components/Logo";
 import PaymentModal from "@/components/PaymentModal";
 import { Event, Category, Ticket, Checkpoint, PaymentInfo } from "@/data/mockData";
 import { useEvent } from "@/hooks/data/useEvents";
 import { useOrganizerProfile } from "@/hooks/data/useOrganizerProfile";
+import EventInfoStep, { BasicInfo } from "./event-wizard/EventInfoStep";
+import RaceConfigStep from "./event-wizard/RaceConfigStep";
+import TicketsStep from "./event-wizard/TicketsStep";
+import ReviewStep from "./event-wizard/ReviewStep";
 
 type WizardStep = 1 | 2 | 3 | 4;
 
@@ -55,21 +42,6 @@ const steps = [
   { number: 2, title: "Race Configuration" },
   { number: 3, title: "Tickets" },
   { number: 4, title: "Review & Submit" },
-];
-
-const provinces = [
-  "Bangkok",
-  "Chiang Mai",
-  "Chiang Rai",
-  "Chonburi",
-  "Kanchanaburi",
-  "Krabi",
-  "Nakhon Ratchasima",
-  "Nan",
-  "Phetchabun",
-  "Phuket",
-  "Prachuap Khiri Khan",
-  "Tak",
 ];
 
 const defaultGear = [
@@ -85,7 +57,18 @@ const defaultGear = [
   "Trail Running Shoes",
 ];
 
-const EventWizard = () => {
+interface EventWizardProps {
+  initialStep?: WizardStep;
+  initialScenario?: Partial<{
+    basicInfo: Partial<BasicInfo>;
+    categories: Category[];
+    activeCategory: number;
+    langTab: string;
+    paymentInfo: PaymentInfo;
+  }>;
+}
+
+const EventWizard = ({ initialStep, initialScenario }: EventWizardProps = {}) => {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -95,13 +78,13 @@ const EventWizard = () => {
   const onComplete = () => navigate("/organizer/dashboard");
   const onLogout = () => { logout(); navigate("/organizer/login"); };
   const profile = organizerAccount.profile;
-  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(organizerAccount.paymentInfo);
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(initialScenario?.paymentInfo ?? organizerAccount.paymentInfo);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [currentStep, setCurrentStep] = useState<WizardStep>(1);
+  const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep ?? 1);
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Form state
-  const [basicInfo, setBasicInfo] = useState({
+  const [basicInfo, setBasicInfo] = useState<BasicInfo>({
     title: event?.title || "",
     titleTh: event?.titleTh || "",
     description: event?.description || "",
@@ -114,10 +97,11 @@ const EventWizard = () => {
     facebook: event?.socialLinks.facebook || "",
     instagram: event?.socialLinks.instagram || "",
     website: event?.socialLinks.website || "",
+    ...initialScenario?.basicInfo,
   });
 
   const [categories, setCategories] = useState<Category[]>(
-    event?.categories || [
+    initialScenario?.categories ?? (event?.categories || [
       {
         id: "new-1",
         name: "50K Trail",
@@ -139,11 +123,11 @@ const EventWizard = () => {
         mandatoryGear: ["Headlamp", "Water 1L"],
         tickets: [],
       },
-    ]
+    ])
   );
 
-  const [activeCategory, setActiveCategory] = useState(0);
-  const [langTab, setLangTab] = useState("en");
+  const [activeCategory, setActiveCategory] = useState(initialScenario?.activeCategory ?? 0);
+  const [langTab, setLangTab] = useState(initialScenario?.langTab ?? "en");
 
   const addCategory = () => {
     const newCat: Category = {
@@ -267,492 +251,34 @@ const EventWizard = () => {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
-            {/* Cover Photo */}
-            <div className="space-y-2">
-              <Label>Cover Photo</Label>
-              <div className="flex h-48 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/50 transition-colors hover:border-primary/50">
-                <div className="text-center">
-                  <ImageIcon className="mx-auto h-10 w-10 text-muted-foreground" />
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Drag & drop or click to upload
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Recommended: 1920x1080px
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Title */}
-            <div className="space-y-2">
-              <Label>Event Title</Label>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">English</span>
-                  <Input
-                    placeholder="Doi Inthanon Trail Challenge"
-                    value={basicInfo.title}
-                    onChange={(e) => setBasicInfo({ ...basicInfo, title: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">ภาษาไทย</span>
-                  <Input
-                    placeholder="ดอยอินทนนท์เทรลชาเลนจ์"
-                    value={basicInfo.titleTh}
-                    onChange={(e) => setBasicInfo({ ...basicInfo, titleTh: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Province & Location */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Province</Label>
-                <Select value={basicInfo.province} onValueChange={(v) => setBasicInfo({ ...basicInfo, province: v })}>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select province" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover">
-                    {provinces.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {p}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label>Latitude</Label>
-                  <Input
-                    placeholder="18.5881"
-                    value={basicInfo.latitude}
-                    onChange={(e) => setBasicInfo({ ...basicInfo, latitude: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Longitude</Label>
-                  <Input
-                    placeholder="98.4864"
-                    value={basicInfo.longitude}
-                    onChange={(e) => setBasicInfo({ ...basicInfo, longitude: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Dates */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Start Date</Label>
-                <Input
-                  type="date"
-                  value={basicInfo.date}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, date: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>End Date</Label>
-                <Input
-                  type="date"
-                  value={basicInfo.endDate}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, endDate: e.target.value })}
-                />
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">English</span>
-                  <Textarea
-                    rows={4}
-                    placeholder="Describe your event..."
-                    value={basicInfo.description}
-                    onChange={(e) => setBasicInfo({ ...basicInfo, description: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">ภาษาไทย</span>
-                  <Textarea
-                    rows={4}
-                    placeholder="อธิบายกิจกรรมของคุณ..."
-                    value={basicInfo.descriptionTh}
-                    onChange={(e) => setBasicInfo({ ...basicInfo, descriptionTh: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Social Links */}
-            <div className="space-y-4">
-              <Label>Social Links</Label>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Input
-                  placeholder="Facebook URL"
-                  value={basicInfo.facebook}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, facebook: e.target.value })}
-                />
-                <Input
-                  placeholder="Instagram URL"
-                  value={basicInfo.instagram}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, instagram: e.target.value })}
-                />
-                <Input
-                  placeholder="Website URL"
-                  value={basicInfo.website}
-                  onChange={(e) => setBasicInfo({ ...basicInfo, website: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
+          <EventInfoStep basicInfo={basicInfo} setBasicInfo={setBasicInfo} />
         );
 
       case 2:
         return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <Tabs value={String(activeCategory)} onValueChange={(v) => setActiveCategory(Number(v))}>
-                <TabsList>
-                  {categories.map((cat, index) => (
-                    <TabsTrigger key={cat.id} value={String(index)}>
-                      {cat.name || `Race ${index + 1}`}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-              <Button variant="outline" size="sm" onClick={addCategory}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Race
-              </Button>
-            </div>
-
-            {categories[activeCategory] && (
-              <div className="space-y-6 rounded-xl border border-border bg-card p-6">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold">Race Details</h4>
-                  {categories.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeCategory(activeCategory)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-
-                {/* Race Name */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Race Name (EN)</Label>
-                    <Input
-                      placeholder="100K Ultra"
-                      value={categories[activeCategory].name}
-                      onChange={(e) => updateCategory(activeCategory, { name: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Race Name (TH)</Label>
-                    <Input
-                      placeholder="100K อัลตร้า"
-                      value={categories[activeCategory].nameTh}
-                      onChange={(e) => updateCategory(activeCategory, { nameTh: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                {/* Race Date & Time */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Race Date</Label>
-                    <Input
-                      type="date"
-                      value={categories[activeCategory].raceDate}
-                      onChange={(e) => updateCategory(activeCategory, { raceDate: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Start Time</Label>
-                    <Input
-                      type="time"
-                      value={categories[activeCategory].startTime}
-                      onChange={(e) => updateCategory(activeCategory, { startTime: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                {/* Start Location */}
-                <div className="space-y-3">
-                  <Label>Start Location</Label>
-                  <Input
-                    placeholder="e.g. Doi Inthanon National Park HQ"
-                    value={categories[activeCategory].startLocationName}
-                    onChange={(e) => updateCategory(activeCategory, { startLocationName: e.target.value })}
-                  />
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Latitude</Label>
-                      <Input
-                        type="number"
-                        step="0.0001"
-                        placeholder="18.5881"
-                        value={categories[activeCategory].startLat || ""}
-                        onChange={(e) => updateCategory(activeCategory, { startLat: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Longitude</Label>
-                      <Input
-                        type="number"
-                        step="0.0001"
-                        placeholder="98.4864"
-                        value={categories[activeCategory].startLng || ""}
-                        onChange={(e) => updateCategory(activeCategory, { startLng: Number(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Cutoff */}
-                <div className="space-y-2">
-                  <Label>Cut-off</Label>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground">Clock time (HH:MM)</span>
-                      <Input
-                        type="time"
-                        value={categories[activeCategory].cutoffTime}
-                        onChange={(e) => updateCategory(activeCategory, { cutoffTime: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground">Hours limit from start</span>
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          placeholder="24"
-                          value={categories[activeCategory].cutoffHours || ""}
-                          onChange={(e) => updateCategory(activeCategory, { cutoffHours: Number(e.target.value) })}
-                          className="pr-10"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">hrs</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Course Metrics */}
-                <div className="space-y-3">
-                  <Label>Course Metrics</Label>
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Distance (km)</Label>
-                      <Input
-                        type="number"
-                        placeholder="100"
-                        value={categories[activeCategory].distance || ""}
-                        onChange={(e) => updateCategory(activeCategory, { distance: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Elevation Gain (m)</Label>
-                      <Input
-                        type="number"
-                        placeholder="5200"
-                        value={categories[activeCategory].elevation || ""}
-                        onChange={(e) => updateCategory(activeCategory, { elevation: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Elevation Loss (m)</Label>
-                      <Input
-                        type="number"
-                        placeholder="5100"
-                        value={categories[activeCategory].elevationLoss || ""}
-                        onChange={(e) => updateCategory(activeCategory, { elevationLoss: Number(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Terrain Type</Label>
-                      <Select
-                        value={categories[activeCategory].terrainType}
-                        onValueChange={(v) => updateCategory(activeCategory, { terrainType: v })}
-                      >
-                        <SelectTrigger className="bg-background">
-                          <SelectValue placeholder="Select terrain" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover">
-                          <SelectItem value="Mountain Trail">Mountain Trail</SelectItem>
-                          <SelectItem value="Forest Trail">Forest Trail</SelectItem>
-                          <SelectItem value="Desert Trail">Desert Trail</SelectItem>
-                          <SelectItem value="Coastal Trail">Coastal Trail</SelectItem>
-                          <SelectItem value="Mixed Terrain">Mixed Terrain</SelectItem>
-                          <SelectItem value="Road & Trail">Road & Trail</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">ITRA Points</Label>
-                      <Input
-                        type="number"
-                        placeholder="8"
-                        value={categories[activeCategory].itra || ""}
-                        onChange={(e) => updateCategory(activeCategory, { itra: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">UTMB Index</Label>
-                      <Input
-                        type="number"
-                        placeholder="6"
-                        value={categories[activeCategory].utmbIndex || ""}
-                        onChange={(e) => updateCategory(activeCategory, { utmbIndex: Number(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* GPX Upload */}
-                <div className="space-y-2">
-                  <Label>GPX Route File</Label>
-                  <div className="flex items-center gap-4">
-                    <Button variant="outline">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload GPX
-                    </Button>
-                    <span className="text-sm text-muted-foreground">No file selected</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <RaceConfigStep
+            categories={categories}
+            activeCategory={activeCategory}
+            setActiveCategory={setActiveCategory}
+            addCategory={addCategory}
+            removeCategory={removeCategory}
+            updateCategory={updateCategory}
+          />
         );
 
       case 3:
         return (
-          <div className="space-y-6">
-            {categories.map((cat, catIndex) => (
-              <div key={cat.id} className="rounded-xl border border-border bg-card p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <h4 className="font-semibold">{cat.name || `Race ${catIndex + 1}`}</h4>
-                  <Button variant="outline" size="sm" onClick={() => addTicket(catIndex)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Price Tier
-                  </Button>
-                </div>
-
-                {cat.tickets.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground py-8">
-                    No tickets added yet
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {cat.tickets.map((ticket, ticketIndex) => (
-                      <div key={ticket.id} className="flex items-start gap-4 rounded-lg border border-border p-4">
-                        <div className="flex-1 grid gap-4 sm:grid-cols-3">
-                          <Input
-                            placeholder="Tier name (e.g., Early Bird)"
-                            value={ticket.name}
-                            onChange={(e) => updateTicket(catIndex, ticketIndex, { name: e.target.value })}
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Price (THB)"
-                            value={ticket.price || ""}
-                            onChange={(e) =>
-                              updateTicket(catIndex, ticketIndex, { price: Number(e.target.value) })
-                            }
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Quantity"
-                            value={ticket.quantity || ""}
-                            onChange={(e) =>
-                              updateTicket(catIndex, ticketIndex, { quantity: Number(e.target.value) })
-                            }
-                          />
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeTicket(catIndex, ticketIndex)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+          <TicketsStep
+            categories={categories}
+            addTicket={addTicket}
+            updateTicket={updateTicket}
+            removeTicket={removeTicket}
+          />
         );
 
       case 4:
         return (
-          <div className="space-y-6">
-            <div className="rounded-xl border border-border bg-card p-6">
-              <h4 className="mb-4 text-lg font-semibold">Event Summary</h4>
-
-              <div className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Event Title</p>
-                    <p className="font-medium">{basicInfo.title || "Not set"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Province</p>
-                    <p className="font-medium">{basicInfo.province || "Not set"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Dates</p>
-                    <p className="font-medium">
-                      {basicInfo.date && basicInfo.endDate
-                        ? `${basicInfo.date} - ${basicInfo.endDate}`
-                        : "Not set"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Races</p>
-                    <p className="font-medium">{categories.length}</p>
-                  </div>
-                </div>
-
-                <div className="border-t border-border pt-4">
-                  <p className="mb-2 text-sm text-muted-foreground">Races</p>
-                  <div className="space-y-2">
-                    {categories.map((cat) => (
-                      <div key={cat.id} className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
-                        <span className="font-medium">{cat.name || "Unnamed"}</span>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{cat.distance}K</span>
-                          <span>{cat.tickets.length} ticket tiers</span>
-                          <span>{cat.checkpoints.length} checkpoints</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-warning/50 bg-warning/10 p-4">
-              <p className="text-sm text-warning-foreground">
-                <strong>Note:</strong> Once submitted, your event will be reviewed by our team. You'll
-                receive an email notification within 24-48 hours.
-              </p>
-            </div>
-          </div>
+          <ReviewStep basicInfo={basicInfo} categories={categories} />
         );
 
       default:

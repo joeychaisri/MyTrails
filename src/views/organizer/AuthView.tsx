@@ -8,8 +8,13 @@ import Logo from "@/components/Logo";
 import heroImage from "@/assets/hero-trail.webp";
 import { useAuth } from "@/contexts/AuthContext";
 
-const AuthView = () => {
-  const [isLoading, setIsLoading] = useState(false);
+interface AuthViewProps {
+  /** Story/seed only — pins the submit buttons in their "Signing in…" loading state. Defaults to idle. */
+  initialLoading?: boolean;
+}
+
+const AuthView = ({ initialLoading = false }: AuthViewProps = {}) => {
+  const [isLoading, setIsLoading] = useState(initialLoading);
   const [loginEmail, setLoginEmail] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
