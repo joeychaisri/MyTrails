@@ -1,22 +1,21 @@
 import type { Story } from "@ladle/react";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import EventManagerHub from "@/views/organizer/EventManagerHub";
 
 // Journey 6 · Organizer — Manage Event
 // The whole EventManagerHub storied at each of its section routes. The hub reads
-// :id and :section off the URL, so every export nests its own MemoryRouter pinned
-// to a real mock event id ("1" = Doi Inthanon) plus the section id. Obsolete/
-// experimental sections (overview2, orders2, orders3) live under Experiments.
+// :id and :section off the URL, so every export uses <Routes location> (the
+// global provider already supplies the Router — nesting a second one throws)
+// pinned to a real mock event id ("1" = Doi Inthanon) plus the section id.
+// Obsolete/experimental sections (overview2, orders2, orders3) live under Experiments.
 export default {
   title: "Organizer/Manage Event",
 };
 
 const hubAt = (section: string) => (
-  <MemoryRouter initialEntries={[`/organizer/events/1/${section}`]}>
-    <Routes>
-      <Route path="/organizer/events/:id/:section" element={<EventManagerHub />} />
-    </Routes>
-  </MemoryRouter>
+  <Routes location={`/organizer/events/1/${section}`}>
+    <Route path="/organizer/events/:id/:section" element={<EventManagerHub />} />
+  </Routes>
 );
 
 export const RaceOperations: Story = () => hubAt("overview3");
