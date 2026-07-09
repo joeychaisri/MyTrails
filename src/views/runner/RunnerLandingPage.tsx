@@ -231,9 +231,9 @@ function EventCard({ event, layout = "grid", onOpen }: { event: RunnerEvent; lay
 
 // ————— FEATURED EVENTS —————
 
-function FeaturedEvents({ view, setView, onOpen }: { view: ViewMode; setView: (v: ViewMode) => void; onOpen?: (e: RunnerEvent) => void }) {
+function FeaturedEvents({ view, setView, onOpen, initialRegion }: { view: ViewMode; setView: (v: ViewMode) => void; onOpen?: (e: RunnerEvent) => void; initialRegion?: string }) {
   const { t } = useLang();
-  const [region, setRegion] = useState("all");
+  const [region, setRegion] = useState(initialRegion ?? "all");
   const [query, setQuery] = useState("");
 
   const regionLabel = (value: string) => t(`events.region${cap(value)}`);
@@ -501,8 +501,8 @@ function Footer({ onCalendar }: { onCalendar: () => void }) {
 
 // ————— PAGE —————
 
-function RunnerLanding() {
-  const [view, setView] = useState<ViewMode>("grid");
+function RunnerLanding({ initialView, initialRegion }: { initialView?: ViewMode; initialRegion?: string }) {
+  const [view, setView] = useState<ViewMode>(initialView ?? "grid");
   const navigate = useNavigate();
 
   const browseRef = () => {
@@ -517,7 +517,7 @@ function RunnerLanding() {
     <div style={{ fontFamily: "var(--mt-font-sans)" }}>
       <TopNav onCTA={() => navigate("/runner/login")} />
       <HeroEditorial onBrowse={browseRef} onCalendar={showCalendar} />
-      <FeaturedEvents view={view} setView={setView} />
+      <FeaturedEvents view={view} setView={setView} initialRegion={initialRegion} />
       <RaceCategoriesExplainer />
       <WhyMyTrails />
       <CTAStrip onBrowse={browseRef} />
@@ -526,10 +526,10 @@ function RunnerLanding() {
   );
 }
 
-export default function RunnerLandingPage() {
+export default function RunnerLandingPage({ initialView, initialRegion }: { initialView?: ViewMode; initialRegion?: string } = {}) {
   return (
     <LanguageProvider>
-      <RunnerLanding />
+      <RunnerLanding initialView={initialView} initialRegion={initialRegion} />
     </LanguageProvider>
   );
 }

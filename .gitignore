@@ -27,3 +27,6 @@ dist-ssr
 # Local vite config variants
 vite.config.http.ts
 vite.config.ts.bak
+
+# Ladle static build output
+build/
