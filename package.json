@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "ladle": "ladle serve",
     "ladle:build": "ladle build",
+    "ladle:deploy": "ladle build --base /journey/ --outDir ladle-dist",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

@@ -18,9 +18,26 @@ npm run dev      # dev server → https://localhost:8080 (self-signed cert)
 npm run build    # production build → dist/
 npm run test     # vitest unit tests
 npm run typecheck # type check only (tsc -p tsconfig.app.json --noEmit — plain `npx tsc --noEmit` checks NOTHING because root tsconfig has files:[])
+npm run ladle    # dev hand-off catalog (Ladle) → http://localhost:61000
+npm run ladle:deploy # static build → ladle-dist/ (base /journey/) for the live catalog
 ```
 
 Caddy reverse-proxies `mytrails.theingress.co` → `https://localhost:8080`.
+
+## Developer Hand-off Catalog (Ladle)
+
+`mytrails.theingress.co/journey` serves a **Ladle** catalog: every user flow ("journey")
+as a sidebar group of isolated, pinned-state screens — the hand-off artifact for developers.
+Stories live in `src/stories/*.stories.tsx`; global providers in `.ladle/components.tsx`;
+sidebar order (journey 1→8, Experiments last) in `.ladle/config.mjs` via `storyOrder`.
+
+- It is a **separate static build**, not an app route. Caddy serves `ladle-dist/` under
+  `/journey/` (`handle_path /journey/*` in the Caddyfile); normal app URLs are untouched.
+- **After editing stories, rebuild**: `npm run ladle:deploy` (regenerates `ladle-dist/`, gitignored).
+- Screens are pinned via **optional `initial*` props** on stateful views (e.g. RunnerLandingPage
+  `initialView`, DashboardView `initialTab`, EventWizard `initialStep`/`initialScenario`); every
+  such prop defaults to current behavior, so the app (which renders prop-less) is unchanged.
+- **Ladle gotcha**: story `title`/`storyName` become JS identifiers — ASCII only, no emoji/·/—.
 
 ## Route Structure
 

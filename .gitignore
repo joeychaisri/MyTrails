@@ -30,3 +30,6 @@ vite.config.ts.bak
 
 # Ladle static build output
 build/
+
+# Ladle deploy build (regenerate with npm run ladle:deploy)
+ladle-dist/
