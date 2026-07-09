@@ -32,7 +32,8 @@ Stories live in `src/stories/*.stories.tsx`; global providers in `.ladle/compone
 sidebar order (journey 1→8, Experiments last) in `.ladle/config.mjs` via `storyOrder`.
 
 - It is a **separate static build**, not an app route. Caddy serves `ladle-dist/` under
-  `/journey/` (`handle_path /journey/*` in the Caddyfile); normal app URLs are untouched.
+  `/journey/` (`handle_path /journey/*` in the Caddyfile, plus `redir /journey → /journey/`
+  so the no-trailing-slash URL doesn't fall through to the SPA and 404); normal app URLs are untouched.
 - **After editing stories, rebuild**: `npm run ladle:deploy` (regenerates `ladle-dist/`, gitignored).
 - Screens are pinned via **optional `initial*` props** on stateful views (e.g. RunnerLandingPage
   `initialView`, DashboardView `initialTab`, EventWizard `initialStep`/`initialScenario`); every
