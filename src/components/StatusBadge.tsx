@@ -11,20 +11,16 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
     draft: "bg-muted text-muted-foreground",
     pending_review: "bg-warning text-warning-foreground",
     rejected: "bg-destructive text-destructive-foreground",
-    ready_to_publish: "bg-primary text-primary-foreground",
+    scheduled: "bg-primary text-primary-foreground",
     live: "bg-success text-success-foreground",
-    cancellation_requested: "bg-warning text-warning-foreground",
-    cancelled: "bg-muted text-muted-foreground",
   };
 
   const labels: Record<EventStatus, string> = {
     draft: "Draft",
     pending_review: "Pending Review",
     rejected: "Changes Requested",
-    ready_to_publish: "Approved · Pending Go-Live",
+    scheduled: "Scheduled",
     live: "Live",
-    cancellation_requested: "Cancellation Pending",
-    cancelled: "Cancelled",
   };
 
   return (

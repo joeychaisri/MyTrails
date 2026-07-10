@@ -1,15 +1,14 @@
 // Unified lifecycle for an event across the organizer, admin and runner sides.
-// draft → pending_review → (admin) → ready_to_publish → (admin publishes) → live
-// pending_review → (admin) → rejected (with reason, organizer can revise & resubmit)
-// live → cancellation_requested → cancelled
+// draft → pending_review → (admin approves) ─┬→ live       (publish ASAP)
+//                                            └→ scheduled → live (at publishAt)
+// pending_review → (admin) → rejected (with reason, organizer revises & resubmits)
+// Editing an approved (scheduled/live) event sends it back to pending_review.
 export type EventStatus =
   | 'draft'
   | 'pending_review'
   | 'rejected'
-  | 'ready_to_publish'
-  | 'live'
-  | 'cancellation_requested'
-  | 'cancelled';
+  | 'scheduled'
+  | 'live';
 
 // Where an event's registration money sits in the payout lifecycle.
 // held    — event still running / within refund-hold window, money in escrow
@@ -33,6 +32,12 @@ export interface Event {
   submittedDate?: string;
   // Set when admin rejects a submission; shown back to the organizer.
   rejectionReason?: string;
+  // Publishing: organizer chooses go-live timing at creation. On admin approval,
+  // 'asap' → live immediately; 'scheduled' → scheduled until publishAt, then auto-live.
+  publishMode?: 'asap' | 'scheduled';
+  publishAt?: string;
+  // Admin can override the event-portion commission (THB) for this event at review.
+  eventCommissionOverride?: number;
   sold: number;
   capacity: number;
   revenue: number;
@@ -40,12 +45,8 @@ export interface Event {
   // the store fills sensible defaults (grossSales ← revenue, rate ← platform default).
   grossSales?: number;
   refundedAmount?: number;
-  commissionRate?: number;
   payoutStatus?: PayoutStatus;
   payoutDate?: string;
-  // Present when an organizer has requested cancellation of a live event.
-  cancellationReason?: string;
-  refundAmount?: number;
   categories: Category[];
   description: string;
   descriptionTh: string;
@@ -84,6 +85,10 @@ export interface Ticket {
   price: number;
   quantity: number;
   sold: number;
+  // Sales window (datetime-local). When one tier's salesEnd passes, the next
+  // (usually pricier) tier takes over. Optional so existing literals stay valid.
+  salesStart?: string;
+  salesEnd?: string;
 }
 
 export type OrderStatus =
@@ -251,7 +256,6 @@ const rawMockEvents: Event[] = [
     revenue: 847500,
     grossSales: 847500,
     refundedAmount: 12000,
-    commissionRate: 6,
     payoutStatus: "payable",
     description: "Experience Thailand's highest peak with breathtaking views and challenging terrain. This iconic race takes you through ancient cloud forests, past waterfalls, and to the summit at 2,565 meters.",
     descriptionTh: "สัมผัสประสบการณ์ยอดเขาสูงสุดของประเทศไทย พร้อมวิวที่สวยงามและเส้นทางที่ท้าทาย",
@@ -348,8 +352,8 @@ const rawMockEvents: Event[] = [
         cutoffTime: "00:00",
         cutoffHours: 6,
         tickets: [
-          { id: "t6", name: "Early Bird", price: 900, quantity: 150, sold: 0 },
-          { id: "t7", name: "Regular", price: 1100, quantity: 150, sold: 0 },
+          { id: "t6", name: "Early Bird", price: 900, quantity: 150, sold: 0, salesStart: "2026-07-01T00:00", salesEnd: "2026-08-31T23:59" },
+          { id: "t7", name: "Regular", price: 1100, quantity: 150, sold: 0, salesStart: "2026-09-01T00:00", salesEnd: "2026-10-31T23:59" },
         ],
       },
     ],
@@ -386,10 +390,12 @@ const rawMockEvents: Event[] = [
     date: "2026-11-22",
     endDate: "2026-11-23",
     province: "Tak",
-    status: "ready_to_publish",
+    status: "scheduled",
     organizerId: "org1",
     organizerName: "Trail Events Co.",
     submittedDate: "2026-06-20",
+    publishMode: "scheduled",
+    publishAt: "2026-10-15T09:00",
     sold: 0,
     capacity: 350,
     revenue: 0,
@@ -436,7 +442,7 @@ const rawMockEvents: Event[] = [
     date: "2026-08-30",
     endDate: "2026-08-31",
     province: "Chiang Rai",
-    status: "cancellation_requested",
+    status: "live",
     organizerId: "org1",
     organizerName: "Trail Events Co.",
     submittedDate: "2026-03-10",
@@ -445,10 +451,7 @@ const rawMockEvents: Event[] = [
     revenue: 420000,
     grossSales: 420000,
     refundedAmount: 0,
-    commissionRate: 6,
     payoutStatus: "held",
-    cancellationReason: "Provincial authorities revoked the trail-use permit two weeks before race day.",
-    refundAmount: 420000,
     description: "A demanding highland ultra across the Doi Tung range near the northern border.",
     descriptionTh: "อัลตร้าไฮแลนด์สุดโหดข้ามเทือกดอยตุงใกล้ชายแดนเหนือ",
     latitude: "20.2860",

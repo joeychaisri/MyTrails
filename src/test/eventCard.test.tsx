@@ -31,7 +31,7 @@ const noop = () => {};
 const renderCard = (event: Event) =>
   render(
     <MemoryRouter>
-      <EventCard event={event} onEdit={noop} onPreview={noop} onManage={noop} onDelete={noop} onCancel={noop} />
+      <EventCard event={event} onEdit={noop} onPreview={noop} onManage={noop} onDelete={noop} />
     </MemoryRouter>
   );
 

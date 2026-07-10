@@ -24,8 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Plus, KeyRound, ShieldBan, ShieldCheck } from "lucide-react";
-import { AdminOrganizer, OrganizerTier } from "@/data/adminMockData";
+import { Search, Plus, KeyRound, ShieldBan, ShieldCheck, RefreshCw } from "lucide-react";
+import { AdminOrganizer } from "@/data/adminMockData";
+import { useEventsStore } from "@/contexts/EventsContext";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -36,11 +37,34 @@ interface AdminUserManagementProps {
   onSuspendOrganizer: (orgId: string) => void;
 }
 
+// Strong random password for admin-provisioned accounts.
+const generatePassword = (len = 14) => {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const digits = "23456789";
+  const symbols = "!@#$%^&*-_";
+  const all = upper + lower + digits + symbols;
+  const pick = (set: string) => set[Math.floor(Math.random() * set.length)];
+  // Guarantee at least one of each class, then fill the rest.
+  const chars = [pick(upper), pick(lower), pick(digits), pick(symbols)];
+  for (let i = chars.length; i < len; i++) chars.push(pick(all));
+  // Fisher–Yates shuffle so the guaranteed chars aren't always in front.
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join("");
+};
+
 const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer }: AdminUserManagementProps) => {
   const { toast } = useToast();
+  const { settings } = useEventsStore();
+  const tiers = settings.tiers;
+  const defaultTierId = tiers[0]?.id ?? "";
+  const tierName = (tierId: string) => tiers.find((t) => t.id === tierId)?.name ?? "—";
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState({ organizationName: "", contactName: "", email: "", phone: "", password: "", tier: "standard" as OrganizerTier });
+  const [form, setForm] = useState({ organizationName: "", contactName: "", email: "", phone: "", password: "", tierId: defaultTierId });
 
   const filtered = organizers.filter(
     (o) =>
@@ -49,10 +73,16 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
       o.contactName.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleGeneratePassword = () => {
+    const pwd = generatePassword();
+    setForm((f) => ({ ...f, password: pwd }));
+    toast({ title: "Password generated", description: "Copy it and share it securely with the organizer." });
+  };
+
   const handleCreate = () => {
     if (!form.organizationName || !form.email || !form.password) return;
     onCreateOrganizer({ ...form, status: "active" });
-    setForm({ organizationName: "", contactName: "", email: "", phone: "", password: "", tier: "standard" });
+    setForm({ organizationName: "", contactName: "", email: "", phone: "", password: "", tierId: defaultTierId });
     setCreateOpen(false);
     toast({ title: "Organizer Created", description: `Account for ${form.organizationName} created successfully.` });
   };
@@ -94,13 +124,8 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
                 <TableCell>{org.contactName}</TableCell>
                 <TableCell className="text-muted-foreground">{org.email}</TableCell>
                 <TableCell>
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                      org.tier === "vip" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-                    )}
-                  >
-                    {org.tier === "vip" ? "VIP" : "Standard"}
+                  <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                    {tierName(org.tierId)}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -166,7 +191,13 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
             </div>
             <div className="space-y-2">
               <Label>Temporary Password *</Label>
-              <Input type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Set a temporary password" />
+              <div className="flex gap-2">
+                <Input type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Generate or type a password" className="font-mono" />
+                <Button type="button" variant="outline" onClick={handleGeneratePassword} title="Generate a strong password">
+                  <RefreshCw className="mr-1.5 h-4 w-4" />
+                  Generate
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Phone Number</Label>
@@ -174,13 +205,16 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
             </div>
             <div className="space-y-2">
               <Label>Account Tier</Label>
-              <Select value={form.tier} onValueChange={(v) => setForm({ ...form, tier: v as OrganizerTier })}>
+              <Select value={form.tierId} onValueChange={(v) => setForm({ ...form, tierId: v })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="standard">Standard — pays platform commission</SelectItem>
-                  <SelectItem value="vip">VIP — commission-exempt (0%)</SelectItem>
+                  {tiers.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} — {t.commissionRate}% commission
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

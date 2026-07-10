@@ -47,18 +47,21 @@ import Logo from "@/components/Logo";
 import PaymentModal from "@/components/PaymentModal";
 import { Event, Category, Ticket, PaymentInfo } from "@/data/mockData";
 import { useEvent } from "@/hooks/data/useEvents";
-import { useEventsStore } from "@/contexts/EventsContext";
+import { useEventsStore, eventCommissionAmount } from "@/contexts/EventsContext";
 import { useOrganizerProfile } from "@/hooks/data/useOrganizerProfile";
 import { useToast } from "@/hooks/use-toast";
 
-type WizardStep = 1 | 2 | 3 | 4;
+type WizardStep = 1 | 2 | 3 | 4 | 5;
 
 const steps = [
   { number: 1, title: "Event Information" },
   { number: 2, title: "Race Configuration" },
   { number: 3, title: "Tickets" },
-  { number: 4, title: "Review & Submit" },
+  { number: 4, title: "Publishing" },
+  { number: 5, title: "Review & Submit" },
 ];
+
+const LAST_STEP = 5;
 
 const provinces = [
   "Bangkok",
@@ -91,6 +94,10 @@ const EventWizard = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Publishing timing — when should this event go live once approved?
+  const [publishMode, setPublishMode] = useState<"asap" | "scheduled">(event?.publishMode ?? "asap");
+  const [publishAt, setPublishAt] = useState(event?.publishAt ?? "");
 
   // Form state
   const [basicInfo, setBasicInfo] = useState({
@@ -202,6 +209,16 @@ const EventWizard = () => {
   };
 
   // Assemble the event payload from the wizard's form state.
+  // Commission estimate shown to the organizer on the Review step (2 parts).
+  const estCapacity = categories.reduce((sum, c) => sum + c.tickets.reduce((s, t) => s + t.quantity, 0), 0);
+  const estGross = categories.reduce((sum, c) => sum + c.tickets.reduce((s, t) => s + t.price * t.quantity, 0), 0);
+  const myOrg = store.organizers.find((o) => o.id === (organizerId ?? "org1"));
+  const myTier = store.settings.tiers.find((t) => t.id === myOrg?.tierId);
+  const estEventCommission = eventCommissionAmount(estCapacity, estGross);
+  const estTierRate = myTier?.commissionRate ?? 0;
+  const estTierCommission = Math.round((estGross * estTierRate) / 100);
+  const fmtBaht = (n: number) => new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(n);
+
   const buildDraft = (): Omit<Event, "id" | "status"> => ({
     title: basicInfo.title,
     titleTh: basicInfo.titleTh,
@@ -211,6 +228,8 @@ const EventWizard = () => {
     province: basicInfo.province,
     organizerId: organizerId ?? "org1",
     organizerName: organizerName ?? "Trail Events Co.",
+    publishMode,
+    publishAt: publishMode === "scheduled" ? publishAt : undefined,
     sold: event?.sold ?? 0,
     capacity: categories.reduce(
       (sum, c) => sum + c.tickets.reduce((s, t) => s + t.quantity, 0),
@@ -648,28 +667,48 @@ const EventWizard = () => {
                   <div className="space-y-4">
                     {cat.tickets.map((ticket, ticketIndex) => (
                       <div key={ticket.id} className="flex items-start gap-4 rounded-lg border border-border p-4">
-                        <div className="flex-1 grid gap-4 sm:grid-cols-3">
-                          <Input
-                            placeholder="Tier name (e.g., Early Bird)"
-                            value={ticket.name}
-                            onChange={(e) => updateTicket(catIndex, ticketIndex, { name: e.target.value })}
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Price (THB)"
-                            value={ticket.price || ""}
-                            onChange={(e) =>
-                              updateTicket(catIndex, ticketIndex, { price: Number(e.target.value) })
-                            }
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Quantity"
-                            value={ticket.quantity || ""}
-                            onChange={(e) =>
-                              updateTicket(catIndex, ticketIndex, { quantity: Number(e.target.value) })
-                            }
-                          />
+                        <div className="flex-1 space-y-3">
+                          <div className="grid gap-4 sm:grid-cols-3">
+                            <Input
+                              placeholder="Tier name (e.g., Early Bird)"
+                              value={ticket.name}
+                              onChange={(e) => updateTicket(catIndex, ticketIndex, { name: e.target.value })}
+                            />
+                            <Input
+                              type="number"
+                              placeholder="Price (THB)"
+                              value={ticket.price || ""}
+                              onChange={(e) =>
+                                updateTicket(catIndex, ticketIndex, { price: Number(e.target.value) })
+                              }
+                            />
+                            <Input
+                              type="number"
+                              placeholder="Quantity"
+                              value={ticket.quantity || ""}
+                              onChange={(e) =>
+                                updateTicket(catIndex, ticketIndex, { quantity: Number(e.target.value) })
+                              }
+                            />
+                          </div>
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">Sales start</span>
+                              <Input
+                                type="datetime-local"
+                                value={ticket.salesStart ?? ""}
+                                onChange={(e) => updateTicket(catIndex, ticketIndex, { salesStart: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">Sales end</span>
+                              <Input
+                                type="datetime-local"
+                                value={ticket.salesEnd ?? ""}
+                                onChange={(e) => updateTicket(catIndex, ticketIndex, { salesEnd: e.target.value })}
+                              />
+                            </div>
+                          </div>
                         </div>
                         <Button
                           variant="ghost"
@@ -689,6 +728,39 @@ const EventWizard = () => {
         );
 
       case 4:
+        return (
+          <div className="space-y-6">
+            <div className="space-y-4 rounded-xl border border-border bg-card p-6">
+              <div>
+                <h4 className="text-lg font-semibold">When should this event go live?</h4>
+                <p className="text-sm text-muted-foreground">
+                  After an admin approves your event, this decides when it becomes visible to runners.
+                </p>
+              </div>
+              <div className="space-y-3">
+                <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${publishMode === "asap" ? "border-primary bg-primary/5" : "border-border"}`}>
+                  <input type="radio" name="publishMode" className="mt-1" checked={publishMode === "asap"} onChange={() => setPublishMode("asap")} />
+                  <div>
+                    <p className="font-medium">Publish as soon as approved</p>
+                    <p className="text-sm text-muted-foreground">Goes live immediately once the admin approves it.</p>
+                  </div>
+                </label>
+                <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${publishMode === "scheduled" ? "border-primary bg-primary/5" : "border-border"}`}>
+                  <input type="radio" name="publishMode" className="mt-1" checked={publishMode === "scheduled"} onChange={() => setPublishMode("scheduled")} />
+                  <div className="flex-1">
+                    <p className="font-medium">Schedule a go-live date &amp; time</p>
+                    <p className="text-sm text-muted-foreground">Stays scheduled after approval, then goes live automatically at the chosen time.</p>
+                    {publishMode === "scheduled" && (
+                      <Input type="datetime-local" value={publishAt} onChange={(e) => setPublishAt(e.target.value)} className="mt-3 max-w-xs" />
+                    )}
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 5:
         return (
           <div className="space-y-6">
             <div className="rounded-xl border border-border bg-card p-6">
@@ -733,6 +805,35 @@ const EventWizard = () => {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Commission notification — two parts */}
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h4 className="text-lg font-semibold">Platform commission</h4>
+              <p className="mt-1 text-sm text-muted-foreground">
+                The platform keeps a commission on your registrations, deducted from your payout after the event. It has two parts:
+              </p>
+              <div className="mt-4 space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">
+                    Event commission (based on {estCapacity.toLocaleString()} registrations)
+                  </span>
+                  <span className="font-medium">{fmtBaht(estEventCommission)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">
+                    Your tier commission ({myTier?.name ?? "—"} · {estTierRate}%)
+                  </span>
+                  <span className="font-medium">{fmtBaht(estTierCommission)}</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-border pt-2">
+                  <span className="font-medium">Estimated total commission</span>
+                  <span className="font-semibold">{fmtBaht(estEventCommission + estTierCommission)}</span>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                This is an estimate based on your planned capacity and prices. The final amount is calculated on actual registrations at payout.
+              </p>
             </div>
 
             <div className="rounded-xl border border-warning/50 bg-warning/10 p-4">
@@ -884,6 +985,17 @@ const EventWizard = () => {
                   </div>
                 </div>
               )}
+              {event && (event.status === "live" || event.status === "scheduled") && (
+                <div className="mb-4 sm:mb-6 flex items-start gap-2 rounded-xl border border-warning/50 bg-warning/10 px-4 py-3">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning-foreground" />
+                  <div>
+                    <p className="text-sm font-semibold text-warning-foreground">Editing an approved event</p>
+                    <p className="mt-0.5 text-sm text-warning-foreground">
+                      Saving changes sends this event back for review and takes it offline until an admin re-approves it.
+                    </p>
+                  </div>
+                </div>
+              )}
               {renderStep()}
             </div>
           </main>
@@ -907,7 +1019,7 @@ const EventWizard = () => {
                   <span className="hidden sm:inline">Save as Draft</span>
                   <span className="sm:hidden">Save</span>
                 </Button>
-                {currentStep < 4 ? (
+                {currentStep < LAST_STEP ? (
                   <Button size="sm" onClick={() => setCurrentStep((currentStep + 1) as WizardStep)} className="gap-1 sm:gap-2">
                     Next
                     <ArrowRight className="h-4 w-4" />

@@ -2,84 +2,159 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlatformSettings } from "@/data/adminMockData";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useEventsStore } from "@/contexts/EventsContext";
 import { useToast } from "@/hooks/use-toast";
-import { Save, RotateCcw } from "lucide-react";
+import { Save, RotateCcw, Plus, Trash2 } from "lucide-react";
 
-interface AdminSettingsProps {
-  settings: PlatformSettings;
-  onSave: (settings: PlatformSettings) => void;
-  onReset: () => void;
-}
-
-const AdminSettings = ({ settings, onSave, onReset }: AdminSettingsProps) => {
+const AdminSettings = () => {
   const { toast } = useToast();
-  const [commissionRate, setCommissionRate] = useState(settings.commissionRate.toString());
-  const [vipCommissionRate, setVipCommissionRate] = useState(settings.vipCommissionRate.toString());
+  const { settings, organizers, addTier, updateTier, deleteTier, saveSettings, resetStore } = useEventsStore();
   const [payoutHoldDays, setPayoutHoldDays] = useState(settings.payoutHoldDays.toString());
+  const [newTierName, setNewTierName] = useState("");
+  const [newTierRate, setNewTierRate] = useState("");
 
-  const handleSave = () => {
-    const commission = parseFloat(commissionRate);
-    const vip = parseFloat(vipCommissionRate);
+  const tierUsage = (tierId: string) => organizers.filter((o) => o.tierId === tierId).length;
+
+  const handleSaveHold = () => {
     const hold = parseInt(payoutHoldDays, 10);
-    if (isNaN(commission) || commission < 0 || isNaN(vip) || vip < 0 || isNaN(hold) || hold < 0) return;
-    onSave({ commissionRate: commission, vipCommissionRate: vip, payoutHoldDays: hold });
-    toast({ title: "Settings Saved", description: `Standard commission set to ${commission}%.` });
+    if (isNaN(hold) || hold < 0) return;
+    saveSettings({ ...settings, payoutHoldDays: hold });
+    toast({ title: "Settings Saved", description: `Payout hold set to ${hold} days.` });
+  };
+
+  const handleAddTier = () => {
+    const rate = parseFloat(newTierRate);
+    if (!newTierName.trim() || isNaN(rate) || rate < 0) return;
+    addTier(newTierName.trim(), rate);
+    setNewTierName("");
+    setNewTierRate("");
+    toast({ title: "Tier added", description: `${newTierName.trim()} created.` });
+  };
+
+  const handleDeleteTier = (id: string, name: string) => {
+    if (tierUsage(id) > 0) return;
+    deleteTier(id);
+    toast({ title: "Tier deleted", description: `${name} removed.` });
   };
 
   return (
-    <div className="max-w-md space-y-6">
-      <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-5">
+    <div className="max-w-3xl space-y-6">
+      {/* Commission model overview */}
+      <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-3">
         <div>
-          <h3 className="text-lg font-semibold text-card-foreground">Platform Economics</h3>
+          <h3 className="text-lg font-semibold text-card-foreground">Platform Commission</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            The platform earns a commission on each registration, deducted from the organizer's payout after the event.
+            The platform takes commission in two parts, deducted from the organizer's payout after the event.
           </p>
         </div>
+        <div className="rounded-lg bg-muted/50 p-4 text-sm">
+          <p className="font-medium">1. Event commission — by number of registrations</p>
+          <ul className="mt-1 list-disc pl-5 text-muted-foreground">
+            <li>Under 300 registrations → ฿1,000 flat</li>
+            <li>300–999 registrations → 8% of registration revenue</li>
+            <li>1,000+ registrations → 6% (volume discount)</li>
+          </ul>
+          <p className="mt-2 text-xs text-muted-foreground">An admin can override the event commission per event during review.</p>
+          <p className="mt-3 font-medium">2. Tier commission — by the organizer's account tier (below)</p>
+        </div>
+      </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="commission">Standard Commission (%)</Label>
-          <Input
-            id="commission"
-            type="number"
-            value={commissionRate}
-            onChange={(e) => setCommissionRate(e.target.value)}
-            min={0}
-            step={0.5}
-          />
-          <p className="text-xs text-muted-foreground">Applied to Standard-tier organizers.</p>
+      {/* Tier management */}
+      <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold text-card-foreground">Account Tiers</h3>
+          <p className="mt-1 text-xs text-muted-foreground">Each organizer account is assigned a tier that carries its own commission rate.</p>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="vip-commission">VIP Commission (%)</Label>
-          <Input
-            id="vip-commission"
-            type="number"
-            value={vipCommissionRate}
-            onChange={(e) => setVipCommissionRate(e.target.value)}
-            min={0}
-            step={0.5}
-          />
-          <p className="text-xs text-muted-foreground">Applied to VIP-tier organizers (commission-exempt = 0).</p>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tier Name</TableHead>
+                <TableHead>Commission (%)</TableHead>
+                <TableHead>In use by</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {settings.tiers.map((tier) => {
+                const usage = tierUsage(tier.id);
+                return (
+                  <TableRow key={tier.id}>
+                    <TableCell>
+                      <Input
+                        value={tier.name}
+                        onChange={(e) => updateTier(tier.id, { name: e.target.value })}
+                        className="h-8 max-w-[180px]"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.5}
+                        value={tier.commissionRate}
+                        onChange={(e) => updateTier(tier.id, { commissionRate: parseFloat(e.target.value) || 0 })}
+                        className="h-8 max-w-[100px]"
+                      />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{usage} organizer{usage === 1 ? "" : "s"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={usage > 0}
+                        title={usage > 0 ? "Reassign organizers before deleting" : "Delete tier"}
+                        onClick={() => handleDeleteTier(tier.id, tier.name)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
 
+        {/* Add tier */}
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs">New tier name</Label>
+            <Input value={newTierName} onChange={(e) => setNewTierName(e.target.value)} placeholder="e.g. Elite" className="max-w-[180px]" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Commission (%)</Label>
+            <Input type="number" min={0} step={0.5} value={newTierRate} onChange={(e) => setNewTierRate(e.target.value)} placeholder="0" className="max-w-[100px]" />
+          </div>
+          <Button variant="outline" onClick={handleAddTier} disabled={!newTierName.trim() || newTierRate === ""}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Tier
+          </Button>
+        </div>
+      </div>
+
+      {/* Payout hold */}
+      <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
+        <h3 className="text-lg font-semibold text-card-foreground">Payout</h3>
         <div className="space-y-2">
           <Label htmlFor="hold">Payout Hold (days after event)</Label>
-          <Input
-            id="hold"
-            type="number"
-            value={payoutHoldDays}
-            onChange={(e) => setPayoutHoldDays(e.target.value)}
-            min={0}
-          />
+          <Input id="hold" type="number" value={payoutHoldDays} onChange={(e) => setPayoutHoldDays(e.target.value)} min={0} className="max-w-[160px]" />
           <p className="text-xs text-muted-foreground">
-            Funds are held in escrow this many days after the event ends before becoming payable — covers late refunds and chargebacks.
+            Funds are held in escrow this many days after the event ends before becoming payable.
           </p>
         </div>
-
-        <Button onClick={handleSave}>
+        <Button onClick={handleSaveHold}>
           <Save className="mr-2 h-4 w-4" />
-          Save Settings
+          Save
         </Button>
       </div>
 
@@ -88,14 +163,14 @@ const AdminSettings = ({ settings, onSave, onReset }: AdminSettingsProps) => {
         <div>
           <h3 className="text-lg font-semibold text-card-foreground">Demo Data</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            This prototype keeps changes in your browser. Reset to reload the original sample events, organizers and settings.
+            This prototype keeps changes in your browser. Reset to reload the original sample data.
           </p>
         </div>
         <Button
           variant="outline"
           onClick={() => {
-            onReset();
-            toast({ title: "Demo data reset", description: "Sample events and organizers restored." });
+            resetStore();
+            toast({ title: "Demo data reset", description: "Sample events, organizers and tiers restored." });
           }}
         >
           <RotateCcw className="mr-2 h-4 w-4" />

@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,37 +7,25 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Event } from "@/data/mockData";
 
-export type EventActionMode = "delete" | "cancel";
+// The cancellation flow was removed — the only destructive organizer action left
+// is deleting an unsold event.
+export type EventActionMode = "delete";
 
 interface EventActionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   event: Event | null;
-  mode: EventActionMode;
-  onConfirm: (event: Event, reason?: string) => void;
+  mode?: EventActionMode;
+  onConfirm: (event: Event) => void;
 }
 
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(amount);
-
-const EventActionDialog = ({ open, onOpenChange, event, mode, onConfirm }: EventActionDialogProps) => {
-  const [reason, setReason] = useState("");
-  const isCancel = mode === "cancel";
-
-  // Reset the reason whenever the dialog (re)opens.
-  useEffect(() => {
-    if (open) setReason("");
-  }, [open]);
-
+const EventActionDialog = ({ open, onOpenChange, event, onConfirm }: EventActionDialogProps) => {
   if (!event) return null;
 
   const handleConfirm = () => {
-    if (isCancel && !reason.trim()) return;
-    onConfirm(event, isCancel ? reason.trim() : undefined);
+    onConfirm(event);
     onOpenChange(false);
   };
 
@@ -46,43 +33,18 @@ const EventActionDialog = ({ open, onOpenChange, event, mode, onConfirm }: Event
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isCancel ? "Cancel this event?" : "Delete this event?"}</DialogTitle>
+          <DialogTitle>Delete this event?</DialogTitle>
           <DialogDescription>
-            {isCancel ? (
-              <>
-                Cancelling <span className="font-medium text-foreground">{event.title}</span> affects{" "}
-                <span className="font-medium text-foreground">{event.sold}</span> registered runners
-                {" "}({formatCurrency(event.revenue)}). Refunds are issued per the cancellation policy. This request
-                is sent to the platform admin for approval before it takes effect.
-              </>
-            ) : (
-              <>
-                <span className="font-medium text-foreground">{event.title}</span> will be permanently deleted. This
-                can&apos;t be undone.
-              </>
-            )}
+            <span className="font-medium text-foreground">{event.title}</span> will be permanently deleted. This
+            can&apos;t be undone.
           </DialogDescription>
         </DialogHeader>
-
-        {isCancel && (
-          <div className="space-y-2">
-            <Label htmlFor="cancel-reason">Reason for cancellation</Label>
-            <Textarea
-              id="cancel-reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="e.g. Venue no longer available, insufficient registrations…"
-              rows={3}
-            />
-          </div>
-        )}
-
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Keep event
           </Button>
-          <Button variant="destructive" onClick={handleConfirm} disabled={isCancel && !reason.trim()}>
-            {isCancel ? "Request Cancellation" : "Delete"}
+          <Button variant="destructive" onClick={handleConfirm}>
+            Delete
           </Button>
         </DialogFooter>
       </DialogContent>

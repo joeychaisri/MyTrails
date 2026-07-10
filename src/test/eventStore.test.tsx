@@ -40,14 +40,22 @@ describe("EventsStore — the full organizer→admin flow", () => {
     expect(found?.submittedDate).toBeTruthy();
   });
 
-  it("drives submit → approve → publish → live", () => {
+  it("approves an ASAP event straight to live", () => {
     const { result } = renderHook(() => useEventsStore(), { wrapper });
     let id!: string;
-    act(() => { id = result.current.submitEvent(draft()).id; });
+    act(() => { id = result.current.submitEvent(draft({ publishMode: "asap" })).id; });
     act(() => result.current.approveEvent(id));
-    expect(result.current.events.find((e) => e.id === id)?.status).toBe("ready_to_publish");
-    act(() => result.current.publishEvent(id));
     expect(result.current.events.find((e) => e.id === id)?.status).toBe("live");
+  });
+
+  it("approves a future-scheduled event to 'scheduled', not live", () => {
+    const { result } = renderHook(() => useEventsStore(), { wrapper });
+    let id!: string;
+    act(() => {
+      id = result.current.submitEvent(draft({ publishMode: "scheduled", publishAt: "2099-01-01T00:00:00" })).id;
+    });
+    act(() => result.current.approveEvent(id));
+    expect(result.current.events.find((e) => e.id === id)?.status).toBe("scheduled");
   });
 
   it("reject stores the reason and sends it back", () => {
@@ -60,21 +68,17 @@ describe("EventsStore — the full organizer→admin flow", () => {
     expect(e?.rejectionReason).toBe("Missing GPX route");
   });
 
-  it("VIP organizer's submission gets 0% commission", () => {
+  it("adds and deletes a tier (delete blocked while in use)", () => {
     const { result } = renderHook(() => useEventsStore(), { wrapper });
-    let created!: Event;
-    // org2 is VIP in the seed.
-    act(() => { created = result.current.submitEvent(draft({ organizerId: "org2", organizerName: "Mountain Runners TH" })); });
-    expect(result.current.events.find((e) => e.id === created.id)?.commissionRate).toBe(0);
-  });
-
-  it("cancellation request reaches the admin cancellation queue with a refund amount", () => {
-    const { result } = renderHook(() => useEventsStore(), { wrapper });
-    // Use a seeded live event that carries money (Doi Inthanon = id "1").
-    act(() => result.current.requestCancellation("1", "Landslide"));
-    const e = result.current.events.find((x) => x.id === "1");
-    expect(e?.status).toBe("cancellation_requested");
-    expect(e?.refundAmount).toBeGreaterThan(0);
+    act(() => result.current.addTier("Elite", 3));
+    const elite = result.current.settings.tiers.find((t) => t.name === "Elite")!;
+    expect(elite.commissionRate).toBe(3);
+    // t-standard is used by org1 → delete is a no-op.
+    act(() => result.current.deleteTier("t-standard"));
+    expect(result.current.settings.tiers.some((t) => t.id === "t-standard")).toBe(true);
+    // Unused new tier can be deleted.
+    act(() => result.current.deleteTier(elite.id));
+    expect(result.current.settings.tiers.some((t) => t.id === elite.id)).toBe(false);
   });
 
   it("marking a payout paid records the payout date", () => {

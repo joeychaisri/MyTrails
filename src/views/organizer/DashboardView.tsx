@@ -73,12 +73,10 @@ const DashboardView = () => {
     if (activeTab === "live") return event.status === "live";
     // "Action needed" = the organizer must do something (fix & resubmit).
     if (activeTab === "action") return event.status === "rejected";
-    // "In review" = waiting on the platform (admin), nothing for the organizer to do.
+    // "In review" = waiting on the platform (admin/scheduled), nothing for the organizer to do.
     if (activeTab === "review")
-      return event.status === "pending_review" || event.status === "ready_to_publish";
+      return event.status === "pending_review" || event.status === "scheduled";
     if (activeTab === "drafts") return event.status === "draft";
-    if (activeTab === "cancelled")
-      return event.status === "cancellation_requested" || event.status === "cancelled";
     return true;
   });
 
@@ -94,19 +92,10 @@ const DashboardView = () => {
   const totalSold = Math.round(baseSold * statsMultiplier);
 
   const requestDeleteEvent = (event: Event) => setEventAction({ event, mode: "delete" });
-  const requestCancelEvent = (event: Event) => setEventAction({ event, mode: "cancel" });
 
   const confirmEventAction = (event: Event) => {
-    if (eventAction?.mode === "cancel") {
-      store.requestCancellation(event.id, "Requested by organizer from the dashboard.");
-      toast({
-        title: "Cancellation requested",
-        description: "Sent to the platform admin for approval. Runners are refunded once it's approved.",
-      });
-    } else {
-      store.deleteEvent(event.id);
-      toast({ title: "Event deleted", description: `"${event.title}" has been removed.` });
-    }
+    store.deleteEvent(event.id);
+    toast({ title: "Event deleted", description: `"${event.title}" has been removed.` });
     setEventAction(null);
   };
 
@@ -221,7 +210,6 @@ const DashboardView = () => {
                 </TabsTrigger>
                 <TabsTrigger value="review">In Review</TabsTrigger>
                 <TabsTrigger value="drafts">Drafts</TabsTrigger>
-                <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -254,7 +242,6 @@ const DashboardView = () => {
                   onPreview={onPreviewEvent}
                   onManage={onSelectEvent}
                   onDelete={requestDeleteEvent}
-                  onCancel={requestCancelEvent}
                 />
               ))}
             </div>

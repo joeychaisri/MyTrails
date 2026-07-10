@@ -10,20 +10,16 @@ const AdminStatusBadge = ({ status }: AdminStatusBadgeProps) => {
     draft: "bg-muted text-muted-foreground",
     pending_review: "bg-warning text-warning-foreground",
     rejected: "bg-destructive/15 text-destructive",
-    ready_to_publish: "bg-primary/15 text-primary",
+    scheduled: "bg-primary/15 text-primary",
     live: "bg-success text-success-foreground",
-    cancellation_requested: "bg-warning text-warning-foreground",
-    cancelled: "bg-muted text-muted-foreground",
   };
 
   const labels: Record<EventStatus, string> = {
     draft: "Draft",
     pending_review: "Pending Review",
     rejected: "Rejected",
-    ready_to_publish: "Ready to Publish",
+    scheduled: "Scheduled",
     live: "Live",
-    cancellation_requested: "Cancellation Pending",
-    cancelled: "Cancelled",
   };
 
   return (

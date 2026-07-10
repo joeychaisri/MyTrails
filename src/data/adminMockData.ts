@@ -1,9 +1,12 @@
 import { Category, Event, EventStatus, makeCategory, withDerivedCapacity } from "./mockData";
 
 // Organizer accounts are provisioned by the platform admin (invite model).
-// `tier` drives platform economics: standard organizers pay commission on
-// registrations; vip organizers are commission-exempt (0%).
-export type OrganizerTier = "standard" | "vip";
+// Each account is assigned a Tier, which carries the tier-portion commission.
+export interface Tier {
+  id: string;
+  name: string;
+  commissionRate: number; // % of net registration revenue — the tier commission
+}
 
 export interface AdminOrganizer {
   id: string;
@@ -12,18 +15,18 @@ export interface AdminOrganizer {
   email: string;
   phone: string;
   status: "active" | "suspended";
-  tier: OrganizerTier;
+  tierId: string;
   createdAt: string;
   eventsCount: number;
   // Where the platform transfers this organizer's net payout after events.
   payoutAccount?: string;
 }
 
-// The platform makes money by taking a commission on each registration
-// (deducted at payout), not by charging a flat listing fee.
+// The platform takes commission on registrations in two parts (deducted at payout):
+//  1. Event commission — a scale by registration count (see eventCommissionAmount)
+//  2. Tier commission  — the organizer account's tier rate (configurable below)
 export interface PlatformSettings {
-  commissionRate: number; // % of net registration revenue kept by the platform
-  vipCommissionRate: number; // commission rate applied to VIP-tier organizers
+  tiers: Tier[];
   payoutHoldDays: number; // days after event end before funds become payable
 }
 
@@ -33,12 +36,12 @@ export type AdminEvent = Event;
 export type AdminEventStatus = EventStatus;
 
 export const mockAdminOrganizers: AdminOrganizer[] = [
-  { id: "org1", organizationName: "Trail Events Co.", contactName: "Somchai Rattana", email: "somchai@trailevents.co.th", phone: "+66 89 123 4567", status: "active", tier: "standard", createdAt: "2024-06-15", eventsCount: 6, payoutAccount: "KBank ···789-0" },
-  { id: "org2", organizationName: "Mountain Runners TH", contactName: "Natthaporn Sae-tang", email: "natthaporn@mountainrunners.th", phone: "+66 82 345 6789", status: "active", tier: "vip", createdAt: "2024-08-20", eventsCount: 2, payoutAccount: "SCB ···441-2" },
-  { id: "org3", organizationName: "Andaman Trail Org", contactName: "Prasert Wongsawat", email: "prasert@andamantrail.com", phone: "+66 91 567 8901", status: "active", tier: "standard", createdAt: "2024-09-10", eventsCount: 1, payoutAccount: "Krungsri ···220-5" },
-  { id: "org4", organizationName: "Northern Run Club", contactName: "Kannika Duangjai", email: "kannika@northernrun.club", phone: "+66 86 789 0123", status: "suspended", tier: "standard", createdAt: "2024-10-01", eventsCount: 0 },
-  { id: "org5", organizationName: "Gulf Coast Races", contactName: "Worawit Phanich", email: "worawit@gulfcoastraces.th", phone: "+66 84 012 3456", status: "active", tier: "standard", createdAt: "2024-11-15", eventsCount: 1, payoutAccount: "KBank ···330-8" },
-  { id: "org6", organizationName: "Isaan Ultra Events", contactName: "Supachai Khamwan", email: "supachai@isaanultra.com", phone: "+66 88 456 7890", status: "active", tier: "vip", createdAt: "2025-01-05", eventsCount: 0, payoutAccount: "TTB ···017-3" },
+  { id: "org1", organizationName: "Trail Events Co.", contactName: "Somchai Rattana", email: "somchai@trailevents.co.th", phone: "+66 89 123 4567", status: "active", tierId: "t-standard", createdAt: "2024-06-15", eventsCount: 6, payoutAccount: "KBank ···789-0" },
+  { id: "org2", organizationName: "Mountain Runners TH", contactName: "Natthaporn Sae-tang", email: "natthaporn@mountainrunners.th", phone: "+66 82 345 6789", status: "active", tierId: "t-vip", createdAt: "2024-08-20", eventsCount: 2, payoutAccount: "SCB ···441-2" },
+  { id: "org3", organizationName: "Andaman Trail Org", contactName: "Prasert Wongsawat", email: "prasert@andamantrail.com", phone: "+66 91 567 8901", status: "active", tierId: "t-standard", createdAt: "2024-09-10", eventsCount: 1, payoutAccount: "Krungsri ···220-5" },
+  { id: "org4", organizationName: "Northern Run Club", contactName: "Kannika Duangjai", email: "kannika@northernrun.club", phone: "+66 86 789 0123", status: "suspended", tierId: "t-standard", createdAt: "2024-10-01", eventsCount: 0 },
+  { id: "org5", organizationName: "Gulf Coast Races", contactName: "Worawit Phanich", email: "worawit@gulfcoastraces.th", phone: "+66 84 012 3456", status: "active", tierId: "t-standard", createdAt: "2024-11-15", eventsCount: 1, payoutAccount: "KBank ···330-8" },
+  { id: "org6", organizationName: "Isaan Ultra Events", contactName: "Supachai Khamwan", email: "supachai@isaanultra.com", phone: "+66 88 456 7890", status: "active", tierId: "t-vip", createdAt: "2025-01-05", eventsCount: 0, payoutAccount: "TTB ···017-3" },
 ];
 
 // Compact seed for events owned by organizers OTHER than the demo organizer
@@ -67,10 +70,9 @@ interface AdminSeed {
   grossSales?: number;
   refundedAmount?: number;
   payoutStatus?: Event["payoutStatus"];
-  commissionRate?: number;
-  cancellationReason?: string;
-  refundAmount?: number;
   rejectionReason?: string;
+  publishMode?: Event["publishMode"];
+  publishAt?: string;
 }
 
 const adminSeeds: AdminSeed[] = [
@@ -89,14 +91,15 @@ const adminSeeds: AdminSeed[] = [
     status: "live", province: "Kanchanaburi", date: "2026-05-18", capacity: 500, sold: 388, submittedDate: "2026-02-14",
     description: "A riverside trail marathon along the River Kwai.", descriptionTh: "เทรลมาราธอนเลียบแม่น้ำแคว",
     latitude: "14.0227", longitude: "99.5328",
-    grossSales: 640000, refundedAmount: 8500, payoutStatus: "payable", commissionRate: 0,
+    grossSales: 640000, refundedAmount: 8500, payoutStatus: "payable",
     categories: [
       makeCategory({ id: "ae2a", name: "42K River", nameTh: "42K ริเวอร์", distance: 42, elevation: 900, elevationLoss: 900, terrainType: "Riverside Trail", raceDate: "2026-05-18", startLocationName: "River Kwai Bridge", tickets: [{ id: "ae2a-t1", name: "Regular", price: 1800, quantity: 500, sold: 388 }] }),
     ],
   },
   {
     id: "ae3", title: "Erawan Falls Ultra", titleTh: "เอราวัณฟอลส์อัลตร้า", organizerName: "Mountain Runners TH", organizerId: "org2",
-    status: "ready_to_publish", province: "Kanchanaburi", date: "2026-11-01", capacity: 400, sold: 0, submittedDate: "2026-06-30",
+    status: "scheduled", province: "Kanchanaburi", date: "2026-11-01", capacity: 400, sold: 0, submittedDate: "2026-06-30",
+    publishMode: "scheduled", publishAt: "2026-09-20T09:00",
     description: "An ultra past the seven tiers of Erawan waterfall.", descriptionTh: "อัลตร้าผ่านน้ำตกเอราวัณเจ็ดชั้น",
     latitude: "14.3690", longitude: "99.1440",
     categories: [
@@ -106,11 +109,10 @@ const adminSeeds: AdminSeed[] = [
   },
   {
     id: "ae4", title: "Pai Canyon Sunset Run", titleTh: "ปายแคนยอนซันเซ็ตรัน", organizerName: "Gulf Coast Races", organizerId: "org5",
-    status: "cancellation_requested", province: "Mae Hong Son", date: "2026-08-10", capacity: 200, sold: 96, submittedDate: "2026-03-12",
+    status: "live", province: "Mae Hong Son", date: "2026-08-10", capacity: 200, sold: 96, submittedDate: "2026-03-12",
     description: "A golden-hour run through Pai's canyon ridges.", descriptionTh: "วิ่งชมพระอาทิตย์ตกบนสันปายแคนยอน",
     latitude: "19.3583", longitude: "98.4419",
     grossSales: 144000, refundedAmount: 0, payoutStatus: "held",
-    cancellationReason: "Trail damaged by a landslide; the course is unsafe for runners.", refundAmount: 144000,
     categories: [
       makeCategory({ id: "ae4a", name: "18K Canyon", nameTh: "18K แคนยอน", distance: 18, elevation: 800, elevationLoss: 800, raceDate: "2026-08-10", startLocationName: "Pai Canyon", tickets: [{ id: "ae4a-t1", name: "Regular", price: 1500, quantity: 200, sold: 96 }] }),
     ],
@@ -135,10 +137,9 @@ const seedToEvent = (s: AdminSeed): Event => ({
   revenue: s.grossSales ?? 0,
   grossSales: s.grossSales,
   refundedAmount: s.refundedAmount,
-  commissionRate: s.commissionRate,
   payoutStatus: s.payoutStatus,
-  cancellationReason: s.cancellationReason,
-  refundAmount: s.refundAmount,
+  publishMode: s.publishMode,
+  publishAt: s.publishAt,
   categories: s.categories,
   description: s.description,
   descriptionTh: s.descriptionTh,
@@ -161,7 +162,10 @@ export const mockPlatformRevenue = [
 ];
 
 export const mockPlatformSettings: PlatformSettings = {
-  commissionRate: 6,
-  vipCommissionRate: 0,
+  tiers: [
+    { id: "t-standard", name: "Standard", commissionRate: 2 },
+    { id: "t-vip", name: "VIP", commissionRate: 0 },
+    { id: "t-partner", name: "Partner", commissionRate: 1 },
+  ],
   payoutHoldDays: 14,
 };

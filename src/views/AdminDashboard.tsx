@@ -68,10 +68,7 @@ const AdminDashboard = () => {
         return (
           <AdminEventApprovals
             events={events}
-            onPublish={store.publishEvent}
             onForceUnpublish={store.forceUnpublish}
-            onApproveCancellation={store.approveCancellation}
-            onRejectCancellation={store.rejectCancellation}
           />
         );
       case "financials":
@@ -92,7 +89,7 @@ const AdminDashboard = () => {
           />
         );
       case "settings":
-        return <AdminSettings settings={settings} onSave={store.saveSettings} onReset={store.resetStore} />;
+        return <AdminSettings />;
       default:
         return null;
     }

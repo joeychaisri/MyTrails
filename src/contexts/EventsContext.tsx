@@ -3,6 +3,7 @@ import { Event, mockEvents } from "@/data/mockData";
 import {
   AdminOrganizer,
   PlatformSettings,
+  Tier,
   mockAdminOrganizers,
   mockOtherEvents,
   mockPlatformSettings,
@@ -17,7 +18,7 @@ import {
 // and so on. Still mock (in-memory + localStorage) — no backend.
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = "mt_store_v6";
+const STORAGE_KEY = "mt_store_v7";
 
 interface StoreShape {
   events: Event[];
@@ -41,23 +42,43 @@ const loadStore = (): StoreShape => {
   return seedStore();
 };
 
-// The commission the platform actually keeps and the net owed to the organizer.
+// Event-portion commission by number of registrations (PO spec, tunable mock):
+//   < 300 registrations → flat 1,000 THB
+//   300–999            → 8% of net registration revenue
+//   ≥ 1,000            → 6% (volume discount)
+// An admin can override the resolved amount per event at review time.
+export function eventCommissionAmount(regCount: number, netRevenue: number, overrideAmount?: number): number {
+  if (overrideAmount !== undefined) return Math.max(0, Math.round(overrideAmount));
+  if (regCount < 300) return 1000;
+  if (regCount < 1000) return Math.round(netRevenue * 0.08);
+  return Math.round(netRevenue * 0.06);
+}
+
+// The two-part commission the platform keeps and the net owed to the organizer.
+// Event commission = registration-count scale (above); tier commission = the
+// organizer account's tier rate. Payout uses ACTUAL registrations (sold).
 export interface EventFinance {
   gross: number;
   refunded: number;
-  rate: number;
-  commission: number;
+  eventCommission: number;
+  tierCommission: number;
+  tierRate: number;
+  totalCommission: number;
   netPayout: number;
 }
 
-export function eventFinance(e: Event, settings: PlatformSettings): EventFinance {
+export function eventFinance(e: Event, organizers: AdminOrganizer[], settings: PlatformSettings): EventFinance {
   const gross = e.grossSales ?? e.revenue ?? 0;
   const refunded = e.refundedAmount ?? 0;
-  const rate = e.commissionRate ?? settings.commissionRate;
   const netAfterRefund = Math.max(0, gross - refunded);
-  const commission = Math.round((netAfterRefund * rate) / 100);
-  const netPayout = netAfterRefund - commission;
-  return { gross, refunded, rate, commission, netPayout };
+  const eventCommission = eventCommissionAmount(e.sold, netAfterRefund, e.eventCommissionOverride);
+  const org = organizers.find((o) => o.id === e.organizerId);
+  const tier = settings.tiers.find((t) => t.id === org?.tierId);
+  const tierRate = tier?.commissionRate ?? 0;
+  const tierCommission = Math.round((netAfterRefund * tierRate) / 100);
+  const totalCommission = eventCommission + tierCommission;
+  const netPayout = netAfterRefund - totalCommission;
+  return { gross, refunded, eventCommission, tierCommission, tierRate, totalCommission, netPayout };
 }
 
 const today = () => new Date().toISOString().split("T")[0];
@@ -71,19 +92,19 @@ interface EventsContextType {
   submitEvent: (draft: Omit<Event, "id" | "status">) => Event;
   saveDraftEvent: (draft: Omit<Event, "id" | "status">) => Event;
   updateEvent: (id: string, patch: Partial<Event>) => void;
-  requestCancellation: (id: string, reason: string) => void;
   deleteEvent: (id: string) => void;
   // Admin actions
   approveEvent: (id: string) => void;
   rejectEvent: (id: string, reason: string) => void;
-  publishEvent: (id: string) => void;
   forceUnpublish: (id: string) => void;
-  approveCancellation: (id: string) => void;
-  rejectCancellation: (id: string) => void;
   markPayoutPaid: (id: string) => void;
   createOrganizer: (org: Omit<AdminOrganizer, "id" | "createdAt" | "eventsCount">) => void;
   suspendOrganizer: (id: string) => void;
   saveSettings: (settings: PlatformSettings) => void;
+  // Tier management (commission per tier). deleteTier is a no-op if the tier is in use.
+  addTier: (name: string, commissionRate: number) => void;
+  updateTier: (id: string, patch: Partial<Tier>) => void;
+  deleteTier: (id: string) => void;
   // Wipe any locally-persisted state and reseed from the mock data.
   resetStore: () => void;
 }
@@ -101,24 +122,38 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [store]);
 
+  // No backend/cron in this prototype: promote scheduled events to live once their
+  // publishAt time passes. Runs on mount and on an interval.
+  useEffect(() => {
+    const promoteDue = () =>
+      setStore((s) => {
+        const now = new Date();
+        let changed = false;
+        const events = s.events.map((e) => {
+          if (e.status === "scheduled" && e.publishAt && new Date(e.publishAt) <= now) {
+            changed = true;
+            return { ...e, status: "live" as const };
+          }
+          return e;
+        });
+        return changed ? { ...s, events } : s;
+      });
+    promoteDue();
+    const timer = setInterval(promoteDue, 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
   const setEvents = (fn: (prev: Event[]) => Event[]) =>
     setStore((s) => ({ ...s, events: fn(s.events) }));
 
   const patchEvent = (id: string, patch: Partial<Event>) =>
     setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
 
-  // Commission rate for a new event depends on its organizer's tier.
-  const rateForOrganizer = (organizerId: string) => {
-    const org = store.organizers.find((o) => o.id === organizerId);
-    return org?.tier === "vip" ? store.settings.vipCommissionRate : store.settings.commissionRate;
-  };
-
   const createEvent = (draft: Omit<Event, "id" | "status">, status: Event["status"]): Event => {
     const newEvent: Event = {
       ...draft,
       id: `evt-${Date.now()}`,
       status,
-      commissionRate: draft.commissionRate ?? rateForOrganizer(draft.organizerId),
       payoutStatus: "held",
       submittedDate: status === "pending_review" ? today() : draft.submittedDate,
     };
@@ -135,28 +170,21 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     submitEvent: (draft) => createEvent(draft, "pending_review"),
     saveDraftEvent: (draft) => createEvent(draft, "draft"),
     updateEvent: patchEvent,
-    requestCancellation: (id, reason) =>
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === id
-            ? {
-                ...e,
-                status: "cancellation_requested",
-                cancellationReason: reason,
-                refundAmount: e.refundAmount ?? e.grossSales ?? e.revenue ?? 0,
-              }
-            : e
-        )
-      ),
     deleteEvent: (id) => setEvents((prev) => prev.filter((e) => e.id !== id)),
 
-    approveEvent: (id) => patchEvent(id, { status: "ready_to_publish", rejectionReason: undefined }),
+    // On approval the organizer's chosen publish timing decides go-live:
+    // ASAP (or a publishAt already in the past) → live now; else → scheduled.
+    approveEvent: (id) =>
+      setEvents((prev) =>
+        prev.map((e) => {
+          if (e.id !== id) return e;
+          const goLiveNow =
+            e.publishMode !== "scheduled" || !e.publishAt || new Date(e.publishAt) <= new Date();
+          return { ...e, status: goLiveNow ? "live" : "scheduled", rejectionReason: undefined };
+        })
+      ),
     rejectEvent: (id, reason) => patchEvent(id, { status: "rejected", rejectionReason: reason }),
-    publishEvent: (id) => patchEvent(id, { status: "live" }),
     forceUnpublish: (id) => patchEvent(id, { status: "draft" }),
-    approveCancellation: (id) => patchEvent(id, { status: "cancelled" }),
-    rejectCancellation: (id) =>
-      patchEvent(id, { status: "live", cancellationReason: undefined, refundAmount: undefined }),
     markPayoutPaid: (id) => patchEvent(id, { payoutStatus: "paid", payoutDate: today() }),
 
     createOrganizer: (org) =>
@@ -175,6 +203,21 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         ),
       })),
     saveSettings: (settings) => setStore((s) => ({ ...s, settings })),
+    addTier: (name, commissionRate) =>
+      setStore((s) => ({
+        ...s,
+        settings: { ...s.settings, tiers: [...s.settings.tiers, { id: `tier-${Date.now()}`, name, commissionRate }] },
+      })),
+    updateTier: (id, patch) =>
+      setStore((s) => ({
+        ...s,
+        settings: { ...s.settings, tiers: s.settings.tiers.map((t) => (t.id === id ? { ...t, ...patch } : t)) },
+      })),
+    deleteTier: (id) =>
+      setStore((s) => {
+        if (s.organizers.some((o) => o.tierId === id)) return s; // in use — block
+        return { ...s, settings: { ...s.settings, tiers: s.settings.tiers.filter((t) => t.id !== id) } };
+      }),
     resetStore: () => setStore(seedStore()),
   };
 

@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import AdminStatusBadge from "@/components/AdminStatusBadge";
 import { Category } from "@/data/mockData";
-import { useEventsStore } from "@/contexts/EventsContext";
+import { useEventsStore, eventCommissionAmount } from "@/contexts/EventsContext";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -88,13 +88,21 @@ const CategoryCard = ({ cat }: { cat: Category }) => {
         {cat.tickets.length === 0 ? (
           <p className="text-xs text-muted-foreground">No tickets defined</p>
         ) : (
-          <div className="space-y-1">
-            {cat.tickets.map((t) => (
-              <div key={t.id} className="flex items-center justify-between text-sm">
-                <span>{t.name}</span>
-                <span className="text-muted-foreground">{formatCurrency(t.price)} · {t.quantity} seats</span>
-              </div>
-            ))}
+          <div className="space-y-2">
+            {cat.tickets.map((t) => {
+              const window = t.salesStart || t.salesEnd
+                ? `${t.salesStart ? format(new Date(t.salesStart), "d MMM HH:mm") : "—"} → ${t.salesEnd ? format(new Date(t.salesEnd), "d MMM HH:mm") : "—"}`
+                : null;
+              return (
+                <div key={t.id} className="text-sm">
+                  <div className="flex items-center justify-between">
+                    <span>{t.name}</span>
+                    <span className="text-muted-foreground">{formatCurrency(t.price)} · {t.quantity} seats</span>
+                  </div>
+                  {window && <p className="text-xs text-muted-foreground">Sales: {window}</p>}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -106,9 +114,10 @@ const AdminEventReview = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { getEvent, organizers, approveEvent, rejectEvent } = useEventsStore();
+  const { getEvent, organizers, settings, approveEvent, rejectEvent, updateEvent } = useEventsStore();
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [overrideInput, setOverrideInput] = useState("");
 
   const event = getEvent(id);
   const backToQueue = () => navigate("/organizer/admin", { state: { page: "approvals" } });
@@ -126,15 +135,39 @@ const AdminEventReview = () => {
   }
 
   const organizer = organizers.find((o) => o.id === event.organizerId);
+  const tier = settings.tiers.find((t) => t.id === organizer?.tierId);
   const dateLabel =
     event.endDate && event.endDate !== event.date
       ? `${fmtDate(event.date)} – ${fmtDate(event.endDate)}`
       : fmtDate(event.date);
 
+  // Commission preview based on the planned capacity (estimate shown to admin).
+  // Pending events have revenue 0, so fall back to the ticket-priced gross.
+  const ticketGross = event.categories.reduce((s, c) => s + c.tickets.reduce((a, t) => a + t.price * t.quantity, 0), 0);
+  const grossEstimate = event.grossSales ?? (event.revenue || ticketGross);
+  const eventCommission = eventCommissionAmount(event.capacity, grossEstimate, event.eventCommissionOverride);
+  const tierRate = tier?.commissionRate ?? 0;
+  const tierCommission = Math.round((grossEstimate * tierRate) / 100);
+
   const handleApprove = () => {
     approveEvent(event.id);
-    toast({ title: "Event Approved", description: "Moved to Ready to Publish — publish it to go live." });
+    toast({
+      title: "Event Approved",
+      description: event.publishMode === "scheduled" ? "It will go live at its scheduled time." : "It is now live.",
+    });
     backToQueue();
+  };
+
+  const saveOverride = () => {
+    const val = parseFloat(overrideInput);
+    updateEvent(event.id, { eventCommissionOverride: isNaN(val) ? undefined : Math.max(0, val) });
+    toast({ title: "Commission updated", description: "Event commission override saved." });
+    setOverrideInput("");
+  };
+
+  const clearOverride = () => {
+    updateEvent(event.id, { eventCommissionOverride: undefined });
+    toast({ title: "Override cleared", description: "Reverted to the standard commission scale." });
   };
 
   const handleReject = () => {
@@ -272,13 +305,8 @@ const AdminEventReview = () => {
                   <div>
                     <p className="font-medium">{organizer.organizationName}</p>
                     <div className="mt-1 flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                          organizer.tier === "vip" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-                        )}
-                      >
-                        {organizer.tier === "vip" ? "VIP" : "Standard"}
+                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        {tier?.name ?? "—"} · {tierRate}%
                       </span>
                       <span
                         className={cn(
@@ -315,12 +343,61 @@ const AdminEventReview = () => {
                 <span className="text-muted-foreground">Submitted</span>
                 <span className="font-medium">{fmtDate(event.submittedDate)}</span>
               </div>
+              <div className="mt-2 flex justify-between">
+                <span className="text-muted-foreground">Go-live</span>
+                <span className="font-medium">
+                  {event.publishMode === "scheduled" && event.publishAt
+                    ? format(new Date(event.publishAt), "MMM d, yyyy HH:mm")
+                    : "As soon as approved"}
+                </span>
+              </div>
               {event.rejectionReason && (
                 <div className="mt-3 rounded-lg bg-destructive/10 p-3">
                   <p className="text-xs font-medium text-destructive">Previously sent back</p>
                   <p className="mt-0.5 text-xs text-destructive">{event.rejectionReason}</p>
                 </div>
               )}
+            </div>
+
+            {/* Commission — two parts, with per-event override */}
+            <div className="rounded-xl border border-border bg-card p-5 shadow-card text-sm">
+              <h3 className="mb-3 font-semibold">Commission (estimate)</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Event {event.eventCommissionOverride !== undefined ? "(override)" : `(${event.capacity} regs)`}
+                  </span>
+                  <span className="font-medium">{formatCurrency(eventCommission)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tier ({tierRate}%)</span>
+                  <span className="font-medium">{formatCurrency(tierCommission)}</span>
+                </div>
+                <div className="flex justify-between border-t border-border pt-2">
+                  <span className="font-medium">Total</span>
+                  <span className="font-semibold">{formatCurrency(eventCommission + tierCommission)}</span>
+                </div>
+              </div>
+
+              <div className="mt-4 border-t border-border pt-3">
+                <p className="mb-1.5 text-xs text-muted-foreground">Override event commission (THB)</p>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    value={overrideInput}
+                    onChange={(e) => setOverrideInput(e.target.value)}
+                    placeholder={`${eventCommission}`}
+                    className="h-8 w-full rounded-md border border-border bg-background px-2 text-sm"
+                  />
+                  <Button size="sm" variant="outline" onClick={saveOverride} disabled={overrideInput === ""}>Set</Button>
+                </div>
+                {event.eventCommissionOverride !== undefined && (
+                  <button className="mt-2 text-xs text-primary hover:underline" onClick={clearOverride}>
+                    Clear override (use standard scale)
+                  </button>
+                )}
+              </div>
             </div>
           </aside>
         </div>

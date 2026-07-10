@@ -28,6 +28,9 @@ describe("AdminEventReview page", () => {
     expect(screen.getByText(/No cover photo uploaded/i)).toBeTruthy();
     // Organizer side panel.
     expect(screen.getByText("Trail Events Co.")).toBeTruthy();
+    // Commission estimate must not collapse to ฿0 for a pending event (regression).
+    expect(screen.getByText("Commission (estimate)")).toBeTruthy();
+    expect(screen.queryAllByText("฿0").length).toBe(0);
   });
 
   it("shows the reason for a previously rejected event", () => {

@@ -16,10 +16,10 @@ const AdminOverview = ({ events, organizers, platformSettings }: AdminOverviewPr
   // Platform revenue = the commission the platform keeps on each live/completed
   // event's registrations (not a flat listing fee).
   const totalRevenue = events
-    .filter((e) => e.status === "live" || e.status === "cancellation_requested")
-    .reduce((sum, e) => sum + eventFinance(e, platformSettings).commission, 0);
+    .filter((e) => e.status === "live")
+    .reduce((sum, e) => sum + eventFinance(e, organizers, platformSettings).totalCommission, 0);
   const pendingReview = events.filter((e) => e.status === "pending_review").length;
-  const readyToPublish = events.filter((e) => e.status === "ready_to_publish").length;
+  const scheduled = events.filter((e) => e.status === "scheduled").length;
   const liveEvents = events.filter((e) => e.status === "live").length;
   const activeOrganizers = organizers.filter((o) => o.status === "active").length;
 
@@ -33,9 +33,9 @@ const AdminOverview = ({ events, organizers, platformSettings }: AdminOverviewPr
         <StatsCard title="Platform Revenue" value={formatCurrency(totalRevenue)} icon={Banknote} subtitle="Commission earned" />
         <StatsCard
           title="Events Pipeline"
-          value={`${pendingReview} / ${readyToPublish} / ${liveEvents}`}
+          value={`${pendingReview} / ${scheduled} / ${liveEvents}`}
           icon={CalendarCheck}
-          subtitle="Review / Ready / Live"
+          subtitle="Review / Scheduled / Live"
         />
         <StatsCard title="Total Organizers" value={activeOrganizers} icon={Users} subtitle="Active accounts" />
         <StatsCard title="Total Events" value={events.length} icon={TrendingUp} subtitle="All statuses" />

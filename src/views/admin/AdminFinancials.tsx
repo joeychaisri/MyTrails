@@ -41,24 +41,24 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
     e.title.toLowerCase().includes(search.toLowerCase()) ||
     e.organizerName.toLowerCase().includes(search.toLowerCase());
 
-  // An event carries registration money whenever it's live or in a cancellation flow.
+  // An event carries registration money once it's live and has sales.
   const withMoney = events.filter((e) => (e.grossSales ?? 0) > 0);
   const payableEvents = withMoney.filter((e) => e.payoutStatus === "payable").filter(matchesSearch);
   const paidEvents = withMoney.filter((e) => e.payoutStatus === "paid").filter(matchesSearch);
-  const refundEvents = withMoney.filter((e) => (e.refundedAmount ?? 0) > 0 || e.status === "cancellation_requested" || e.status === "cancelled").filter(matchesSearch);
+  const refundEvents = withMoney.filter((e) => (e.refundedAmount ?? 0) > 0).filter(matchesSearch);
 
   // Escrow rollup across all events (search-independent).
-  const sumNet = (list: Event[]) => list.reduce((s, e) => s + eventFinance(e, settings).netPayout, 0);
+  const sumNet = (list: Event[]) => list.reduce((s, e) => s + eventFinance(e, organizers, settings).netPayout, 0);
   const heldTotal = sumNet(withMoney.filter((e) => e.payoutStatus === "held"));
   const payableTotal = sumNet(withMoney.filter((e) => e.payoutStatus === "payable"));
   const paidTotal = sumNet(withMoney.filter((e) => e.payoutStatus === "paid"));
   const commissionTotal = withMoney
-    .filter((e) => e.payoutStatus !== undefined && e.status !== "cancelled")
-    .reduce((s, e) => s + eventFinance(e, settings).commission, 0);
+    .filter((e) => e.payoutStatus !== undefined)
+    .reduce((s, e) => s + eventFinance(e, organizers, settings).totalCommission, 0);
 
   const handleMarkPaid = (event: Event) => {
     onMarkPaid(event.id);
-    const { netPayout } = eventFinance(event, settings);
+    const { netPayout } = eventFinance(event, organizers, settings);
     toast({ title: "Payout Transferred", description: `${formatCurrency(netPayout)} marked as sent to ${event.organizerName}.` });
   };
 
@@ -108,7 +108,7 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
                   </TableRow>
                 ) : (
                   payableEvents.map((event) => {
-                    const f = eventFinance(event, settings);
+                    const f = eventFinance(event, organizers, settings);
                     return (
                       <TableRow key={event.id}>
                         <TableCell>
@@ -117,7 +117,10 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
                         </TableCell>
                         <TableCell className="text-right">{formatCurrency(f.gross)}</TableCell>
                         <TableCell className="text-right text-muted-foreground">{f.refunded ? `−${formatCurrency(f.refunded)}` : "—"}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">−{formatCurrency(f.commission)} ({f.rate}%)</TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          −{formatCurrency(f.totalCommission)}
+                          <span className="block text-[10px]">evt {formatCurrency(f.eventCommission)} · tier {f.tierRate}%</span>
+                        </TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(f.netPayout)}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{payoutAccountFor(event.organizerId)}</TableCell>
                         <TableCell className="text-right">
@@ -156,7 +159,7 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
                   </TableRow>
                 ) : (
                   paidEvents.map((event) => {
-                    const f = eventFinance(event, settings);
+                    const f = eventFinance(event, organizers, settings);
                     return (
                       <TableRow key={event.id}>
                         <TableCell>
@@ -164,7 +167,7 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
                           <p className="text-xs text-muted-foreground">{event.organizerName}</p>
                         </TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(f.netPayout)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{formatCurrency(f.commission)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{formatCurrency(f.totalCommission)}</TableCell>
                         <TableCell>{fmtDate(event.payoutDate)}</TableCell>
                       </TableRow>
                     );
@@ -196,18 +199,14 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
                   </TableRow>
                 ) : (
                   refundEvents.map((event) => {
-                    const refunded = event.status === "cancelled"
-                      ? (event.refundAmount ?? event.grossSales ?? 0)
-                      : (event.refundedAmount ?? 0);
+                    const refunded = event.refundedAmount ?? 0;
                     return (
                       <TableRow key={event.id}>
                         <TableCell>
                           <p className="font-medium">{event.title}</p>
                           <p className="text-xs text-muted-foreground">{event.organizerName}</p>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {event.status === "cancellation_requested" ? "Cancellation pending" : event.status === "cancelled" ? "Cancelled" : "Partial refunds"}
-                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">Partial refunds</TableCell>
                         <TableCell className="text-right">{event.sold}</TableCell>
                         <TableCell className="text-right text-muted-foreground">{formatCurrency(refunded)}</TableCell>
                       </TableRow>
