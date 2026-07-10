@@ -33,7 +33,7 @@ MyTrails เชื่อมต่อ 2 กลุ่มผู้ใช้:
 |-----|---------|
 | `mytrails.theingress.co/organizer/login` | หน้า Login |
 | `mytrails.theingress.co/organizer/dashboard` | Dashboard — พอร์ตโฟลิโอ Event ทั้งหมด |
-| `mytrails.theingress.co/organizer/events/new` | สร้าง Event ใหม่ (4 ขั้นตอน) |
+| `mytrails.theingress.co/organizer/events/new` | สร้าง Event ใหม่ (5 ขั้นตอน) |
 
 เมื่อ login เข้า Event ใดก็ได้จาก Dashboard จะเจอ **Event Manager Hub** ซึ่งมี:
 - **Orders / Finance** — คำสั่งซื้อ, ตรวจสลิปเงินสด, คืนเงิน, เปลี่ยนระยะ
@@ -47,7 +47,7 @@ MyTrails เชื่อมต่อ 2 กลุ่มผู้ใช้:
 
 | URL | เนื้อหา |
 |-----|---------|
-| `mytrails.theingress.co/organizer/admin` | อนุมัติ/ปฏิเสธ Event, ตรวจการเงิน, จัดการ User |
+| `mytrails.theingress.co/organizer/admin` | อนุมัติ/ตีกลับ Event, Payout & Escrow, จัดการ User + Tier (ค่าคอมมิชชั่น), Platform Settings |
 
 ---
 
@@ -93,8 +93,8 @@ flowchart TB
         O2["/organizer/dashboard
         พอร์ตโฟลิโออีเวนต์ · รายได้รวม · สถิติ"]
         O3["/organizer/events/new · /edit
-        Event Wizard 4 ขั้นตอน
-        Basic Info → Categories → Schedule → Publish"]
+        Event Wizard 5 ขั้นตอน
+        Event Info → Race Config → Tickets → Publishing → Review & Commission"]
         subgraph Hub["/organizer/events/:id/:section — Event Manager Hub"]
             H1["overview — Race Analytics"]
             H2["orders — Orders / Finance"]
@@ -114,8 +114,11 @@ flowchart TB
     end
 ```
 
-**Event Lifecycle (Admin-driven):**
-`draft` → `pending_review` → `awaiting_payment` → `ready_to_publish` → `live`
+**Event Lifecycle:**
+`draft` → `pending_review` → (Admin อนุมัติ) → `live` (ถ้าเลือก publish ทันที) หรือ `scheduled` → `live` (ตามวันเวลาที่ตั้ง)
+`pending_review` → (ตีกลับ) → `rejected` → แก้แล้วส่งใหม่ · แก้ Event ที่อนุมัติแล้ว = ต้องรีวิวใหม่
+
+**Commission (2 ส่วน):** Event commission ตามจำนวนผู้สมัคร (`<300` = ฿1,000 · `300–999` = 8% · `≥1000` = 6%) + Tier commission ตาม tier ของบัญชี — หักตอนจ่ายเงินคืนผู้จัด (payout คิดจากยอดสมัครจริง)
 
 ---
 
@@ -134,6 +137,8 @@ flowchart TB
 
 ## Mock Data → Real API
 
-ข้อมูลทั้งหมดอยู่ใน `src/data/mockData.ts` — replace ด้วย API call ตรงนี้จุดเดียว views ไม่ต้องแก้
+ข้อมูลเป็น mock ทั้งหมด (ยังไม่มี backend) แต่อยู่ใน **shared store ก้อนเดียว** — `src/contexts/EventsContext.tsx` (`EventsProvider`) เก็บ state ใน `localStorage` ทั้ง Organizer / Admin / Runner อ่าน-เขียนจากที่เดียวกัน กด action ฝั่งไหนอีกฝั่งเห็นทันที
 
-Business logic ใน `src/lib/` แยกออกจาก UI พร้อม unit tests — migrate ไป backend ได้เลย
+- **Reads** ผ่าน `src/hooks/data/*` (`useEvents`/`useAdminData`) — สลับเป็น React Query + API ตรงนี้จุดเดียว views ไม่ต้องแก้
+- **Seed** จาก `src/data/mockData.ts` + `src/data/adminMockData.ts`
+- Business logic ใน `src/lib/` แยกจาก UI พร้อม unit tests (`src/test/`) — migrate ไป backend ได้เลย
