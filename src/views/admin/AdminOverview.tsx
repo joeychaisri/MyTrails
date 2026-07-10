@@ -2,6 +2,7 @@ import { Banknote, CalendarCheck, Users, TrendingUp } from "lucide-react";
 import StatsCard from "@/components/StatsCard";
 import { AdminEvent, AdminOrganizer, PlatformSettings } from "@/data/adminMockData";
 import { useAdminData } from "@/hooks/data/useAdminData";
+import { eventFinance } from "@/contexts/EventsContext";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface AdminOverviewProps {
@@ -12,9 +13,13 @@ interface AdminOverviewProps {
 
 const AdminOverview = ({ events, organizers, platformSettings }: AdminOverviewProps) => {
   const { data: { platformRevenue } } = useAdminData();
-  const totalRevenue = events.filter((e) => e.status === "live" || e.status === "ready_to_publish").length * platformSettings.platformFee;
+  // Platform revenue = the commission the platform keeps on each live/completed
+  // event's registrations (not a flat listing fee).
+  const totalRevenue = events
+    .filter((e) => e.status === "live" || e.status === "cancellation_requested")
+    .reduce((sum, e) => sum + eventFinance(e, platformSettings).commission, 0);
   const pendingReview = events.filter((e) => e.status === "pending_review").length;
-  const awaitingPayment = events.filter((e) => e.status === "awaiting_payment").length;
+  const readyToPublish = events.filter((e) => e.status === "ready_to_publish").length;
   const liveEvents = events.filter((e) => e.status === "live").length;
   const activeOrganizers = organizers.filter((o) => o.status === "active").length;
 
@@ -25,12 +30,12 @@ const AdminOverview = ({ events, organizers, platformSettings }: AdminOverviewPr
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatsCard title="Platform Revenue" value={formatCurrency(totalRevenue)} icon={Banknote} subtitle="Accumulated fees" />
+        <StatsCard title="Platform Revenue" value={formatCurrency(totalRevenue)} icon={Banknote} subtitle="Commission earned" />
         <StatsCard
           title="Events Pipeline"
-          value={`${pendingReview} / ${awaitingPayment} / ${liveEvents}`}
+          value={`${pendingReview} / ${readyToPublish} / ${liveEvents}`}
           icon={CalendarCheck}
-          subtitle="Review / Payment / Live"
+          subtitle="Review / Ready / Live"
         />
         <StatsCard title="Total Organizers" value={activeOrganizers} icon={Users} subtitle="Active accounts" />
         <StatsCard title="Total Events" value={events.length} icon={TrendingUp} subtitle="All statuses" />

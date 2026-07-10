@@ -1,8 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -19,16 +19,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, CheckCircle, XCircle, ShieldAlert, Eye, Ban } from "lucide-react";
+import { Search, XCircle, ShieldAlert, Eye, Ban, Rocket } from "lucide-react";
 import AdminStatusBadge from "@/components/AdminStatusBadge";
-import { AdminEvent } from "@/data/adminMockData";
+import { Event } from "@/data/mockData";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 interface AdminEventApprovalsProps {
-  events: AdminEvent[];
-  onApprove: (eventId: string) => void;
-  onReject: (eventId: string, reason: string) => void;
+  events: Event[];
+  onPublish: (eventId: string) => void;
   onForceUnpublish: (eventId: string) => void;
   onApproveCancellation: (eventId: string) => void;
   onRejectCancellation: (eventId: string) => void;
@@ -37,45 +36,39 @@ interface AdminEventApprovalsProps {
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(amount);
 
+const fmtDate = (d?: string) => (d ? format(new Date(d), "MMM d, yyyy") : "—");
+
 const AdminEventApprovals = ({
   events,
-  onApprove,
-  onReject,
+  onPublish,
   onForceUnpublish,
   onApproveCancellation,
   onRejectCancellation,
 }: AdminEventApprovalsProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [reviewEvent, setReviewEvent] = useState<AdminEvent | null>(null);
-  const [rejectEvent, setRejectEvent] = useState<AdminEvent | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const [unpublishEvent, setUnpublishEvent] = useState<AdminEvent | null>(null);
-  const [cancelReviewEvent, setCancelReviewEvent] = useState<AdminEvent | null>(null);
+  const [publishTarget, setPublishTarget] = useState<Event | null>(null);
+  const [unpublishEvent, setUnpublishEvent] = useState<Event | null>(null);
+  const [cancelReviewEvent, setCancelReviewEvent] = useState<Event | null>(null);
 
   const pendingEvents = events.filter((e) => e.status === "pending_review");
+  const readyEvents = events.filter((e) => e.status === "ready_to_publish");
   const liveEvents = events.filter((e) => e.status === "live");
   const cancellationEvents = events.filter((e) => e.status === "cancellation_requested");
 
-  const filterBySearch = (list: AdminEvent[]) =>
+  const filterBySearch = (list: Event[]) =>
     list.filter(
       (e) =>
         e.title.toLowerCase().includes(search.toLowerCase()) ||
         e.organizerName.toLowerCase().includes(search.toLowerCase())
     );
 
-  const handleApprove = (eventId: string) => {
-    onApprove(eventId);
-    setReviewEvent(null);
-    toast({ title: "Event Approved", description: "Status changed to Awaiting Payment." });
-  };
-
-  const handleReject = () => {
-    if (rejectEvent && rejectReason.trim()) {
-      onReject(rejectEvent.id, rejectReason);
-      setRejectEvent(null);
-      setRejectReason("");
-      toast({ title: "Event Rejected", description: "Status reverted to Draft." });
+  const handlePublish = () => {
+    if (publishTarget) {
+      onPublish(publishTarget.id);
+      setPublishTarget(null);
+      toast({ title: "Event Published", description: "The event is now live and visible to runners." });
     }
   };
 
@@ -113,6 +106,7 @@ const AdminEventApprovals = ({
       <Tabs defaultValue="queue">
         <TabsList>
           <TabsTrigger value="queue">Submission Queue ({pendingEvents.length})</TabsTrigger>
+          <TabsTrigger value="ready">Ready to Publish ({readyEvents.length})</TabsTrigger>
           <TabsTrigger value="live">Live Events ({liveEvents.length})</TabsTrigger>
           <TabsTrigger value="cancellations">Cancellation Requests ({cancellationEvents.length})</TabsTrigger>
         </TabsList>
@@ -142,10 +136,10 @@ const AdminEventApprovals = ({
                     <TableRow key={event.id}>
                       <TableCell className="font-medium">{event.title}</TableCell>
                       <TableCell>{event.organizerName}</TableCell>
-                      <TableCell>{format(new Date(event.submittedDate), "MMM d, yyyy")}</TableCell>
+                      <TableCell>{fmtDate(event.submittedDate)}</TableCell>
                       <TableCell><AdminStatusBadge status={event.status} /></TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="outline" onClick={() => setReviewEvent(event)}>
+                        <Button size="sm" variant="outline" onClick={() => navigate(`/organizer/admin/review/${event.id}`)}>
                           <Eye className="mr-1.5 h-3.5 w-3.5" />
                           Review
                         </Button>
@@ -158,7 +152,48 @@ const AdminEventApprovals = ({
           </div>
         </TabsContent>
 
-        {/* Tab 2: Live Events */}
+        {/* Tab 2: Ready to Publish — admin's final go-live gate */}
+        <TabsContent value="ready">
+          <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Event Name</TableHead>
+                  <TableHead>Organizer</TableHead>
+                  <TableHead>Event Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filterBySearch(readyEvents).length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                      Nothing waiting to be published
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filterBySearch(readyEvents).map((event) => (
+                    <TableRow key={event.id}>
+                      <TableCell className="font-medium">{event.title}</TableCell>
+                      <TableCell>{event.organizerName}</TableCell>
+                      <TableCell>{fmtDate(event.date)}</TableCell>
+                      <TableCell><AdminStatusBadge status={event.status} /></TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" onClick={() => setPublishTarget(event)}>
+                          <Rocket className="mr-1.5 h-3.5 w-3.5" />
+                          Publish · Go Live
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        {/* Tab 3: Live Events */}
         <TabsContent value="live">
           <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
             <Table>
@@ -183,7 +218,7 @@ const AdminEventApprovals = ({
                     <TableRow key={event.id}>
                       <TableCell className="font-medium">{event.title}</TableCell>
                       <TableCell>{event.organizerName}</TableCell>
-                      <TableCell>{format(new Date(event.date), "MMM d, yyyy")}</TableCell>
+                      <TableCell>{fmtDate(event.date)}</TableCell>
                       <TableCell>{event.sold} / {event.capacity}</TableCell>
                       <TableCell className="text-right">
                         <Button size="sm" variant="destructive" onClick={() => setUnpublishEvent(event)}>
@@ -199,7 +234,7 @@ const AdminEventApprovals = ({
           </div>
         </TabsContent>
 
-        {/* Tab 3: Cancellation Requests */}
+        {/* Tab 4: Cancellation Requests */}
         <TabsContent value="cancellations">
           <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
             <Table>
@@ -244,67 +279,21 @@ const AdminEventApprovals = ({
         </TabsContent>
       </Tabs>
 
-      {/* Review Modal */}
-      <Dialog open={!!reviewEvent} onOpenChange={() => setReviewEvent(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Review Event</DialogTitle>
-            <DialogDescription>Review the event details before approving or rejecting.</DialogDescription>
-          </DialogHeader>
-          {reviewEvent && (
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-muted-foreground">Event Name</p>
-                  <p className="font-medium">{reviewEvent.title}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Organizer</p>
-                  <p className="font-medium">{reviewEvent.organizerName}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Province</p>
-                  <p className="font-medium">{reviewEvent.province}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Event Date</p>
-                  <p className="font-medium">{format(new Date(reviewEvent.date), "MMM d, yyyy")}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Capacity</p>
-                  <p className="font-medium">{reviewEvent.capacity}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Submitted</p>
-                  <p className="font-medium">{format(new Date(reviewEvent.submittedDate), "MMM d, yyyy")}</p>
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter className="gap-2">
-            <Button variant="destructive" onClick={() => { setRejectEvent(reviewEvent); setReviewEvent(null); }}>
-              <XCircle className="mr-1.5 h-4 w-4" />
-              Reject
-            </Button>
-            <Button onClick={() => reviewEvent && handleApprove(reviewEvent.id)}>
-              <CheckCircle className="mr-1.5 h-4 w-4" />
-              Approve
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Reject Modal */}
-      <Dialog open={!!rejectEvent} onOpenChange={() => { setRejectEvent(null); setRejectReason(""); }}>
+      {/* Publish Confirmation Modal */}
+      <Dialog open={!!publishTarget} onOpenChange={() => setPublishTarget(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Reject Event</DialogTitle>
-            <DialogDescription>Provide a reason for rejecting "{rejectEvent?.title}".</DialogDescription>
+            <DialogTitle>Publish Event</DialogTitle>
+            <DialogDescription>
+              "{publishTarget?.title}" will go live immediately and become visible to runners. You can take it down later with Force Unpublish.
+            </DialogDescription>
           </DialogHeader>
-          <Textarea placeholder="Enter rejection reason..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={3} />
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setRejectEvent(null); setRejectReason(""); }}>Cancel</Button>
-            <Button variant="destructive" onClick={handleReject} disabled={!rejectReason.trim()}>Confirm Reject</Button>
+            <Button variant="outline" onClick={() => setPublishTarget(null)}>Cancel</Button>
+            <Button onClick={handlePublish}>
+              <Rocket className="mr-1.5 h-4 w-4" />
+              Confirm · Go Live
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

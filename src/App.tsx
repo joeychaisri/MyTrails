@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { EventsProvider } from "@/contexts/EventsContext";
 import NotFound from "./pages/NotFound";
 import AuthView from "./views/organizer/AuthView";
 import DashboardView from "./views/organizer/DashboardView";
@@ -12,6 +13,7 @@ import EventManagerHub from "./views/organizer/EventManagerHub";
 import EventWizard from "./views/organizer/EventWizard";
 import PublicEventPage from "./views/organizer/PublicEventPage";
 import AdminDashboard from "./views/AdminDashboard";
+import AdminEventReview from "./views/admin/AdminEventReview";
 import RunnerLandingPage from "./views/runner/RunnerLandingPage";
 import PongYaengTrailPage from "./views/runner/pyt-landing/PongYaengTrailPage";
 
@@ -34,6 +36,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
+        <EventsProvider>
         <div className="min-h-screen flex flex-col">
           <Toaster />
           <Sonner />
@@ -53,6 +56,7 @@ const App = () => (
                 <Route path="/organizer/events/:id/:section" element={<ProtectedRoute><EventManagerHub /></ProtectedRoute>} />
                 <Route path="/organizer/events/:id" element={<Navigate to="overview" replace />} />
                 <Route path="/organizer/admin" element={<ProtectedRoute allowedRole="admin"><AdminDashboard /></ProtectedRoute>} />
+                <Route path="/organizer/admin/review/:id" element={<ProtectedRoute allowedRole="admin"><AdminEventReview /></ProtectedRoute>} />
 
                 {/* Organizer events index → dashboard */}
                 <Route path="/organizer/events" element={<Navigate to="/organizer/dashboard" replace />} />
@@ -68,6 +72,7 @@ const App = () => (
             </div>
           </BrowserRouter>
         </div>
+        </EventsProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

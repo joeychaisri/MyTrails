@@ -141,45 +141,6 @@ const PublicEventPage = () => {
                           </div>
                         </div>
 
-                        {cat.mandatoryGear.length > 0 && (
-                          <div className="mt-6 border-t border-border pt-6">
-                            <h4 className="mb-3 font-semibold text-foreground">Mandatory Gear</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {cat.mandatoryGear.map((gear) => (
-                                <span
-                                  key={gear}
-                                  className="rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground"
-                                >
-                                  {gear}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {cat.checkpoints.length > 0 && (
-                          <div className="mt-6 border-t border-border pt-6">
-                            <h4 className="mb-3 font-semibold text-foreground">Checkpoints</h4>
-                            <div className="space-y-3">
-                              {cat.checkpoints.map((cp, index) => (
-                                <div
-                                  key={cp.id}
-                                  className="flex items-center justify-between rounded-lg bg-muted/50 p-3"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                                      {index + 1}
-                                    </div>
-                                    <span className="font-medium">{cp.name}</span>
-                                  </div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {cp.distance} km • Cutoff: {cp.cutoffTime}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </TabsContent>
                   ))}

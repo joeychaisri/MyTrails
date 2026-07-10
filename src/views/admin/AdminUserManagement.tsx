@@ -17,8 +17,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Search, Plus, KeyRound, ShieldBan, ShieldCheck } from "lucide-react";
-import { AdminOrganizer } from "@/data/adminMockData";
+import { AdminOrganizer, OrganizerTier } from "@/data/adminMockData";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -33,7 +40,7 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState({ organizationName: "", contactName: "", email: "", phone: "", password: "" });
+  const [form, setForm] = useState({ organizationName: "", contactName: "", email: "", phone: "", password: "", tier: "standard" as OrganizerTier });
 
   const filtered = organizers.filter(
     (o) =>
@@ -45,7 +52,7 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
   const handleCreate = () => {
     if (!form.organizationName || !form.email || !form.password) return;
     onCreateOrganizer({ ...form, status: "active" });
-    setForm({ organizationName: "", contactName: "", email: "", phone: "", password: "" });
+    setForm({ organizationName: "", contactName: "", email: "", phone: "", password: "", tier: "standard" });
     setCreateOpen(false);
     toast({ title: "Organizer Created", description: `Account for ${form.organizationName} created successfully.` });
   };
@@ -74,6 +81,7 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
               <TableHead>Organization</TableHead>
               <TableHead>Contact</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Tier</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -85,6 +93,16 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
                 <TableCell className="font-medium">{org.organizationName}</TableCell>
                 <TableCell>{org.contactName}</TableCell>
                 <TableCell className="text-muted-foreground">{org.email}</TableCell>
+                <TableCell>
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                      org.tier === "vip" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {org.tier === "vip" ? "VIP" : "Standard"}
+                  </span>
+                </TableCell>
                 <TableCell>
                   <span
                     className={cn(
@@ -153,6 +171,18 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
             <div className="space-y-2">
               <Label>Phone Number</Label>
               <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+66 89 123 4567" />
+            </div>
+            <div className="space-y-2">
+              <Label>Account Tier</Label>
+              <Select value={form.tier} onValueChange={(v) => setForm({ ...form, tier: v as OrganizerTier })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard — pays platform commission</SelectItem>
+                  <SelectItem value="vip">VIP — commission-exempt (0%)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

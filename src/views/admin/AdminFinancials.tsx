@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,93 +10,215 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, CheckCircle, FileText } from "lucide-react";
-import AdminStatusBadge from "@/components/AdminStatusBadge";
-import { AdminEvent, PlatformSettings } from "@/data/adminMockData";
+import { Search, Banknote, Landmark, Wallet, Receipt } from "lucide-react";
+import StatsCard from "@/components/StatsCard";
+import { Event } from "@/data/mockData";
+import { AdminOrganizer, PlatformSettings } from "@/data/adminMockData";
+import { eventFinance } from "@/contexts/EventsContext";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 interface AdminFinancialsProps {
-  events: AdminEvent[];
+  events: Event[];
+  organizers: AdminOrganizer[];
+  settings: PlatformSettings;
   onMarkPaid: (eventId: string) => void;
-  platformSettings: PlatformSettings;
 }
 
-const AdminFinancials = ({ events, onMarkPaid, platformSettings }: AdminFinancialsProps) => {
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(amount);
+
+const fmtDate = (d?: string) => (d ? format(new Date(d), "MMM d, yyyy") : "—");
+
+const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFinancialsProps) => {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
 
-  const awaitingPayment = events.filter((e) => e.status === "awaiting_payment");
+  const payoutAccountFor = (organizerId: string) =>
+    organizers.find((o) => o.id === organizerId)?.payoutAccount ?? "—";
 
-  const filtered = awaitingPayment.filter(
-    (e) =>
-      e.title.toLowerCase().includes(search.toLowerCase()) ||
-      e.organizerName.toLowerCase().includes(search.toLowerCase())
-  );
+  const matchesSearch = (e: Event) =>
+    e.title.toLowerCase().includes(search.toLowerCase()) ||
+    e.organizerName.toLowerCase().includes(search.toLowerCase());
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(amount);
+  // An event carries registration money whenever it's live or in a cancellation flow.
+  const withMoney = events.filter((e) => (e.grossSales ?? 0) > 0);
+  const payableEvents = withMoney.filter((e) => e.payoutStatus === "payable").filter(matchesSearch);
+  const paidEvents = withMoney.filter((e) => e.payoutStatus === "paid").filter(matchesSearch);
+  const refundEvents = withMoney.filter((e) => (e.refundedAmount ?? 0) > 0 || e.status === "cancellation_requested" || e.status === "cancelled").filter(matchesSearch);
 
-  const handleMarkPaid = (eventId: string) => {
-    onMarkPaid(eventId);
-    toast({ title: "Payment Confirmed", description: "Event status updated to Ready to Publish." });
+  // Escrow rollup across all events (search-independent).
+  const sumNet = (list: Event[]) => list.reduce((s, e) => s + eventFinance(e, settings).netPayout, 0);
+  const heldTotal = sumNet(withMoney.filter((e) => e.payoutStatus === "held"));
+  const payableTotal = sumNet(withMoney.filter((e) => e.payoutStatus === "payable"));
+  const paidTotal = sumNet(withMoney.filter((e) => e.payoutStatus === "paid"));
+  const commissionTotal = withMoney
+    .filter((e) => e.payoutStatus !== undefined && e.status !== "cancelled")
+    .reduce((s, e) => s + eventFinance(e, settings).commission, 0);
+
+  const handleMarkPaid = (event: Event) => {
+    onMarkPaid(event.id);
+    const { netPayout } = eventFinance(event, settings);
+    toast({ title: "Payout Transferred", description: `${formatCurrency(netPayout)} marked as sent to ${event.organizerName}.` });
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Escrow rollup */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatsCard title="Held in Escrow" value={formatCurrency(heldTotal)} icon={Landmark} subtitle="Events in progress" />
+        <StatsCard title="Payable Now" value={formatCurrency(payableTotal)} icon={Wallet} subtitle="Ready to transfer" />
+        <StatsCard title="Paid Out" value={formatCurrency(paidTotal)} icon={Banknote} subtitle="Transferred to organizers" />
+        <StatsCard title="Commission Earned" value={formatCurrency(commissionTotal)} icon={Receipt} subtitle="Platform take" />
+      </div>
+
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input placeholder="Search events..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
       </div>
 
-      <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Event Name</TableHead>
-              <TableHead>Organizer</TableHead>
-              <TableHead>Fee Amount</TableHead>
-              <TableHead>Payment Proof</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                  No events awaiting payment
-                </TableCell>
-              </TableRow>
-            ) : (
-              filtered.map((event) => (
-                <TableRow key={event.id}>
-                  <TableCell className="font-medium">{event.title}</TableCell>
-                  <TableCell>{event.organizerName}</TableCell>
-                  <TableCell>{formatCurrency(event.feeAmount || platformSettings.platformFee)}</TableCell>
-                  <TableCell>
-                    {event.paymentProof ? (
-                      <span className="inline-flex items-center gap-1 text-primary text-sm cursor-pointer hover:underline">
-                        <FileText className="h-3.5 w-3.5" />
-                        View
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell><AdminStatusBadge status={event.status} /></TableCell>
-                  <TableCell className="text-right">
-                    <Button size="sm" onClick={() => handleMarkPaid(event.id)}>
-                      <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
-                      Mark as Paid
-                    </Button>
-                  </TableCell>
+      <Tabs defaultValue="queue">
+        <TabsList>
+          <TabsTrigger value="queue">Payout Queue ({payableEvents.length})</TabsTrigger>
+          <TabsTrigger value="paid">Paid ({paidEvents.length})</TabsTrigger>
+          <TabsTrigger value="refunds">Refunds ({refundEvents.length})</TabsTrigger>
+        </TabsList>
+
+        {/* Payout Queue — completed events past their hold window */}
+        <TabsContent value="queue">
+          <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Event / Organizer</TableHead>
+                  <TableHead className="text-right">Gross</TableHead>
+                  <TableHead className="text-right">Refunds</TableHead>
+                  <TableHead className="text-right">Commission</TableHead>
+                  <TableHead className="text-right">Net Payout</TableHead>
+                  <TableHead>Payout To</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {payableEvents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                      No payouts due
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  payableEvents.map((event) => {
+                    const f = eventFinance(event, settings);
+                    return (
+                      <TableRow key={event.id}>
+                        <TableCell>
+                          <p className="font-medium">{event.title}</p>
+                          <p className="text-xs text-muted-foreground">{event.organizerName} · {fmtDate(event.date)}</p>
+                        </TableCell>
+                        <TableCell className="text-right">{formatCurrency(f.gross)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{f.refunded ? `−${formatCurrency(f.refunded)}` : "—"}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">−{formatCurrency(f.commission)} ({f.rate}%)</TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(f.netPayout)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{payoutAccountFor(event.organizerId)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" onClick={() => handleMarkPaid(event)}>
+                            <Banknote className="mr-1.5 h-3.5 w-3.5" />
+                            Mark Transferred
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        {/* Paid history */}
+        <TabsContent value="paid">
+          <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Event / Organizer</TableHead>
+                  <TableHead className="text-right">Net Payout</TableHead>
+                  <TableHead className="text-right">Commission</TableHead>
+                  <TableHead>Paid On</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paidEvents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                      No payouts transferred yet
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paidEvents.map((event) => {
+                    const f = eventFinance(event, settings);
+                    return (
+                      <TableRow key={event.id}>
+                        <TableCell>
+                          <p className="font-medium">{event.title}</p>
+                          <p className="text-xs text-muted-foreground">{event.organizerName}</p>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(f.netPayout)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{formatCurrency(f.commission)}</TableCell>
+                        <TableCell>{fmtDate(event.payoutDate)}</TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        {/* Refund ledger */}
+        <TabsContent value="refunds">
+          <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Event / Organizer</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Runners</TableHead>
+                  <TableHead className="text-right">Refunded</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {refundEvents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                      No refunds on record
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  refundEvents.map((event) => {
+                    const refunded = event.status === "cancelled"
+                      ? (event.refundAmount ?? event.grossSales ?? 0)
+                      : (event.refundedAmount ?? 0);
+                    return (
+                      <TableRow key={event.id}>
+                        <TableCell>
+                          <p className="font-medium">{event.title}</p>
+                          <p className="text-xs text-muted-foreground">{event.organizerName}</p>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {event.status === "cancellation_requested" ? "Cancellation pending" : event.status === "cancelled" ? "Cancelled" : "Partial refunds"}
+                        </TableCell>
+                        <TableCell className="text-right">{event.sold}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{formatCurrency(refunded)}</TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

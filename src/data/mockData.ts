@@ -1,3 +1,22 @@
+// Unified lifecycle for an event across the organizer, admin and runner sides.
+// draft → pending_review → (admin) → ready_to_publish → (admin publishes) → live
+// pending_review → (admin) → rejected (with reason, organizer can revise & resubmit)
+// live → cancellation_requested → cancelled
+export type EventStatus =
+  | 'draft'
+  | 'pending_review'
+  | 'rejected'
+  | 'ready_to_publish'
+  | 'live'
+  | 'cancellation_requested'
+  | 'cancelled';
+
+// Where an event's registration money sits in the payout lifecycle.
+// held    — event still running / within refund-hold window, money in escrow
+// payable — event finished + hold window passed, ready to transfer to organizer
+// paid    — platform has transferred the net payout to the organizer
+export type PayoutStatus = 'held' | 'payable' | 'paid';
+
 export interface Event {
   id: string;
   title: string;
@@ -6,10 +25,27 @@ export interface Event {
   date: string;
   endDate: string;
   province: string;
-  status: 'live' | 'pending' | 'draft' | 'cancellation_requested' | 'cancelled';
+  status: EventStatus;
+  // Owner of the event (maps to an AdminOrganizer). Lets the organizer dashboard
+  // scope to "my events" and the admin queue attribute a submission.
+  organizerId: string;
+  organizerName: string;
+  submittedDate?: string;
+  // Set when admin rejects a submission; shown back to the organizer.
+  rejectionReason?: string;
   sold: number;
   capacity: number;
   revenue: number;
+  // Platform economics / payout (mock). Optional so existing literals stay valid;
+  // the store fills sensible defaults (grossSales ← revenue, rate ← platform default).
+  grossSales?: number;
+  refundedAmount?: number;
+  commissionRate?: number;
+  payoutStatus?: PayoutStatus;
+  payoutDate?: string;
+  // Present when an organizer has requested cancellation of a live event.
+  cancellationReason?: string;
+  refundAmount?: number;
   categories: Category[];
   description: string;
   descriptionTh: string;
@@ -39,17 +75,7 @@ export interface Category {
   utmbIndex: number;
   cutoffTime: string;
   cutoffHours: number;
-  checkpoints: Checkpoint[];
-  mandatoryGear: string[];
   tickets: Ticket[];
-}
-
-export interface Checkpoint {
-  id: string;
-  name: string;
-  distance: number;
-  cutoffTime: string;
-  services: string[];
 }
 
 export interface Ticket {
@@ -158,6 +184,42 @@ export interface PaymentInfo {
   accountNumber: string;
 }
 
+// Factory for a fully-populated race category, so mock events can be authored
+// compactly without ever producing an empty/impossible category. Callers pass
+// the identifying bits; everything else gets a sensible default they can override.
+export function makeCategory(
+  over: Partial<Category> & { id: string; name: string; distance: number }
+): Category {
+  return {
+    nameTh: over.name,
+    raceDate: "",
+    startTime: "06:00",
+    startLocationName: "Race Village",
+    startLat: 0,
+    startLng: 0,
+    elevation: 1500,
+    elevationLoss: 1400,
+    terrainType: "Mountain Trail",
+    itra: 3,
+    utmbIndex: 2,
+    cutoffTime: "18:00",
+    cutoffHours: 12,
+    tickets: [
+      { id: `${over.id}-t1`, name: "Early Bird", price: 1500, quantity: 150, sold: 0 },
+      { id: `${over.id}-t2`, name: "Regular", price: 1800, quantity: 200, sold: 0 },
+    ],
+    ...over,
+  };
+}
+
+// Event capacity IS the total number of tickets offered across every category.
+// Deriving it here guarantees "capacity" and "seats offered" can never disagree
+// (and matches how the wizard builds capacity from ticket quantities on submit).
+export function withDerivedCapacity(e: Event): Event {
+  const seats = e.categories.reduce((s, c) => s + c.tickets.reduce((a, t) => a + t.quantity, 0), 0);
+  return seats > 0 ? { ...e, capacity: seats } : e;
+}
+
 export const mockProfile: UserProfile = {
   name: "Trail Events Co.",
   email: "organizer@trailevents.co.th",
@@ -171,7 +233,7 @@ export const mockPaymentInfo: PaymentInfo = {
   accountNumber: "123-4-56789-0",
 };
 
-export const mockEvents: Event[] = [
+const rawMockEvents: Event[] = [
   {
     id: "1",
     title: "Doi Inthanon Trail Challenge",
@@ -181,9 +243,16 @@ export const mockEvents: Event[] = [
     endDate: "2026-05-02",
     province: "Chiang Mai",
     status: "live",
+    organizerId: "org1",
+    organizerName: "Trail Events Co.",
+    submittedDate: "2026-03-20",
     sold: 423,
     capacity: 600,
     revenue: 847500,
+    grossSales: 847500,
+    refundedAmount: 12000,
+    commissionRate: 6,
+    payoutStatus: "payable",
     description: "Experience Thailand's highest peak with breathtaking views and challenging terrain. This iconic race takes you through ancient cloud forests, past waterfalls, and to the summit at 2,565 meters.",
     descriptionTh: "สัมผัสประสบการณ์ยอดเขาสูงสุดของประเทศไทย พร้อมวิวที่สวยงามและเส้นทางที่ท้าทาย",
     latitude: "18.5881",
@@ -210,12 +279,6 @@ export const mockEvents: Event[] = [
         utmbIndex: 6,
         cutoffTime: "04:00",
         cutoffHours: 24,
-        checkpoints: [
-          { id: "cp1", name: "Km 20 - Mae Klang", distance: 20, cutoffTime: "04:00:00", services: ["Water", "Food", "Medical"] },
-          { id: "cp2", name: "Km 45 - Siriphum Falls", distance: 45, cutoffTime: "10:00:00", services: ["Water", "Food", "Medical", "Drop Bag"] },
-          { id: "cp3", name: "Km 70 - Ang Ka", distance: 70, cutoffTime: "16:00:00", services: ["Water", "Food", "Medical"] },
-        ],
-        mandatoryGear: ["Headlamp", "Emergency Blanket", "Whistle", "First Aid Kit", "Water 1.5L", "Mobile Phone"],
         tickets: [
           { id: "t1", name: "Early Bird", price: 2500, quantity: 100, sold: 100 },
           { id: "t2", name: "Regular", price: 3000, quantity: 150, sold: 89 },
@@ -239,11 +302,6 @@ export const mockEvents: Event[] = [
         utmbIndex: 3,
         cutoffTime: "17:00",
         cutoffHours: 12,
-        checkpoints: [
-          { id: "cp4", name: "Km 15 - Pha Dok Siew", distance: 15, cutoffTime: "03:00:00", services: ["Water", "Food"] },
-          { id: "cp5", name: "Km 30 - Kew Mae Pan", distance: 30, cutoffTime: "06:00:00", services: ["Water", "Food", "Medical"] },
-        ],
-        mandatoryGear: ["Headlamp", "Water 1L", "Mobile Phone"],
         tickets: [
           { id: "t4", name: "Early Bird", price: 1500, quantity: 100, sold: 100 },
           { id: "t5", name: "Regular", price: 1800, quantity: 200, sold: 122 },
@@ -259,7 +317,10 @@ export const mockEvents: Event[] = [
     date: "2025-04-20",
     endDate: "2025-04-20",
     province: "Nakhon Ratchasima",
-    status: "pending",
+    status: "pending_review",
+    organizerId: "org1",
+    organizerName: "Trail Events Co.",
+    submittedDate: "2026-06-28",
     sold: 0,
     capacity: 300,
     revenue: 0,
@@ -286,8 +347,6 @@ export const mockEvents: Event[] = [
         utmbIndex: 1,
         cutoffTime: "00:00",
         cutoffHours: 6,
-        checkpoints: [],
-        mandatoryGear: ["Headlamp", "Reflective Vest"],
         tickets: [
           { id: "t6", name: "Early Bird", price: 900, quantity: 150, sold: 0 },
           { id: "t7", name: "Regular", price: 1100, quantity: 150, sold: 0 },
@@ -304,6 +363,8 @@ export const mockEvents: Event[] = [
     endDate: "2025-05-11",
     province: "Phuket",
     status: "draft",
+    organizerId: "org1",
+    organizerName: "Trail Events Co.",
     sold: 0,
     capacity: 400,
     revenue: 0,
@@ -311,10 +372,96 @@ export const mockEvents: Event[] = [
     descriptionTh: "วิ่งตามชายฝั่งทะเลอันดามันที่สวยงาม พร้อมวิวหน้าผาหินปูน",
     latitude: "7.9519",
     longitude: "98.3381",
+    socialLinks: { facebook: "https://facebook.com/phuketcoastal" },
+    categories: [
+      makeCategory({ id: "3a", name: "45K Coastal", nameTh: "45K โคสทอล", distance: 45, elevation: 1600, elevationLoss: 1600, terrainType: "Coastal Trail", raceDate: "2025-05-10", startTime: "05:30", startLocationName: "Nai Harn Beach" }),
+      makeCategory({ id: "3b", name: "21K", nameTh: "21K", distance: 21, elevation: 700, elevationLoss: 700, terrainType: "Coastal Trail", raceDate: "2025-05-11", startTime: "06:00", startLocationName: "Nai Harn Beach" }),
+    ],
+  },
+  {
+    id: "4",
+    title: "Mae Sariang Sky Trail",
+    titleTh: "แม่สะเรียงสกายเทรล",
+    coverImage: "",
+    date: "2026-11-22",
+    endDate: "2026-11-23",
+    province: "Tak",
+    status: "ready_to_publish",
+    organizerId: "org1",
+    organizerName: "Trail Events Co.",
+    submittedDate: "2026-06-20",
+    sold: 0,
+    capacity: 350,
+    revenue: 0,
+    description: "A high-altitude sky race along the northern ridgelines with panoramic valley views.",
+    descriptionTh: "สกายเรซบนสันเขาภาคเหนือ พร้อมวิวหุบเขาแบบพาโนรามา",
+    latitude: "18.1612",
+    longitude: "97.9310",
+    socialLinks: { facebook: "https://facebook.com/maesariangtrail", instagram: "https://instagram.com/maesariangtrail" },
+    categories: [
+      makeCategory({ id: "4a", name: "42K Sky", nameTh: "42K สกาย", distance: 42, elevation: 2800, elevationLoss: 2700, raceDate: "2026-11-22", startLocationName: "Mae Sariang District Office" }),
+      makeCategory({ id: "4b", name: "21K", nameTh: "21K", distance: 21, elevation: 1200, elevationLoss: 1100, raceDate: "2026-11-23", startLocationName: "Mae Sariang District Office" }),
+    ],
+  },
+  {
+    id: "5",
+    title: "Krabi Jungle Trail",
+    titleTh: "กระบี่จังเกิลเทรล",
+    coverImage: "",
+    date: "2026-10-05",
+    endDate: "2026-10-05",
+    province: "Krabi",
+    status: "rejected",
+    organizerId: "org1",
+    organizerName: "Trail Events Co.",
+    submittedDate: "2026-06-15",
+    rejectionReason: "The 30K category is missing ticket prices and a start time. Please complete both and resubmit.",
+    sold: 0,
+    capacity: 250,
+    revenue: 0,
+    description: "A humid jungle course through limestone karst and hidden lagoons.",
+    descriptionTh: "เส้นทางป่าดิบชื้นผ่านเขาหินปูนและลากูนซ่อนเร้น",
+    latitude: "8.0863",
+    longitude: "98.9063",
     socialLinks: {},
-    categories: [],
+    categories: [
+      makeCategory({ id: "5a", name: "30K Jungle", nameTh: "30K จังเกิล", distance: 30, terrainType: "Jungle Trail", raceDate: "2026-10-05", startLocationName: "Ao Nang" }),
+    ],
+  },
+  {
+    id: "6",
+    title: "Chiang Rai Highland Ultra",
+    titleTh: "เชียงรายไฮแลนด์อัลตร้า",
+    coverImage: "",
+    date: "2026-08-30",
+    endDate: "2026-08-31",
+    province: "Chiang Rai",
+    status: "cancellation_requested",
+    organizerId: "org1",
+    organizerName: "Trail Events Co.",
+    submittedDate: "2026-03-10",
+    sold: 210,
+    capacity: 400,
+    revenue: 420000,
+    grossSales: 420000,
+    refundedAmount: 0,
+    commissionRate: 6,
+    payoutStatus: "held",
+    cancellationReason: "Provincial authorities revoked the trail-use permit two weeks before race day.",
+    refundAmount: 420000,
+    description: "A demanding highland ultra across the Doi Tung range near the northern border.",
+    descriptionTh: "อัลตร้าไฮแลนด์สุดโหดข้ามเทือกดอยตุงใกล้ชายแดนเหนือ",
+    latitude: "20.2860",
+    longitude: "99.8340",
+    socialLinks: { website: "https://chiangraihighland.run" },
+    categories: [
+      makeCategory({ id: "6a", name: "60K Ultra", nameTh: "60K อัลตร้า", distance: 60, elevation: 3500, elevationLoss: 3400, raceDate: "2026-08-30", startLocationName: "Doi Tung Royal Villa" }),
+      makeCategory({ id: "6b", name: "30K", nameTh: "30K", distance: 30, elevation: 1600, elevationLoss: 1600, raceDate: "2026-08-31", startLocationName: "Doi Tung Royal Villa" }),
+    ],
   },
 ];
+
+export const mockEvents: Event[] = rawMockEvents.map(withDerivedCapacity);
 
 export const mockOrders: Order[] = [
   {

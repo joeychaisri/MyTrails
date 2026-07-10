@@ -29,6 +29,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   Check,
@@ -44,9 +45,11 @@ import {
 } from "lucide-react";
 import Logo from "@/components/Logo";
 import PaymentModal from "@/components/PaymentModal";
-import { Event, Category, Ticket, Checkpoint, PaymentInfo } from "@/data/mockData";
+import { Event, Category, Ticket, PaymentInfo } from "@/data/mockData";
 import { useEvent } from "@/hooks/data/useEvents";
+import { useEventsStore } from "@/contexts/EventsContext";
 import { useOrganizerProfile } from "@/hooks/data/useOrganizerProfile";
+import { useToast } from "@/hooks/use-toast";
 
 type WizardStep = 1 | 2 | 3 | 4;
 
@@ -72,25 +75,14 @@ const provinces = [
   "Tak",
 ];
 
-const defaultGear = [
-  "Headlamp",
-  "Emergency Blanket",
-  "Whistle",
-  "First Aid Kit",
-  "Water 1L",
-  "Water 1.5L",
-  "Mobile Phone",
-  "Reflective Vest",
-  "Rain Jacket",
-  "Trail Running Shoes",
-];
-
 const EventWizard = () => {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, organizerId, organizerName } = useAuth();
   const { data: event } = useEvent(id);
   const { data: organizerAccount } = useOrganizerProfile();
+  const store = useEventsStore();
+  const { toast } = useToast();
   const onBack = () => navigate("/organizer/dashboard");
   const onComplete = () => navigate("/organizer/dashboard");
   const onLogout = () => { logout(); navigate("/organizer/login"); };
@@ -135,8 +127,6 @@ const EventWizard = () => {
         utmbIndex: 0,
         cutoffTime: "",
         cutoffHours: 0,
-        checkpoints: [],
-        mandatoryGear: ["Headlamp", "Water 1L"],
         tickets: [],
       },
     ]
@@ -163,8 +153,6 @@ const EventWizard = () => {
       utmbIndex: 0,
       cutoffTime: "",
       cutoffHours: 0,
-      checkpoints: [],
-      mandatoryGear: [],
       tickets: [],
     };
     setCategories([...categories, newCat]);
@@ -182,45 +170,6 @@ const EventWizard = () => {
   const updateCategory = (index: number, updates: Partial<Category>) => {
     const updated = [...categories];
     updated[index] = { ...updated[index], ...updates };
-    setCategories(updated);
-  };
-
-  const addCheckpoint = (catIndex: number) => {
-    const newCp: Checkpoint = {
-      id: `cp-${Date.now()}`,
-      name: "",
-      distance: 0,
-      cutoffTime: "",
-      services: [],
-    };
-    const updated = [...categories];
-    updated[catIndex].checkpoints.push(newCp);
-    setCategories(updated);
-  };
-
-  const updateCheckpoint = (catIndex: number, cpIndex: number, updates: Partial<Checkpoint>) => {
-    const updated = [...categories];
-    updated[catIndex].checkpoints[cpIndex] = {
-      ...updated[catIndex].checkpoints[cpIndex],
-      ...updates,
-    };
-    setCategories(updated);
-  };
-
-  const removeCheckpoint = (catIndex: number, cpIndex: number) => {
-    const updated = [...categories];
-    updated[catIndex].checkpoints = updated[catIndex].checkpoints.filter((_, i) => i !== cpIndex);
-    setCategories(updated);
-  };
-
-  const toggleGear = (catIndex: number, gear: string) => {
-    const updated = [...categories];
-    const gearList = updated[catIndex].mandatoryGear;
-    if (gearList.includes(gear)) {
-      updated[catIndex].mandatoryGear = gearList.filter((g) => g !== gear);
-    } else {
-      updated[catIndex].mandatoryGear = [...gearList, gear];
-    }
     setCategories(updated);
   };
 
@@ -252,7 +201,42 @@ const EventWizard = () => {
     setCategories(updated);
   };
 
+  // Assemble the event payload from the wizard's form state.
+  const buildDraft = (): Omit<Event, "id" | "status"> => ({
+    title: basicInfo.title,
+    titleTh: basicInfo.titleTh,
+    coverImage: event?.coverImage ?? "",
+    date: basicInfo.date,
+    endDate: basicInfo.endDate || basicInfo.date,
+    province: basicInfo.province,
+    organizerId: organizerId ?? "org1",
+    organizerName: organizerName ?? "Trail Events Co.",
+    sold: event?.sold ?? 0,
+    capacity: categories.reduce(
+      (sum, c) => sum + c.tickets.reduce((s, t) => s + t.quantity, 0),
+      0
+    ),
+    revenue: event?.revenue ?? 0,
+    categories,
+    description: basicInfo.description,
+    descriptionTh: basicInfo.descriptionTh,
+    latitude: basicInfo.latitude,
+    longitude: basicInfo.longitude,
+    socialLinks: {
+      facebook: basicInfo.facebook,
+      instagram: basicInfo.instagram,
+      website: basicInfo.website,
+    },
+  });
+
   const handleSubmit = () => {
+    if (id && event) {
+      // Editing an existing event: update in place, re-enter review, and clear
+      // any prior rejection reason so a resubmitted event starts clean.
+      store.updateEvent(id, { ...buildDraft(), status: "pending_review", submittedDate: event.submittedDate, rejectionReason: undefined });
+    } else {
+      store.submitEvent(buildDraft());
+    }
     setShowSuccess(true);
     setTimeout(() => {
       onComplete();
@@ -260,6 +244,12 @@ const EventWizard = () => {
   };
 
   const handleSaveDraft = () => {
+    if (id && event) {
+      store.updateEvent(id, { ...buildDraft(), status: "draft" });
+    } else {
+      store.saveDraftEvent(buildDraft());
+    }
+    toast({ title: "Draft saved", description: "Your event has been saved as a draft." });
     onBack();
   };
 
@@ -737,7 +727,6 @@ const EventWizard = () => {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span>{cat.distance}K</span>
                           <span>{cat.tickets.length} ticket tiers</span>
-                          <span>{cat.checkpoints.length} checkpoints</span>
                         </div>
                       </div>
                     ))}
@@ -885,6 +874,16 @@ const EventWizard = () => {
                   {steps[currentStep - 1].title}
                 </h2>
               </div>
+              {event?.status === "rejected" && event.rejectionReason && (
+                <div className="mb-4 sm:mb-6 flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                  <div>
+                    <p className="text-sm font-semibold text-destructive">Changes requested by the reviewer</p>
+                    <p className="mt-0.5 text-sm text-destructive">{event.rejectionReason}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Make the changes below, then resubmit for review.</p>
+                  </div>
+                </div>
+              )}
               {renderStep()}
             </div>
           </main>
@@ -915,8 +914,8 @@ const EventWizard = () => {
                   </Button>
                 ) : (
                   <Button size="sm" onClick={handleSubmit}>
-                    <span className="hidden sm:inline">Submit for Review</span>
-                    <span className="sm:hidden">Submit</span>
+                    <span className="hidden sm:inline">{event?.status === "rejected" ? "Resubmit for Review" : "Submit for Review"}</span>
+                    <span className="sm:hidden">{event?.status === "rejected" ? "Resubmit" : "Submit"}</span>
                   </Button>
                 )}
               </div>
