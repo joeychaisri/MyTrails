@@ -12,7 +12,29 @@ import '@/index.css'
 // so stories never touch the URL bar.
 const queryClient = new QueryClient()
 
+// Workaround for a Storybook 10.5 core bug: storybook/test's userEvent
+// instrumentation redefines HTMLElement.prototype.focus as an accessor whose
+// getter dereferences this.ownerDocument. react-aria (inside addon-docs)
+// reads `.focus` off the PROTOTYPE at module init, so the getter runs with
+// this = HTMLElement.prototype → "TypeError: Illegal invocation" → every MDX
+// docs page dies. Restoring the plain method after core's loaders have run
+// (project loaders run last) keeps docs alive; we don't use play functions,
+// so losing the instrumentation costs nothing. Drop this once fixed upstream
+// (same family as storybookjs/storybook#31243).
+const nativeFocus = HTMLElement.prototype.focus
+const restoreNativeFocus = () => {
+  const d = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'focus')
+  if (d?.get) {
+    Object.defineProperty(HTMLElement.prototype, 'focus', {
+      value: nativeFocus,
+      writable: true,
+      configurable: true,
+    })
+  }
+}
+
 const preview: Preview = {
+  loaders: [restoreNativeFocus],
   decorators: [
     (Story) => (
       <QueryClientProvider client={queryClient}>

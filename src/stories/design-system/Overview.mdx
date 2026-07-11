@@ -13,10 +13,23 @@ section disagree, the screen is wrong.
 
 The same design tokens exist under two naming systems, on purpose:
 
-| Side | Naming | Usage |
-|------|--------|-------|
-| **Organizer / Admin** | shadcn convention — `--primary`, `--foreground`, `--border` … | Tailwind classes + shadcn/ui primitives (`bg-primary`, `text-muted-foreground`) |
-| **Runner (public)** | `--mt-*` aliases — `--mt-brand`, `--mt-fg`, `--mt-border` … | Inline styles + bespoke CSS, pixel-matched to the Claude Design prototype |
+<table>
+  <thead>
+    <tr><th>Side</th><th>Naming</th><th>Usage</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Organizer / Admin</strong></td>
+      <td>shadcn convention — <code>--primary</code>, <code>--foreground</code>, <code>--border</code> …</td>
+      <td>Tailwind classes + shadcn/ui primitives (<code>bg-primary</code>, <code>text-muted-foreground</code>)</td>
+    </tr>
+    <tr>
+      <td><strong>Runner (public)</strong></td>
+      <td><code>--mt-*</code> aliases — <code>--mt-brand</code>, <code>--mt-fg</code>, <code>--mt-border</code> …</td>
+      <td>Inline styles + bespoke CSS, pixel-matched to the Claude Design prototype</td>
+    </tr>
+  </tbody>
+</table>
 
 They point at the **same values** (`--mt-brand` ≡ `--primary`). Pick the dialect of
 the side you're working on; never hardcode a raw color.
