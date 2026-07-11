@@ -22,7 +22,7 @@ import AccountSecurityModal from "@/components/account/AccountSecurityModal";
 import EventActionDialog, { EventActionMode } from "@/components/event/EventActionDialog";
 import DateRangeFilter, { DateFilterOption } from "@/components/DateRangeFilter";
 import { Event, UserProfile, PaymentInfo } from "@/data/mockData";
-import { useEvents } from "@/hooks/data/useEvents";
+import { useEventsStore } from "@/contexts/EventsContext";
 import { useOrganizerProfile } from "@/hooks/data/useOrganizerProfile";
 import { useToast } from "@/hooks/use-toast";
 
@@ -41,21 +41,25 @@ const DashboardView = ({
   initialPaymentModalOpen = false,
 }: DashboardViewProps = {}) => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, organizerId } = useAuth();
   const onLogout = () => { logout(); navigate("/organizer/login"); };
   const onSelectEvent = (event: Event) => navigate(`/organizer/events/${event.id}/overview`);
   const onCreateEvent = () => navigate("/organizer/events/new");
   const onEditEvent = (event: Event) => navigate(`/organizer/events/${event.id}/edit`);
   const onPreviewEvent = (event: Event) => navigate(`/events/${event.id}/preview`);
   const { data: organizerAccount } = useOrganizerProfile();
-  const { data: initialEvents } = useEvents();
+  const store = useEventsStore();
+  // Scope the dashboard to the logged-in organizer's own events. Falls back to the
+  // demo organizer (org1) so direct navigation without an explicit login still works,
+  // matching the route's default-to-organizer behaviour.
+  const scopeId = organizerId ?? "org1";
+  const events = store.events.filter((e) => e.organizerId === scopeId);
   const [profile, setProfile] = useState<UserProfile>(organizerAccount.profile);
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(organizerAccount.paymentInfo);
   const [profileModalOpen, setProfileModalOpen] = useState(initialProfileModalOpen);
   const [paymentModalOpen, setPaymentModalOpen] = useState(initialPaymentModalOpen);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [events, setEvents] = useState<Event[]>(initialEvents);
   const [eventAction, setEventAction] = useState<{ event: Event; mode: EventActionMode } | null>(null);
   const { toast } = useToast();
   const [dateFilter, setDateFilter] = useState<DateFilterOption>("7days");
@@ -80,10 +84,17 @@ const DashboardView = ({
   const filteredEvents = events.filter((event) => {
     if (activeTab === "all") return true;
     if (activeTab === "live") return event.status === "live";
+    // "Action needed" = the organizer must do something (fix & resubmit).
+    if (activeTab === "action") return event.status === "rejected";
+    // "In review" = waiting on the platform (admin/scheduled), nothing for the organizer to do.
+    if (activeTab === "review")
+      return event.status === "pending_review" || event.status === "scheduled";
     if (activeTab === "drafts") return event.status === "draft";
-    if (activeTab === "pending") return event.status === "pending";
     return true;
   });
+
+  // Count of events awaiting the organizer's own action (rejected → needs fixing).
+  const actionNeededCount = events.filter((e) => e.status === "rejected").length;
 
   const baseRevenue = events.reduce((sum, e) => sum + e.revenue, 0);
   const baseSold = events.reduce((sum, e) => sum + e.sold, 0);
@@ -94,21 +105,10 @@ const DashboardView = ({
   const totalSold = Math.round(baseSold * statsMultiplier);
 
   const requestDeleteEvent = (event: Event) => setEventAction({ event, mode: "delete" });
-  const requestCancelEvent = (event: Event) => setEventAction({ event, mode: "cancel" });
 
   const confirmEventAction = (event: Event) => {
-    if (eventAction?.mode === "cancel") {
-      setEvents((prev) =>
-        prev.map((e) => (e.id === event.id ? { ...e, status: "cancellation_requested" as const } : e))
-      );
-      toast({
-        title: "Cancellation requested",
-        description: "Sent to the platform admin for approval. Runners are refunded once it's approved.",
-      });
-    } else {
-      setEvents((prev) => prev.filter((e) => e.id !== event.id));
-      toast({ title: "Event deleted", description: `"${event.title}" has been removed.` });
-    }
+    store.deleteEvent(event.id);
+    toast({ title: "Event deleted", description: `"${event.title}" has been removed.` });
     setEventAction(null);
   };
 
@@ -213,8 +213,16 @@ const DashboardView = ({
               <TabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="live">Live</TabsTrigger>
+                <TabsTrigger value="action" className="gap-1.5">
+                  Action Needed
+                  {actionNeededCount > 0 && (
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-semibold text-destructive-foreground">
+                      {actionNeededCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="review">In Review</TabsTrigger>
                 <TabsTrigger value="drafts">Drafts</TabsTrigger>
-                <TabsTrigger value="pending">Pending Review</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -226,6 +234,10 @@ const DashboardView = ({
               <p className="mb-4 text-muted-foreground">
                 {activeTab === "all"
                   ? "Create your first trail running event"
+                  : activeTab === "action"
+                  ? "Nothing needs your attention right now"
+                  : activeTab === "review"
+                  ? "No events are being reviewed"
                   : `No ${activeTab} events`}
               </p>
               <Button onClick={onCreateEvent}>
@@ -243,7 +255,6 @@ const DashboardView = ({
                   onPreview={onPreviewEvent}
                   onManage={onSelectEvent}
                   onDelete={requestDeleteEvent}
-                  onCancel={requestCancelEvent}
                 />
               ))}
             </div>

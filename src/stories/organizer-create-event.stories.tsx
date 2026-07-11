@@ -2,7 +2,7 @@ import type { StoryFn as Story } from "@storybook/react-vite";
 import EventWizard from "@/views/organizer/EventWizard";
 import { mockEvents } from "@/data/mockData";
 
-// Journey 5 · Organizer — Create & Edit Event (4-step wizard)
+// Journey 5 · Organizer — Create & Edit Event (5-step wizard)
 // Each export lands the wizard on a specific step with seeded data — no clicking
 // through prior steps. Wizard state still lives in EventWizard; the app renders
 // <EventWizard /> prop-less, so runtime is unchanged.
@@ -25,9 +25,26 @@ export const Step3Tickets: Story = () => (
 );
 Step3Tickets.storyName = "Step 3 - Tickets (filled)";
 
-export const Step4Review: Story = () => (
+export const Step4PublishingAsap: Story = () => (
+  <EventWizard initialStep={4} initialScenario={{ categories: seed.categories }} />
+);
+Step4PublishingAsap.storyName = "Step 4 - Publishing (ASAP)";
+
+export const Step4PublishingScheduled: Story = () => (
   <EventWizard
     initialStep={4}
+    initialScenario={{
+      categories: seed.categories,
+      publishMode: "scheduled",
+      publishAt: "2026-09-01T09:00",
+    }}
+  />
+);
+Step4PublishingScheduled.storyName = "Step 4 - Publishing (scheduled)";
+
+export const Step5Review: Story = () => (
+  <EventWizard
+    initialStep={5}
     initialScenario={{
       basicInfo: {
         title: seed.title,
@@ -40,4 +57,4 @@ export const Step4Review: Story = () => (
     }}
   />
 );
-Step4Review.storyName = "Step 4 - Review & Submit";
+Step5Review.storyName = "Step 5 - Review & Submit (commission estimate)";

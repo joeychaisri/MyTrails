@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { EventsProvider } from '@/contexts/EventsContext'
 import { LanguageProvider } from '@/views/runner/i18n'
 import '@/index.css'
 
@@ -17,11 +18,13 @@ const preview: Preview = {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
-            <LanguageProvider>
-              <MemoryRouter initialEntries={['/']}>
-                <Story />
-              </MemoryRouter>
-            </LanguageProvider>
+            <EventsProvider>
+              <LanguageProvider>
+                <MemoryRouter initialEntries={['/']}>
+                  <Story />
+                </MemoryRouter>
+              </LanguageProvider>
+            </EventsProvider>
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>

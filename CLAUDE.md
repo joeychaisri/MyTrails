@@ -4,7 +4,7 @@ Trail running event platform for Thailand. Two distinct sides: **Organizer** (ev
 
 ## Working Style — IMPORTANT (read first)
 
-**Joey is the UX/designer for this project.** Treat this codebase like a **Figma prototype**, not a production app: most data is **mock data** (`src/data/mockData.ts`) that exists only to demonstrate flows, layout, and look-and-feel. Don't worry about real backend correctness or data integrity unless explicitly asked — the priority is **UX, layout, and design fidelity**.
+**Joey is the UX/designer for this project.** Treat this codebase like a **Figma prototype**, not a production app: data is **mock** (seeded into an in-browser store — see "Data & the shared store"), existing to demonstrate flows, layout, and look-and-feel. There's no backend; "payment/payout" are simulated. Don't worry about real backend correctness or data integrity unless explicitly asked — the priority is **UX, layout, and design fidelity**.
 
 ### Design System discipline (take this VERY seriously)
 
@@ -55,23 +55,27 @@ browser-test runner needs Chromium system libs the VPS doesn't have).
 | `/organizer/events/new` | Organizer | `EventWizard` |
 | `/organizer/events/:id/edit` | Organizer | `EventWizard` |
 | `/organizer/events/:id/:section` | Organizer | `EventManagerHub` |
-| `/organizer/admin` | Admin | `AdminDashboard` |
+| `/organizer/admin` | Admin | `AdminDashboard` (Overview / Approvals / Financials / Users / Settings) |
+| `/organizer/admin/review/:id` | Admin | `AdminEventReview` — full-page event review before approve / request-changes |
 | `/login`, `/dashboard` etc. | — | Legacy redirects → `/organizer/*` |
 
 ## Src Layout
 
 ```
 src/
-├── hooks/data/             # data-layer seam: useEvents/useOrders/... return {data,isLoading,error}; swap mock → React Query here
+├── hooks/data/             # data-layer seam: useEvents/useEvent/useAdminData return {data,isLoading,error} — now READ from the EventsProvider store (was static mock)
+├── contexts/
+│   ├── AuthContext.tsx     # role + organizerId (mock login)
+│   └── EventsContext.tsx   # ⭐ shared writable store (events/organizers/settings) + eventFinance/eventCommissionAmount + all flow mutations
 ├── views/
 │   ├── organizer/
 │   │   AuthView.tsx
 │   │   DashboardView.tsx
-│   │   EventWizard.tsx
+│   │   EventWizard.tsx      # 5 steps: Event Info → Race Config → Tickets → Publishing → Review & Commission
 │   │   EventManagerHub.tsx   # thin orchestrator (~300 lines); sections in event-manager/
 │   │   PublicEventPage.tsx
 │   │   event-manager/        # OrdersSection, ParticipantsSection, BibSection, PromotionsSection, Overview*Section, orderConstants
-│   ├── admin/
+│   ├── admin/               # AdminOverview, AdminEventApprovals, AdminEventReview, AdminFinancials, AdminUserManagement, AdminSettings
 │   ├── OrderTwoView.tsx      # order-flow UX experiments (Direction 2/3) — pending decision, do not invest
 │   ├── OrderThreeView.tsx
 │   └── runner/
@@ -83,8 +87,8 @@ src/
 │           ├── landing-styles.css
 │           └── design-system/colors_and_type.css
 ├── components/ui/          # shadcn/ui primitives
-├── contexts/AuthContext.tsx
-├── data/mockData.ts        # replace with API calls here
+├── data/mockData.ts        # Event/Category/Ticket types + seed events (org1) + makeCategory factory
+├── data/adminMockData.ts   # Tier/AdminOrganizer/PlatformSettings + seed organizers & other-org events
 ├── lib/                    # refundPolicy, distanceChangePolicy (unit-tested)
 └── index.css               # Tailwind + --mt-* design token aliases
 ```
@@ -114,11 +118,40 @@ Scope today: landing page + Calendar. Same pattern extends to other pages, and i
 | any | any | Organizer |
 | `admin@mytrails.com` | any | Admin |
 
-`AuthContext` stores `role` in memory only — replace with real auth when backend is ready.
+`AuthContext` stores `role` + `organizerId` in `localStorage` (mock). Login is decided by the email only (see table). Any non-admin login maps to the demo organizer **org1** (Trail Events Co.).
 
-## Data
+## Data & the shared store ⭐
 
-All data is mock — `src/data/mockData.ts`. Replace with API calls at the data layer; views don't need to change. Business logic in `src/lib/` is unit-tested and backend-ready.
+Data is still mock (this is a prototype), but it now lives in a **single writable store** — `src/contexts/EventsContext.tsx` (`EventsProvider`), backed by `localStorage` (key `mt_store_vN`). All three sides read/write the same store, so an organizer action reflects on the admin side and vice-versa.
+
+- **Reads:** `hooks/data/*` (`useEvents`, `useEvent`, `useAdminData`) now read from the store; components can also call `useEventsStore()` directly for mutations.
+- **Seed:** `mockData.ts` (org1 events) + `adminMockData.ts` (other organizers, tiers, settings). The store seeds from these on first load.
+- **Bump `STORAGE_KEY`** in EventsContext whenever you change the seed shape/values, or browsers keep stale data. There's also a **"Reset demo data"** button in Admin → Settings.
+- Business logic in `src/lib/` (refund/distance policies) is unit-tested. Tests live in `src/test/` (store transitions, commission math, flow coverage, review page).
+
+## Event lifecycle & flow (the approval flow)
+
+`EventStatus` (in `mockData.ts`) — **5 states**:
+
+```
+draft → pending_review → (admin approves) ─┬→ live         (publishMode: 'asap')
+                                           └→ scheduled → live (auto-promote at publishAt)
+        pending_review → (reject) → rejected → organizer edits → pending_review
+        scheduled/live → (organizer edits) → pending_review   (re-approval required)
+```
+
+- **Admin does NOT manually publish.** On approve, the organizer's publish choice decides go-live: ASAP → `live`; scheduled → `scheduled`, then the store auto-promotes to `live` at `publishAt` (checked on load + interval — no real cron).
+- **No cancellation flow.** Organizers cannot cancel a published event. Admin's **Force Unpublish** (`live`/`scheduled` → `draft`) is the only takedown.
+- **Rejection reason** is shown to the organizer only in the edit wizard (not on the dashboard card); an **Action Needed** dashboard tab surfaces rejected events.
+
+## Commission model (2 parts)
+
+`eventFinance()` / `eventCommissionAmount()` live in `EventsContext.tsx`.
+
+1. **Event commission** — by registration count: `<300` → ฿1,000 flat · `300–999` → 8% · `≥1000` → 6%. Admin can override per event (`eventCommissionOverride`) in the review page.
+2. **Tier commission** — the organizer account's tier rate. Tiers are **dynamic** (`settings.tiers`, CRUD in Admin → Settings; a tier in use can't be deleted); each `AdminOrganizer` has a `tierId`.
+
+Total = event + tier, deducted at payout. The **wizard estimates** on planned capacity; the **payout** (Admin → Financials queue) computes on **actual `sold`**. Payout lifecycle: `held` → `payable` → `paid`.
 
 ## Adding a New Event Page
 

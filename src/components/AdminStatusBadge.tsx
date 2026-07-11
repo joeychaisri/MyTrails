@@ -1,29 +1,25 @@
 import { cn } from "@/lib/utils";
-import { AdminEventStatus } from "@/data/adminMockData";
+import { EventStatus } from "@/data/mockData";
 
 interface AdminStatusBadgeProps {
-  status: AdminEventStatus;
+  status: EventStatus;
 }
 
 const AdminStatusBadge = ({ status }: AdminStatusBadgeProps) => {
-  const styles: Record<AdminEventStatus, string> = {
-    pending_review: "bg-warning text-warning-foreground",
-    awaiting_payment: "bg-primary/15 text-primary",
-    ready_to_publish: "bg-success/15 text-success",
-    live: "bg-success text-success-foreground",
+  const styles: Record<EventStatus, string> = {
     draft: "bg-muted text-muted-foreground",
-    cancellation_requested: "bg-warning text-warning-foreground",
-    cancelled: "bg-muted text-muted-foreground",
+    pending_review: "bg-warning text-warning-foreground",
+    rejected: "bg-destructive/15 text-destructive",
+    scheduled: "bg-primary/15 text-primary",
+    live: "bg-success text-success-foreground",
   };
 
-  const labels: Record<AdminEventStatus, string> = {
-    pending_review: "Pending Review",
-    awaiting_payment: "Awaiting Payment",
-    ready_to_publish: "Ready to Publish",
-    live: "Live",
+  const labels: Record<EventStatus, string> = {
     draft: "Draft",
-    cancellation_requested: "Cancellation Pending",
-    cancelled: "Cancelled",
+    pending_review: "Pending Review",
+    rejected: "Rejected",
+    scheduled: "Scheduled",
+    live: "Live",
   };
 
   return (

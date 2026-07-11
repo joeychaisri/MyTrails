@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
@@ -27,12 +27,7 @@ import AdminEventApprovals from "@/views/admin/AdminEventApprovals";
 import AdminFinancials from "@/views/admin/AdminFinancials";
 import AdminUserManagement from "@/views/admin/AdminUserManagement";
 import AdminSettings from "@/views/admin/AdminSettings";
-import {
-  AdminEvent,
-  AdminOrganizer,
-  PlatformSettings,
-} from "@/data/adminMockData";
-import { useAdminData } from "@/hooks/data/useAdminData";
+import { useEventsStore } from "@/contexts/EventsContext";
 import { cn } from "@/lib/utils";
 
 type AdminPage = "overview" | "approvals" | "financials" | "users" | "settings";
@@ -57,96 +52,44 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const onLogout = () => { logout(); navigate("/organizer/login"); };
-  const { data: adminData } = useAdminData();
-  const [activePage, setActivePage] = useState<AdminPage>("overview");
-  const [events, setEvents] = useState<AdminEvent[]>(adminData.events);
-  const [organizers, setOrganizers] = useState<AdminOrganizer[]>(adminData.organizers);
-  const [platformSettings, setPlatformSettings] = useState<PlatformSettings>(adminData.platformSettings);
+  const store = useEventsStore();
+  const { events, organizers, settings } = store;
+  const location = useLocation();
+  // Returning from the standalone review page lands back on the Approvals tab.
+  const initialPage = (location.state as { page?: AdminPage } | null)?.page ?? "overview";
+  const [activePage, setActivePage] = useState<AdminPage>(initialPage);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const handleApprove = (eventId: string) => {
-    setEvents((prev) =>
-      prev.map((e) => (e.id === eventId ? { ...e, status: "awaiting_payment" as const } : e))
-    );
-  };
-
-  const handleReject = (eventId: string, _reason: string) => {
-    setEvents((prev) =>
-      prev.map((e) => (e.id === eventId ? { ...e, status: "draft" as const } : e))
-    );
-  };
-
-  const handleMarkPaid = (eventId: string) => {
-    setEvents((prev) =>
-      prev.map((e) => (e.id === eventId ? { ...e, status: "ready_to_publish" as const } : e))
-    );
-  };
-
-  const handleForceUnpublish = (eventId: string) => {
-    setEvents((prev) =>
-      prev.map((e) => (e.id === eventId ? { ...e, status: "draft" as const } : e))
-    );
-  };
-
-  const handleApproveCancellation = (eventId: string) => {
-    setEvents((prev) =>
-      prev.map((e) => (e.id === eventId ? { ...e, status: "cancelled" as const } : e))
-    );
-  };
-
-  const handleRejectCancellation = (eventId: string) => {
-    setEvents((prev) =>
-      prev.map((e) => (e.id === eventId ? { ...e, status: "live" as const } : e))
-    );
-  };
-
-  const handleCreateOrganizer = (org: Omit<AdminOrganizer, "id" | "createdAt" | "eventsCount">) => {
-    const newOrg: AdminOrganizer = {
-      ...org,
-      id: `org${Date.now()}`,
-      createdAt: new Date().toISOString().split("T")[0],
-      eventsCount: 0,
-    };
-    setOrganizers((prev) => [newOrg, ...prev]);
-  };
-
-  const handleSuspendOrganizer = (orgId: string) => {
-    setOrganizers((prev) =>
-      prev.map((o) =>
-        o.id === orgId
-          ? { ...o, status: o.status === "active" ? ("suspended" as const) : ("active" as const) }
-          : o
-      )
-    );
-  };
 
   const renderPage = () => {
     switch (activePage) {
       case "overview":
-        return <AdminOverview events={events} organizers={organizers} platformSettings={platformSettings} />;
+        return <AdminOverview events={events} organizers={organizers} platformSettings={settings} />;
       case "approvals":
         return (
           <AdminEventApprovals
             events={events}
-            onApprove={handleApprove}
-            onReject={handleReject}
-            onForceUnpublish={handleForceUnpublish}
-            onApproveCancellation={handleApproveCancellation}
-            onRejectCancellation={handleRejectCancellation}
+            onForceUnpublish={store.forceUnpublish}
           />
         );
       case "financials":
-        return <AdminFinancials events={events} onMarkPaid={handleMarkPaid} platformSettings={platformSettings} />;
+        return (
+          <AdminFinancials
+            events={events}
+            organizers={organizers}
+            settings={settings}
+            onMarkPaid={store.markPayoutPaid}
+          />
+        );
       case "users":
         return (
           <AdminUserManagement
             organizers={organizers}
-            onCreateOrganizer={handleCreateOrganizer}
-            onSuspendOrganizer={handleSuspendOrganizer}
+            onCreateOrganizer={store.createOrganizer}
+            onSuspendOrganizer={store.suspendOrganizer}
           />
         );
       case "settings":
-        return <AdminSettings settings={platformSettings} onSave={setPlatformSettings} />;
+        return <AdminSettings />;
       default:
         return null;
     }

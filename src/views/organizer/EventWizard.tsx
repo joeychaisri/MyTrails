@@ -2,6 +2,10 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -15,65 +19,103 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   Check,
   ChevronDown,
   CreditCard,
+  Image as ImageIcon,
   LogOut,
+  Plus,
+  Trash2,
+  Upload,
   User,
+  X,
 } from "lucide-react";
 import Logo from "@/components/Logo";
 import PaymentModal from "@/components/PaymentModal";
-import { Event, Category, Ticket, Checkpoint, PaymentInfo } from "@/data/mockData";
+import { Event, Category, Ticket, PaymentInfo } from "@/data/mockData";
 import { useEvent } from "@/hooks/data/useEvents";
+import { useEventsStore, eventCommissionAmount } from "@/contexts/EventsContext";
 import { useOrganizerProfile } from "@/hooks/data/useOrganizerProfile";
-import EventInfoStep, { BasicInfo } from "./event-wizard/EventInfoStep";
-import RaceConfigStep from "./event-wizard/RaceConfigStep";
-import TicketsStep from "./event-wizard/TicketsStep";
-import ReviewStep from "./event-wizard/ReviewStep";
+import { useToast } from "@/hooks/use-toast";
 
-type WizardStep = 1 | 2 | 3 | 4;
+type WizardStep = 1 | 2 | 3 | 4 | 5;
 
 const steps = [
   { number: 1, title: "Event Information" },
   { number: 2, title: "Race Configuration" },
   { number: 3, title: "Tickets" },
-  { number: 4, title: "Review & Submit" },
+  { number: 4, title: "Publishing" },
+  { number: 5, title: "Review & Submit" },
 ];
 
-const defaultGear = [
-  "Headlamp",
-  "Emergency Blanket",
-  "Whistle",
-  "First Aid Kit",
-  "Water 1L",
-  "Water 1.5L",
-  "Mobile Phone",
-  "Reflective Vest",
-  "Rain Jacket",
-  "Trail Running Shoes",
+const LAST_STEP = 5;
+
+const provinces = [
+  "Bangkok",
+  "Chiang Mai",
+  "Chiang Rai",
+  "Chonburi",
+  "Kanchanaburi",
+  "Krabi",
+  "Nakhon Ratchasima",
+  "Nan",
+  "Phetchabun",
+  "Phuket",
+  "Prachuap Khiri Khan",
+  "Tak",
 ];
+
+export type BasicInfo = {
+  title: string;
+  titleTh: string;
+  description: string;
+  descriptionTh: string;
+  province: string;
+  date: string;
+  endDate: string;
+  latitude: string;
+  longitude: string;
+  facebook: string;
+  instagram: string;
+  website: string;
+};
 
 interface EventWizardProps {
+  /** Story/seed only — lands the wizard on a specific step. Defaults to 1 (live app). */
   initialStep?: WizardStep;
+  /** Story/seed only — pre-fills wizard state so deep steps render populated. */
   initialScenario?: Partial<{
     basicInfo: Partial<BasicInfo>;
     categories: Category[];
     activeCategory: number;
     langTab: string;
     paymentInfo: PaymentInfo;
+    publishMode: "asap" | "scheduled";
+    publishAt: string;
   }>;
 }
 
 const EventWizard = ({ initialStep, initialScenario }: EventWizardProps = {}) => {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, organizerId, organizerName } = useAuth();
   const { data: event } = useEvent(id);
   const { data: organizerAccount } = useOrganizerProfile();
+  const store = useEventsStore();
+  const { toast } = useToast();
   const onBack = () => navigate("/organizer/dashboard");
   const onComplete = () => navigate("/organizer/dashboard");
   const onLogout = () => { logout(); navigate("/organizer/login"); };
@@ -82,6 +124,10 @@ const EventWizard = ({ initialStep, initialScenario }: EventWizardProps = {}) =>
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep ?? 1);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Publishing timing — when should this event go live once approved?
+  const [publishMode, setPublishMode] = useState<"asap" | "scheduled">(initialScenario?.publishMode ?? event?.publishMode ?? "asap");
+  const [publishAt, setPublishAt] = useState(initialScenario?.publishAt ?? event?.publishAt ?? "");
 
   // Form state
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
@@ -119,8 +165,6 @@ const EventWizard = ({ initialStep, initialScenario }: EventWizardProps = {}) =>
         utmbIndex: 0,
         cutoffTime: "",
         cutoffHours: 0,
-        checkpoints: [],
-        mandatoryGear: ["Headlamp", "Water 1L"],
         tickets: [],
       },
     ])
@@ -147,8 +191,6 @@ const EventWizard = ({ initialStep, initialScenario }: EventWizardProps = {}) =>
       utmbIndex: 0,
       cutoffTime: "",
       cutoffHours: 0,
-      checkpoints: [],
-      mandatoryGear: [],
       tickets: [],
     };
     setCategories([...categories, newCat]);
@@ -166,45 +208,6 @@ const EventWizard = ({ initialStep, initialScenario }: EventWizardProps = {}) =>
   const updateCategory = (index: number, updates: Partial<Category>) => {
     const updated = [...categories];
     updated[index] = { ...updated[index], ...updates };
-    setCategories(updated);
-  };
-
-  const addCheckpoint = (catIndex: number) => {
-    const newCp: Checkpoint = {
-      id: `cp-${Date.now()}`,
-      name: "",
-      distance: 0,
-      cutoffTime: "",
-      services: [],
-    };
-    const updated = [...categories];
-    updated[catIndex].checkpoints.push(newCp);
-    setCategories(updated);
-  };
-
-  const updateCheckpoint = (catIndex: number, cpIndex: number, updates: Partial<Checkpoint>) => {
-    const updated = [...categories];
-    updated[catIndex].checkpoints[cpIndex] = {
-      ...updated[catIndex].checkpoints[cpIndex],
-      ...updates,
-    };
-    setCategories(updated);
-  };
-
-  const removeCheckpoint = (catIndex: number, cpIndex: number) => {
-    const updated = [...categories];
-    updated[catIndex].checkpoints = updated[catIndex].checkpoints.filter((_, i) => i !== cpIndex);
-    setCategories(updated);
-  };
-
-  const toggleGear = (catIndex: number, gear: string) => {
-    const updated = [...categories];
-    const gearList = updated[catIndex].mandatoryGear;
-    if (gearList.includes(gear)) {
-      updated[catIndex].mandatoryGear = gearList.filter((g) => g !== gear);
-    } else {
-      updated[catIndex].mandatoryGear = [...gearList, gear];
-    }
     setCategories(updated);
   };
 
@@ -236,7 +239,54 @@ const EventWizard = ({ initialStep, initialScenario }: EventWizardProps = {}) =>
     setCategories(updated);
   };
 
+  // Assemble the event payload from the wizard's form state.
+  // Commission estimate shown to the organizer on the Review step (2 parts).
+  const estCapacity = categories.reduce((sum, c) => sum + c.tickets.reduce((s, t) => s + t.quantity, 0), 0);
+  const estGross = categories.reduce((sum, c) => sum + c.tickets.reduce((s, t) => s + t.price * t.quantity, 0), 0);
+  const myOrg = store.organizers.find((o) => o.id === (organizerId ?? "org1"));
+  const myTier = store.settings.tiers.find((t) => t.id === myOrg?.tierId);
+  const estEventCommission = eventCommissionAmount(estCapacity, estGross);
+  const estTierRate = myTier?.commissionRate ?? 0;
+  const estTierCommission = Math.round((estGross * estTierRate) / 100);
+  const fmtBaht = (n: number) => new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(n);
+
+  const buildDraft = (): Omit<Event, "id" | "status"> => ({
+    title: basicInfo.title,
+    titleTh: basicInfo.titleTh,
+    coverImage: event?.coverImage ?? "",
+    date: basicInfo.date,
+    endDate: basicInfo.endDate || basicInfo.date,
+    province: basicInfo.province,
+    organizerId: organizerId ?? "org1",
+    organizerName: organizerName ?? "Trail Events Co.",
+    publishMode,
+    publishAt: publishMode === "scheduled" ? publishAt : undefined,
+    sold: event?.sold ?? 0,
+    capacity: categories.reduce(
+      (sum, c) => sum + c.tickets.reduce((s, t) => s + t.quantity, 0),
+      0
+    ),
+    revenue: event?.revenue ?? 0,
+    categories,
+    description: basicInfo.description,
+    descriptionTh: basicInfo.descriptionTh,
+    latitude: basicInfo.latitude,
+    longitude: basicInfo.longitude,
+    socialLinks: {
+      facebook: basicInfo.facebook,
+      instagram: basicInfo.instagram,
+      website: basicInfo.website,
+    },
+  });
+
   const handleSubmit = () => {
+    if (id && event) {
+      // Editing an existing event: update in place, re-enter review, and clear
+      // any prior rejection reason so a resubmitted event starts clean.
+      store.updateEvent(id, { ...buildDraft(), status: "pending_review", submittedDate: event.submittedDate, rejectionReason: undefined });
+    } else {
+      store.submitEvent(buildDraft());
+    }
     setShowSuccess(true);
     setTimeout(() => {
       onComplete();
@@ -244,6 +294,12 @@ const EventWizard = ({ initialStep, initialScenario }: EventWizardProps = {}) =>
   };
 
   const handleSaveDraft = () => {
+    if (id && event) {
+      store.updateEvent(id, { ...buildDraft(), status: "draft" });
+    } else {
+      store.saveDraftEvent(buildDraft());
+    }
+    toast({ title: "Draft saved", description: "Your event has been saved as a draft." });
     onBack();
   };
 
@@ -251,34 +307,573 @@ const EventWizard = ({ initialStep, initialScenario }: EventWizardProps = {}) =>
     switch (currentStep) {
       case 1:
         return (
-          <EventInfoStep basicInfo={basicInfo} setBasicInfo={setBasicInfo} />
+          <div className="space-y-6">
+            {/* Cover Photo */}
+            <div className="space-y-2">
+              <Label>Cover Photo</Label>
+              <div className="flex h-48 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/50 transition-colors hover:border-primary/50">
+                <div className="text-center">
+                  <ImageIcon className="mx-auto h-10 w-10 text-muted-foreground" />
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Drag & drop or click to upload
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Recommended: 1920x1080px
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Title */}
+            <div className="space-y-2">
+              <Label>Event Title</Label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">English</span>
+                  <Input
+                    placeholder="Doi Inthanon Trail Challenge"
+                    value={basicInfo.title}
+                    onChange={(e) => setBasicInfo({ ...basicInfo, title: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">ภาษาไทย</span>
+                  <Input
+                    placeholder="ดอยอินทนนท์เทรลชาเลนจ์"
+                    value={basicInfo.titleTh}
+                    onChange={(e) => setBasicInfo({ ...basicInfo, titleTh: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Province & Location */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Province</Label>
+                <Select value={basicInfo.province} onValueChange={(v) => setBasicInfo({ ...basicInfo, province: v })}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select province" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {provinces.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Latitude</Label>
+                  <Input
+                    placeholder="18.5881"
+                    value={basicInfo.latitude}
+                    onChange={(e) => setBasicInfo({ ...basicInfo, latitude: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Longitude</Label>
+                  <Input
+                    placeholder="98.4864"
+                    value={basicInfo.longitude}
+                    onChange={(e) => setBasicInfo({ ...basicInfo, longitude: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Dates */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <Input
+                  type="date"
+                  value={basicInfo.date}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, date: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>End Date</Label>
+                <Input
+                  type="date"
+                  value={basicInfo.endDate}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, endDate: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">English</span>
+                  <Textarea
+                    rows={4}
+                    placeholder="Describe your event..."
+                    value={basicInfo.description}
+                    onChange={(e) => setBasicInfo({ ...basicInfo, description: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">ภาษาไทย</span>
+                  <Textarea
+                    rows={4}
+                    placeholder="อธิบายกิจกรรมของคุณ..."
+                    value={basicInfo.descriptionTh}
+                    onChange={(e) => setBasicInfo({ ...basicInfo, descriptionTh: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Social Links */}
+            <div className="space-y-4">
+              <Label>Social Links</Label>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Input
+                  placeholder="Facebook URL"
+                  value={basicInfo.facebook}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, facebook: e.target.value })}
+                />
+                <Input
+                  placeholder="Instagram URL"
+                  value={basicInfo.instagram}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, instagram: e.target.value })}
+                />
+                <Input
+                  placeholder="Website URL"
+                  value={basicInfo.website}
+                  onChange={(e) => setBasicInfo({ ...basicInfo, website: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
         );
 
       case 2:
         return (
-          <RaceConfigStep
-            categories={categories}
-            activeCategory={activeCategory}
-            setActiveCategory={setActiveCategory}
-            addCategory={addCategory}
-            removeCategory={removeCategory}
-            updateCategory={updateCategory}
-          />
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <Tabs value={String(activeCategory)} onValueChange={(v) => setActiveCategory(Number(v))}>
+                <TabsList>
+                  {categories.map((cat, index) => (
+                    <TabsTrigger key={cat.id} value={String(index)}>
+                      {cat.name || `Race ${index + 1}`}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+              <Button variant="outline" size="sm" onClick={addCategory}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Race
+              </Button>
+            </div>
+
+            {categories[activeCategory] && (
+              <div className="space-y-6 rounded-xl border border-border bg-card p-6">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold">Race Details</h4>
+                  {categories.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeCategory(activeCategory)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Race Name */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Race Name (EN)</Label>
+                    <Input
+                      placeholder="100K Ultra"
+                      value={categories[activeCategory].name}
+                      onChange={(e) => updateCategory(activeCategory, { name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Race Name (TH)</Label>
+                    <Input
+                      placeholder="100K อัลตร้า"
+                      value={categories[activeCategory].nameTh}
+                      onChange={(e) => updateCategory(activeCategory, { nameTh: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Race Date & Time */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Race Date</Label>
+                    <Input
+                      type="date"
+                      value={categories[activeCategory].raceDate}
+                      onChange={(e) => updateCategory(activeCategory, { raceDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Start Time</Label>
+                    <Input
+                      type="time"
+                      value={categories[activeCategory].startTime}
+                      onChange={(e) => updateCategory(activeCategory, { startTime: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Start Location */}
+                <div className="space-y-3">
+                  <Label>Start Location</Label>
+                  <Input
+                    placeholder="e.g. Doi Inthanon National Park HQ"
+                    value={categories[activeCategory].startLocationName}
+                    onChange={(e) => updateCategory(activeCategory, { startLocationName: e.target.value })}
+                  />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Latitude</Label>
+                      <Input
+                        type="number"
+                        step="0.0001"
+                        placeholder="18.5881"
+                        value={categories[activeCategory].startLat || ""}
+                        onChange={(e) => updateCategory(activeCategory, { startLat: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Longitude</Label>
+                      <Input
+                        type="number"
+                        step="0.0001"
+                        placeholder="98.4864"
+                        value={categories[activeCategory].startLng || ""}
+                        onChange={(e) => updateCategory(activeCategory, { startLng: Number(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cutoff */}
+                <div className="space-y-2">
+                  <Label>Cut-off</Label>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Clock time (HH:MM)</span>
+                      <Input
+                        type="time"
+                        value={categories[activeCategory].cutoffTime}
+                        onChange={(e) => updateCategory(activeCategory, { cutoffTime: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Hours limit from start</span>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          placeholder="24"
+                          value={categories[activeCategory].cutoffHours || ""}
+                          onChange={(e) => updateCategory(activeCategory, { cutoffHours: Number(e.target.value) })}
+                          className="pr-10"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">hrs</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Course Metrics */}
+                <div className="space-y-3">
+                  <Label>Course Metrics</Label>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Distance (km)</Label>
+                      <Input
+                        type="number"
+                        placeholder="100"
+                        value={categories[activeCategory].distance || ""}
+                        onChange={(e) => updateCategory(activeCategory, { distance: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Elevation Gain (m)</Label>
+                      <Input
+                        type="number"
+                        placeholder="5200"
+                        value={categories[activeCategory].elevation || ""}
+                        onChange={(e) => updateCategory(activeCategory, { elevation: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Elevation Loss (m)</Label>
+                      <Input
+                        type="number"
+                        placeholder="5100"
+                        value={categories[activeCategory].elevationLoss || ""}
+                        onChange={(e) => updateCategory(activeCategory, { elevationLoss: Number(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Terrain Type</Label>
+                      <Select
+                        value={categories[activeCategory].terrainType}
+                        onValueChange={(v) => updateCategory(activeCategory, { terrainType: v })}
+                      >
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Select terrain" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover">
+                          <SelectItem value="Mountain Trail">Mountain Trail</SelectItem>
+                          <SelectItem value="Forest Trail">Forest Trail</SelectItem>
+                          <SelectItem value="Desert Trail">Desert Trail</SelectItem>
+                          <SelectItem value="Coastal Trail">Coastal Trail</SelectItem>
+                          <SelectItem value="Mixed Terrain">Mixed Terrain</SelectItem>
+                          <SelectItem value="Road & Trail">Road & Trail</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">ITRA Points</Label>
+                      <Input
+                        type="number"
+                        placeholder="8"
+                        value={categories[activeCategory].itra || ""}
+                        onChange={(e) => updateCategory(activeCategory, { itra: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">UTMB Index</Label>
+                      <Input
+                        type="number"
+                        placeholder="6"
+                        value={categories[activeCategory].utmbIndex || ""}
+                        onChange={(e) => updateCategory(activeCategory, { utmbIndex: Number(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* GPX Upload */}
+                <div className="space-y-2">
+                  <Label>GPX Route File</Label>
+                  <div className="flex items-center gap-4">
+                    <Button variant="outline">
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload GPX
+                    </Button>
+                    <span className="text-sm text-muted-foreground">No file selected</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         );
 
       case 3:
         return (
-          <TicketsStep
-            categories={categories}
-            addTicket={addTicket}
-            updateTicket={updateTicket}
-            removeTicket={removeTicket}
-          />
+          <div className="space-y-6">
+            {categories.map((cat, catIndex) => (
+              <div key={cat.id} className="rounded-xl border border-border bg-card p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h4 className="font-semibold">{cat.name || `Race ${catIndex + 1}`}</h4>
+                  <Button variant="outline" size="sm" onClick={() => addTicket(catIndex)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Price Tier
+                  </Button>
+                </div>
+
+                {cat.tickets.length === 0 ? (
+                  <p className="text-center text-sm text-muted-foreground py-8">
+                    No tickets added yet
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {cat.tickets.map((ticket, ticketIndex) => (
+                      <div key={ticket.id} className="flex items-start gap-4 rounded-lg border border-border p-4">
+                        <div className="flex-1 space-y-3">
+                          <div className="grid gap-4 sm:grid-cols-3">
+                            <Input
+                              placeholder="Tier name (e.g., Early Bird)"
+                              value={ticket.name}
+                              onChange={(e) => updateTicket(catIndex, ticketIndex, { name: e.target.value })}
+                            />
+                            <Input
+                              type="number"
+                              placeholder="Price (THB)"
+                              value={ticket.price || ""}
+                              onChange={(e) =>
+                                updateTicket(catIndex, ticketIndex, { price: Number(e.target.value) })
+                              }
+                            />
+                            <Input
+                              type="number"
+                              placeholder="Quantity"
+                              value={ticket.quantity || ""}
+                              onChange={(e) =>
+                                updateTicket(catIndex, ticketIndex, { quantity: Number(e.target.value) })
+                              }
+                            />
+                          </div>
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">Sales start</span>
+                              <Input
+                                type="datetime-local"
+                                value={ticket.salesStart ?? ""}
+                                onChange={(e) => updateTicket(catIndex, ticketIndex, { salesStart: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">Sales end</span>
+                              <Input
+                                type="datetime-local"
+                                value={ticket.salesEnd ?? ""}
+                                onChange={(e) => updateTicket(catIndex, ticketIndex, { salesEnd: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeTicket(catIndex, ticketIndex)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         );
 
       case 4:
         return (
-          <ReviewStep basicInfo={basicInfo} categories={categories} />
+          <div className="space-y-6">
+            <div className="space-y-4 rounded-xl border border-border bg-card p-6">
+              <div>
+                <h4 className="text-lg font-semibold">When should this event go live?</h4>
+                <p className="text-sm text-muted-foreground">
+                  After an admin approves your event, this decides when it becomes visible to runners.
+                </p>
+              </div>
+              <div className="space-y-3">
+                <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${publishMode === "asap" ? "border-primary bg-primary/5" : "border-border"}`}>
+                  <input type="radio" name="publishMode" className="mt-1" checked={publishMode === "asap"} onChange={() => setPublishMode("asap")} />
+                  <div>
+                    <p className="font-medium">Publish as soon as approved</p>
+                    <p className="text-sm text-muted-foreground">Goes live immediately once the admin approves it.</p>
+                  </div>
+                </label>
+                <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${publishMode === "scheduled" ? "border-primary bg-primary/5" : "border-border"}`}>
+                  <input type="radio" name="publishMode" className="mt-1" checked={publishMode === "scheduled"} onChange={() => setPublishMode("scheduled")} />
+                  <div className="flex-1">
+                    <p className="font-medium">Schedule a go-live date &amp; time</p>
+                    <p className="text-sm text-muted-foreground">Stays scheduled after approval, then goes live automatically at the chosen time.</p>
+                    {publishMode === "scheduled" && (
+                      <Input type="datetime-local" value={publishAt} onChange={(e) => setPublishAt(e.target.value)} className="mt-3 max-w-xs" />
+                    )}
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-6">
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h4 className="mb-4 text-lg font-semibold">Event Summary</h4>
+
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Event Title</p>
+                    <p className="font-medium">{basicInfo.title || "Not set"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Province</p>
+                    <p className="font-medium">{basicInfo.province || "Not set"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Dates</p>
+                    <p className="font-medium">
+                      {basicInfo.date && basicInfo.endDate
+                        ? `${basicInfo.date} - ${basicInfo.endDate}`
+                        : "Not set"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Races</p>
+                    <p className="font-medium">{categories.length}</p>
+                  </div>
+                </div>
+
+                <div className="border-t border-border pt-4">
+                  <p className="mb-2 text-sm text-muted-foreground">Races</p>
+                  <div className="space-y-2">
+                    {categories.map((cat) => (
+                      <div key={cat.id} className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+                        <span className="font-medium">{cat.name || "Unnamed"}</span>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>{cat.distance}K</span>
+                          <span>{cat.tickets.length} ticket tiers</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Commission notification — two parts */}
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h4 className="text-lg font-semibold">Platform commission</h4>
+              <p className="mt-1 text-sm text-muted-foreground">
+                The platform keeps a commission on your registrations, deducted from your payout after the event. It has two parts:
+              </p>
+              <div className="mt-4 space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">
+                    Event commission (based on {estCapacity.toLocaleString()} registrations)
+                  </span>
+                  <span className="font-medium">{fmtBaht(estEventCommission)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">
+                    Your tier commission ({myTier?.name ?? "—"} · {estTierRate}%)
+                  </span>
+                  <span className="font-medium">{fmtBaht(estTierCommission)}</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-border pt-2">
+                  <span className="font-medium">Estimated total commission</span>
+                  <span className="font-semibold">{fmtBaht(estEventCommission + estTierCommission)}</span>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                This is an estimate based on your planned capacity and prices. The final amount is calculated on actual registrations at payout.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-warning/50 bg-warning/10 p-4">
+              <p className="text-sm text-warning-foreground">
+                <strong>Note:</strong> Once submitted, your event will be reviewed by our team. You'll
+                receive an email notification within 24-48 hours.
+              </p>
+            </div>
+          </div>
         );
 
       default:
@@ -411,6 +1006,27 @@ const EventWizard = ({ initialStep, initialScenario }: EventWizardProps = {}) =>
                   {steps[currentStep - 1].title}
                 </h2>
               </div>
+              {event?.status === "rejected" && event.rejectionReason && (
+                <div className="mb-4 sm:mb-6 flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                  <div>
+                    <p className="text-sm font-semibold text-destructive">Changes requested by the reviewer</p>
+                    <p className="mt-0.5 text-sm text-destructive">{event.rejectionReason}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Make the changes below, then resubmit for review.</p>
+                  </div>
+                </div>
+              )}
+              {event && (event.status === "live" || event.status === "scheduled") && (
+                <div className="mb-4 sm:mb-6 flex items-start gap-2 rounded-xl border border-warning/50 bg-warning/10 px-4 py-3">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning-foreground" />
+                  <div>
+                    <p className="text-sm font-semibold text-warning-foreground">Editing an approved event</p>
+                    <p className="mt-0.5 text-sm text-warning-foreground">
+                      Saving changes sends this event back for review and takes it offline until an admin re-approves it.
+                    </p>
+                  </div>
+                </div>
+              )}
               {renderStep()}
             </div>
           </main>
@@ -434,15 +1050,15 @@ const EventWizard = ({ initialStep, initialScenario }: EventWizardProps = {}) =>
                   <span className="hidden sm:inline">Save as Draft</span>
                   <span className="sm:hidden">Save</span>
                 </Button>
-                {currentStep < 4 ? (
+                {currentStep < LAST_STEP ? (
                   <Button size="sm" onClick={() => setCurrentStep((currentStep + 1) as WizardStep)} className="gap-1 sm:gap-2">
                     Next
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 ) : (
                   <Button size="sm" onClick={handleSubmit}>
-                    <span className="hidden sm:inline">Submit for Review</span>
-                    <span className="sm:hidden">Submit</span>
+                    <span className="hidden sm:inline">{event?.status === "rejected" ? "Resubmit for Review" : "Submit for Review"}</span>
+                    <span className="sm:hidden">{event?.status === "rejected" ? "Resubmit" : "Submit"}</span>
                   </Button>
                 )}
               </div>

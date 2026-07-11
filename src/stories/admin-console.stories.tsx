@@ -4,73 +4,70 @@ import AdminEventApprovals from "@/views/admin/AdminEventApprovals";
 import AdminFinancials from "@/views/admin/AdminFinancials";
 import AdminUserManagement from "@/views/admin/AdminUserManagement";
 import AdminSettings from "@/views/admin/AdminSettings";
-import {
-  mockAdminEvents,
-  mockAdminOrganizers,
-  mockPlatformSettings,
-} from "@/data/adminMockData";
+import { useEventsStore } from "@/contexts/EventsContext";
 
 // Journey 8 · Admin — Console
-// The platform-admin console, storied one sub-page at a time with props seeded
-// straight from adminMockData (mutating callbacks are no-ops here). Event
-// Approvals gets the full event set so pending_review AND cancellation_requested
-// rows are both visible — it's the key moderation flow.
+// The platform-admin console, storied one sub-page at a time. Data comes from the
+// shared EventsProvider store (seeded from mockData + adminMockData), exactly how
+// the real AdminDashboard wires these pages; mutating callbacks are no-ops so the
+// stories stay pinned. AdminSettings reads/writes the store itself (no props).
 export default {
   title: "Admin/Console",
 };
 
 const noop = () => {};
 
-export const Overview: Story = () => (
-  <div className="min-h-screen bg-background p-6">
-    <AdminOverview
-      events={mockAdminEvents}
-      organizers={mockAdminOrganizers}
-      platformSettings={mockPlatformSettings}
-    />
-  </div>
+const Shell = ({ children }: { children: React.ReactNode }) => (
+  <div className="min-h-screen bg-background p-6">{children}</div>
 );
+
+const OverviewFromStore = () => {
+  const { events, organizers, settings } = useEventsStore();
+  return (
+    <Shell>
+      <AdminOverview events={events} organizers={organizers} platformSettings={settings} />
+    </Shell>
+  );
+};
+export const Overview: Story = () => <OverviewFromStore />;
 Overview.storyName = "Overview";
 
-export const EventApprovals: Story = () => (
-  <div className="min-h-screen bg-background p-6">
-    <AdminEventApprovals
-      events={mockAdminEvents}
-      onApprove={noop}
-      onReject={noop}
-      onForceUnpublish={noop}
-      onApproveCancellation={noop}
-      onRejectCancellation={noop}
-    />
-  </div>
-);
+const ApprovalsFromStore = () => {
+  const { events } = useEventsStore();
+  return (
+    <Shell>
+      <AdminEventApprovals events={events} onForceUnpublish={noop} />
+    </Shell>
+  );
+};
+export const EventApprovals: Story = () => <ApprovalsFromStore />;
 EventApprovals.storyName = "Event Approvals";
 
-export const Financials: Story = () => (
-  <div className="min-h-screen bg-background p-6">
-    <AdminFinancials
-      events={mockAdminEvents}
-      onMarkPaid={noop}
-      platformSettings={mockPlatformSettings}
-    />
-  </div>
-);
+const FinancialsFromStore = () => {
+  const { events, organizers, settings } = useEventsStore();
+  return (
+    <Shell>
+      <AdminFinancials events={events} organizers={organizers} settings={settings} onMarkPaid={noop} />
+    </Shell>
+  );
+};
+export const Financials: Story = () => <FinancialsFromStore />;
 Financials.storyName = "Financials";
 
-export const UserManagement: Story = () => (
-  <div className="min-h-screen bg-background p-6">
-    <AdminUserManagement
-      organizers={mockAdminOrganizers}
-      onCreateOrganizer={noop}
-      onSuspendOrganizer={noop}
-    />
-  </div>
-);
+const UsersFromStore = () => {
+  const { organizers } = useEventsStore();
+  return (
+    <Shell>
+      <AdminUserManagement organizers={organizers} onCreateOrganizer={noop} onSuspendOrganizer={noop} />
+    </Shell>
+  );
+};
+export const UserManagement: Story = () => <UsersFromStore />;
 UserManagement.storyName = "User Management";
 
 export const AdminSettingsStory: Story = () => (
-  <div className="min-h-screen bg-background p-6">
-    <AdminSettings settings={mockPlatformSettings} onSave={noop} />
-  </div>
+  <Shell>
+    <AdminSettings />
+  </Shell>
 );
 AdminSettingsStory.storyName = "Settings";

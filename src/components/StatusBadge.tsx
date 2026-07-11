@@ -1,24 +1,26 @@
 import { cn } from "@/lib/utils";
+import { EventStatus } from "@/data/mockData";
 
 interface StatusBadgeProps {
-  status: "live" | "pending" | "draft" | "cancellation_requested" | "cancelled";
+  status: EventStatus;
 }
 
+// Organizer-facing labels for the shared event lifecycle.
 const StatusBadge = ({ status }: StatusBadgeProps) => {
-  const styles: Record<StatusBadgeProps["status"], string> = {
-    live: "bg-success text-success-foreground",
-    pending: "bg-warning text-warning-foreground",
+  const styles: Record<EventStatus, string> = {
     draft: "bg-muted text-muted-foreground",
-    cancellation_requested: "bg-warning text-warning-foreground",
-    cancelled: "bg-muted text-muted-foreground",
+    pending_review: "bg-warning text-warning-foreground",
+    rejected: "bg-destructive text-destructive-foreground",
+    scheduled: "bg-primary text-primary-foreground",
+    live: "bg-success text-success-foreground",
   };
 
-  const labels: Record<StatusBadgeProps["status"], string> = {
-    live: "Live",
-    pending: "Pending Review",
+  const labels: Record<EventStatus, string> = {
     draft: "Draft",
-    cancellation_requested: "Cancellation Pending",
-    cancelled: "Cancelled",
+    pending_review: "Pending Review",
+    rejected: "Changes Requested",
+    scheduled: "Scheduled",
+    live: "Live",
   };
 
   return (

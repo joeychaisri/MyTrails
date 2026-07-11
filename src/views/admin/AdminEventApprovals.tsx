@@ -1,8 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -19,87 +19,41 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, CheckCircle, XCircle, ShieldAlert, Eye, Ban } from "lucide-react";
+import { Search, ShieldAlert, Eye } from "lucide-react";
 import AdminStatusBadge from "@/components/AdminStatusBadge";
-import { AdminEvent } from "@/data/adminMockData";
+import { Event } from "@/data/mockData";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 interface AdminEventApprovalsProps {
-  events: AdminEvent[];
-  onApprove: (eventId: string) => void;
-  onReject: (eventId: string, reason: string) => void;
+  events: Event[];
   onForceUnpublish: (eventId: string) => void;
-  onApproveCancellation: (eventId: string) => void;
-  onRejectCancellation: (eventId: string) => void;
 }
 
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(amount);
+const fmtDate = (d?: string) => (d ? format(new Date(d), "MMM d, yyyy") : "—");
 
-const AdminEventApprovals = ({
-  events,
-  onApprove,
-  onReject,
-  onForceUnpublish,
-  onApproveCancellation,
-  onRejectCancellation,
-}: AdminEventApprovalsProps) => {
+const AdminEventApprovals = ({ events, onForceUnpublish }: AdminEventApprovalsProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [reviewEvent, setReviewEvent] = useState<AdminEvent | null>(null);
-  const [rejectEvent, setRejectEvent] = useState<AdminEvent | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const [unpublishEvent, setUnpublishEvent] = useState<AdminEvent | null>(null);
-  const [cancelReviewEvent, setCancelReviewEvent] = useState<AdminEvent | null>(null);
+  const [unpublishEvent, setUnpublishEvent] = useState<Event | null>(null);
 
   const pendingEvents = events.filter((e) => e.status === "pending_review");
+  const scheduledEvents = events.filter((e) => e.status === "scheduled");
   const liveEvents = events.filter((e) => e.status === "live");
-  const cancellationEvents = events.filter((e) => e.status === "cancellation_requested");
 
-  const filterBySearch = (list: AdminEvent[]) =>
+  const filterBySearch = (list: Event[]) =>
     list.filter(
       (e) =>
         e.title.toLowerCase().includes(search.toLowerCase()) ||
         e.organizerName.toLowerCase().includes(search.toLowerCase())
     );
 
-  const handleApprove = (eventId: string) => {
-    onApprove(eventId);
-    setReviewEvent(null);
-    toast({ title: "Event Approved", description: "Status changed to Awaiting Payment." });
-  };
-
-  const handleReject = () => {
-    if (rejectEvent && rejectReason.trim()) {
-      onReject(rejectEvent.id, rejectReason);
-      setRejectEvent(null);
-      setRejectReason("");
-      toast({ title: "Event Rejected", description: "Status reverted to Draft." });
-    }
-  };
-
   const handleForceUnpublish = () => {
     if (unpublishEvent) {
       onForceUnpublish(unpublishEvent.id);
       setUnpublishEvent(null);
       toast({ title: "Event Unpublished", description: "Emergency takedown completed.", variant: "destructive" });
-    }
-  };
-
-  const handleApproveCancellation = () => {
-    if (cancelReviewEvent) {
-      onApproveCancellation(cancelReviewEvent.id);
-      setCancelReviewEvent(null);
-      toast({ title: "Cancellation Approved", description: "Event cancelled and refunds initiated for all runners." });
-    }
-  };
-
-  const handleRejectCancellation = () => {
-    if (cancelReviewEvent) {
-      onRejectCancellation(cancelReviewEvent.id);
-      setCancelReviewEvent(null);
-      toast({ title: "Cancellation Rejected", description: "The event remains live.", variant: "destructive" });
     }
   };
 
@@ -113,11 +67,11 @@ const AdminEventApprovals = ({
       <Tabs defaultValue="queue">
         <TabsList>
           <TabsTrigger value="queue">Submission Queue ({pendingEvents.length})</TabsTrigger>
+          <TabsTrigger value="scheduled">Scheduled ({scheduledEvents.length})</TabsTrigger>
           <TabsTrigger value="live">Live Events ({liveEvents.length})</TabsTrigger>
-          <TabsTrigger value="cancellations">Cancellation Requests ({cancellationEvents.length})</TabsTrigger>
         </TabsList>
 
-        {/* Tab 1: Submission Queue */}
+        {/* Tab 1: Submission Queue — the only place admin decides */}
         <TabsContent value="queue">
           <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
             <Table>
@@ -142,10 +96,10 @@ const AdminEventApprovals = ({
                     <TableRow key={event.id}>
                       <TableCell className="font-medium">{event.title}</TableCell>
                       <TableCell>{event.organizerName}</TableCell>
-                      <TableCell>{format(new Date(event.submittedDate), "MMM d, yyyy")}</TableCell>
+                      <TableCell>{fmtDate(event.submittedDate)}</TableCell>
                       <TableCell><AdminStatusBadge status={event.status} /></TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="outline" onClick={() => setReviewEvent(event)}>
+                        <Button size="sm" variant="outline" onClick={() => navigate(`/organizer/admin/review/${event.id}`)}>
                           <Eye className="mr-1.5 h-3.5 w-3.5" />
                           Review
                         </Button>
@@ -158,7 +112,48 @@ const AdminEventApprovals = ({
           </div>
         </TabsContent>
 
-        {/* Tab 2: Live Events */}
+        {/* Tab 2: Scheduled — approved & waiting for their go-live date (informational) */}
+        <TabsContent value="scheduled">
+          <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Event Name</TableHead>
+                  <TableHead>Organizer</TableHead>
+                  <TableHead>Goes Live</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filterBySearch(scheduledEvents).length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                      No scheduled events
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filterBySearch(scheduledEvents).map((event) => (
+                    <TableRow key={event.id}>
+                      <TableCell className="font-medium">{event.title}</TableCell>
+                      <TableCell>{event.organizerName}</TableCell>
+                      <TableCell>{event.publishAt ? format(new Date(event.publishAt), "MMM d, yyyy HH:mm") : "—"}</TableCell>
+                      <TableCell><AdminStatusBadge status={event.status} /></TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="destructive" onClick={() => setUnpublishEvent(event)}>
+                          <ShieldAlert className="mr-1.5 h-3.5 w-3.5" />
+                          Force Unpublish
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        {/* Tab 3: Live Events */}
         <TabsContent value="live">
           <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
             <Table>
@@ -183,7 +178,7 @@ const AdminEventApprovals = ({
                     <TableRow key={event.id}>
                       <TableCell className="font-medium">{event.title}</TableCell>
                       <TableCell>{event.organizerName}</TableCell>
-                      <TableCell>{format(new Date(event.date), "MMM d, yyyy")}</TableCell>
+                      <TableCell>{fmtDate(event.date)}</TableCell>
                       <TableCell>{event.sold} / {event.capacity}</TableCell>
                       <TableCell className="text-right">
                         <Button size="sm" variant="destructive" onClick={() => setUnpublishEvent(event)}>
@@ -198,118 +193,9 @@ const AdminEventApprovals = ({
             </Table>
           </div>
         </TabsContent>
-
-        {/* Tab 3: Cancellation Requests */}
-        <TabsContent value="cancellations">
-          <div className="rounded-xl border border-border bg-card shadow-card overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Event Name</TableHead>
-                  <TableHead>Organizer</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Runners / Refund</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filterBySearch(cancellationEvents).length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-                      No cancellation requests
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filterBySearch(cancellationEvents).map((event) => (
-                    <TableRow key={event.id}>
-                      <TableCell className="font-medium">{event.title}</TableCell>
-                      <TableCell>{event.organizerName}</TableCell>
-                      <TableCell className="max-w-xs truncate text-muted-foreground">{event.cancellationReason}</TableCell>
-                      <TableCell>
-                        {event.sold}
-                        {event.refundAmount ? ` · ${formatCurrency(event.refundAmount)}` : ""}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" variant="outline" onClick={() => setCancelReviewEvent(event)}>
-                          <Eye className="mr-1.5 h-3.5 w-3.5" />
-                          Review
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
       </Tabs>
 
-      {/* Review Modal */}
-      <Dialog open={!!reviewEvent} onOpenChange={() => setReviewEvent(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Review Event</DialogTitle>
-            <DialogDescription>Review the event details before approving or rejecting.</DialogDescription>
-          </DialogHeader>
-          {reviewEvent && (
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-muted-foreground">Event Name</p>
-                  <p className="font-medium">{reviewEvent.title}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Organizer</p>
-                  <p className="font-medium">{reviewEvent.organizerName}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Province</p>
-                  <p className="font-medium">{reviewEvent.province}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Event Date</p>
-                  <p className="font-medium">{format(new Date(reviewEvent.date), "MMM d, yyyy")}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Capacity</p>
-                  <p className="font-medium">{reviewEvent.capacity}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Submitted</p>
-                  <p className="font-medium">{format(new Date(reviewEvent.submittedDate), "MMM d, yyyy")}</p>
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter className="gap-2">
-            <Button variant="destructive" onClick={() => { setRejectEvent(reviewEvent); setReviewEvent(null); }}>
-              <XCircle className="mr-1.5 h-4 w-4" />
-              Reject
-            </Button>
-            <Button onClick={() => reviewEvent && handleApprove(reviewEvent.id)}>
-              <CheckCircle className="mr-1.5 h-4 w-4" />
-              Approve
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Reject Modal */}
-      <Dialog open={!!rejectEvent} onOpenChange={() => { setRejectEvent(null); setRejectReason(""); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reject Event</DialogTitle>
-            <DialogDescription>Provide a reason for rejecting "{rejectEvent?.title}".</DialogDescription>
-          </DialogHeader>
-          <Textarea placeholder="Enter rejection reason..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={3} />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setRejectEvent(null); setRejectReason(""); }}>Cancel</Button>
-            <Button variant="destructive" onClick={handleReject} disabled={!rejectReason.trim()}>Confirm Reject</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Force Unpublish Modal */}
+      {/* Force Unpublish Modal — the only takedown mechanism (cancellation flow removed) */}
       <Dialog open={!!unpublishEvent} onOpenChange={() => setUnpublishEvent(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -321,51 +207,6 @@ const AdminEventApprovals = ({
           <DialogFooter>
             <Button variant="outline" onClick={() => setUnpublishEvent(null)}>Cancel</Button>
             <Button variant="destructive" onClick={handleForceUnpublish}>Confirm Unpublish</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Cancellation Review Modal */}
-      <Dialog open={!!cancelReviewEvent} onOpenChange={() => setCancelReviewEvent(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Review Cancellation Request</DialogTitle>
-            <DialogDescription>
-              Approving cancels the event and refunds all registered runners. Rejecting keeps it live.
-            </DialogDescription>
-          </DialogHeader>
-          {cancelReviewEvent && (
-            <div className="space-y-3 text-sm">
-              <div>
-                <p className="text-muted-foreground">Event</p>
-                <p className="font-medium">{cancelReviewEvent.title}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Organizer</p>
-                <p className="font-medium">{cancelReviewEvent.organizerName}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Reason</p>
-                <p className="font-medium">{cancelReviewEvent.cancellationReason}</p>
-              </div>
-              <div className="rounded-lg bg-muted p-3">
-                <p className="text-muted-foreground">Refund impact</p>
-                <p className="font-medium">
-                  {cancelReviewEvent.sold} runners
-                  {cancelReviewEvent.refundAmount ? ` · ${formatCurrency(cancelReviewEvent.refundAmount)}` : ""}
-                </p>
-              </div>
-            </div>
-          )}
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={handleRejectCancellation}>
-              <XCircle className="mr-1.5 h-4 w-4" />
-              Reject (keep live)
-            </Button>
-            <Button variant="destructive" onClick={handleApproveCancellation}>
-              <Ban className="mr-1.5 h-4 w-4" />
-              Approve Cancellation
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

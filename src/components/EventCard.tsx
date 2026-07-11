@@ -1,4 +1,4 @@
-import { Calendar, MapPin, MoreVertical, Pencil, Eye, Trash2, Settings, Ban } from "lucide-react";
+import { Calendar, MapPin, MoreVertical, Pencil, Eye, Trash2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -18,11 +18,9 @@ interface EventCardProps {
   onPreview: (event: Event) => void;
   onManage: (event: Event) => void;
   onDelete?: (event: Event) => void;
-  onCancel?: (event: Event) => void;
 }
 
-const EventCard = ({ event, onEdit, onPreview, onManage, onDelete, onCancel }: EventCardProps) => {
-  const isTerminal = event.status === "cancelled" || event.status === "cancellation_requested";
+const EventCard = ({ event, onEdit, onPreview, onManage, onDelete }: EventCardProps) => {
   const progressPercent = event.capacity > 0 ? (event.sold / event.capacity) * 100 : 0;
 
   return (
@@ -74,16 +72,7 @@ const EventCard = ({ event, onEdit, onPreview, onManage, onDelete, onCancel }: E
                 <Settings className="mr-2 h-4 w-4" />
                 Manage Event
               </DropdownMenuItem>
-              {!isTerminal && event.sold > 0 && onCancel && (
-                <DropdownMenuItem
-                  onClick={() => onCancel(event)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Ban className="mr-2 h-4 w-4" />
-                  Cancel Event
-                </DropdownMenuItem>
-              )}
-              {!isTerminal && event.sold === 0 && onDelete && (
+              {event.sold === 0 && onDelete && (
                 <DropdownMenuItem
                   onClick={() => onDelete(event)}
                   className="text-destructive focus:text-destructive"

@@ -219,7 +219,7 @@ const EventManagerHub = () => {
                 Open Event Wizard
               </Button>
               <p className="mt-2 text-sm text-muted-foreground">
-                Edit event details, race categories, checkpoints, and tickets in the full wizard.
+                Edit event details, race categories, and tickets in the full wizard.
               </p>
             </div>
           </div>
