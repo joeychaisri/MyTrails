@@ -1,4 +1,4 @@
-import type { Story } from "@ladle/react";
+import type { StoryFn as Story } from "@storybook/react-vite";
 import AccountSecurityModal from "@/components/account/AccountSecurityModal";
 import ChangeEmailFlow from "@/components/account/ChangeEmailFlow";
 import ChangePasswordForm from "@/components/account/ChangePasswordForm";

@@ -1,4 +1,4 @@
-import type { Story } from "@ladle/react";
+import type { StoryFn as Story } from "@storybook/react-vite";
 import AuthView from "@/views/organizer/AuthView";
 
 // Journey 3 · Organizer — Login

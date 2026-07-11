@@ -18,27 +18,30 @@ npm run dev      # dev server → https://localhost:8080 (self-signed cert)
 npm run build    # production build → dist/
 npm run test     # vitest unit tests
 npm run typecheck # type check only (tsc -p tsconfig.app.json --noEmit — plain `npx tsc --noEmit` checks NOTHING because root tsconfig has files:[])
-npm run ladle    # dev hand-off catalog (Ladle) → http://localhost:61000
-npm run ladle:deploy # static build → ladle-dist/ (base /journey/) for the live catalog
+npm run storybook        # dev hand-off catalog (Storybook) → http://localhost:6006
+npm run storybook:deploy # static build → storybook-dist/ for the live catalog at /journey/
 ```
 
 Caddy reverse-proxies `mytrails.theingress.co` → `https://localhost:8080`.
 
-## Developer Hand-off Catalog (Ladle)
+## Developer Hand-off Catalog (Storybook)
 
-`mytrails.theingress.co/journey` serves a **Ladle** catalog: every user flow ("journey")
-as a sidebar group of isolated, pinned-state screens — the hand-off artifact for developers.
-Stories live in `src/stories/*.stories.tsx`; global providers in `.ladle/components.tsx`;
-sidebar order (journey 1→8, Experiments last) in `.ladle/config.mjs` via `storyOrder`.
+`mytrails.theingress.co/journey` serves a **Storybook** catalog (migrated from Ladle):
+every user flow ("journey") as a sidebar group of isolated, pinned-state screens — the
+hand-off artifact for developers. Stories live in `src/stories/*.stories.tsx`; global
+provider decorator + sidebar order (journey 1→8, Experiments last) in `.storybook/preview.tsx`
+(`decorators` + `options.storySort`); framework config in `.storybook/main.ts`
+(`@storybook/react-vite`, addons: a11y, docs, mcp — **no** vitest/chromatic addons: the
+browser-test runner needs Chromium system libs the VPS doesn't have).
 
-- It is a **separate static build**, not an app route. Caddy serves `ladle-dist/` under
+- It is a **separate static build**, not an app route. Caddy serves `storybook-dist/` under
   `/journey/` (`handle_path /journey/*` in the Caddyfile, plus `redir /journey → /journey/`
   so the no-trailing-slash URL doesn't fall through to the SPA and 404); normal app URLs are untouched.
-- **After editing stories, rebuild**: `npm run ladle:deploy` (regenerates `ladle-dist/`, gitignored).
+- **After editing stories, rebuild**: `npm run storybook:deploy` (regenerates `storybook-dist/`, gitignored).
 - Screens are pinned via **optional `initial*` props** on stateful views (e.g. RunnerLandingPage
   `initialView`, DashboardView `initialTab`, EventWizard `initialStep`/`initialScenario`); every
   such prop defaults to current behavior, so the app (which renders prop-less) is unchanged.
-- **Ladle gotcha**: story `title`/`storyName` become JS identifiers — ASCII only, no emoji/·/—.
+- Stories render-tested in jsdom via portable stories (`src/test/storybook-smoke.test.tsx`).
 
 ## Route Structure
 

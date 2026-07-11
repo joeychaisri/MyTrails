@@ -1,4 +1,4 @@
-import type { Story } from "@ladle/react";
+import type { StoryFn as Story } from "@storybook/react-vite";
 import EventWizard from "@/views/organizer/EventWizard";
 import { mockEvents } from "@/data/mockData";
 

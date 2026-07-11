@@ -1,4 +1,4 @@
-import type { Story } from "@ladle/react";
+import type { StoryFn as Story } from "@storybook/react-vite";
 import AdminOverview from "@/views/admin/AdminOverview";
 import AdminEventApprovals from "@/views/admin/AdminEventApprovals";
 import AdminFinancials from "@/views/admin/AdminFinancials";

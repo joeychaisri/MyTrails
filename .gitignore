@@ -28,8 +28,6 @@ dist-ssr
 vite.config.http.ts
 vite.config.ts.bak
 
-# Ladle static build output
-build/
-
-# Ladle deploy build (regenerate with npm run ladle:deploy)
-ladle-dist/
+*storybook.log
+storybook-static
+storybook-dist/

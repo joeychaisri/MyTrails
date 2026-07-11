@@ -1,4 +1,4 @@
-import type { Story } from "@ladle/react";
+import type { StoryFn as Story } from "@storybook/react-vite";
 import RunnerLandingPage from "@/views/runner/RunnerLandingPage";
 
 // Journey 1 · Runner — Browse & Discover Events

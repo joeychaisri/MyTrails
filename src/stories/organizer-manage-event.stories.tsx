@@ -1,4 +1,4 @@
-import type { Story } from "@ladle/react";
+import type { StoryFn as Story } from "@storybook/react-vite";
 import { Routes, Route } from "react-router-dom";
 import EventManagerHub from "@/views/organizer/EventManagerHub";
 

@@ -1,4 +1,4 @@
-import type { Story } from "@ladle/react";
+import type { StoryFn as Story } from "@storybook/react-vite";
 import DashboardView from "@/views/organizer/DashboardView";
 
 // Journey 4 · Organizer — Dashboard

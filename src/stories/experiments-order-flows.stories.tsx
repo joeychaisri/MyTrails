@@ -1,4 +1,4 @@
-import type { Story } from "@ladle/react";
+import type { StoryFn as Story } from "@storybook/react-vite";
 import { useState } from "react";
 import OrderTwoView from "@/views/OrderTwoView";
 import OrderThreeView from "@/views/OrderThreeView";
