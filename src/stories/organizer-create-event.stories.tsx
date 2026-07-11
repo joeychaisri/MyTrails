@@ -1,15 +1,17 @@
 import type { StoryFn as Story } from "@storybook/react-vite";
 import EventWizard from "@/views/organizer/EventWizard";
+import DashboardView from "@/views/organizer/DashboardView";
 import { mockEvents } from "@/data/mockData";
 
-// Journey 5 · Organizer — Create & Edit Event (5-step wizard)
+// Journey 5 · Organizer — Create & Submit Event (5-step wizard)
 // Each export lands the wizard on a specific step with seeded data — no clicking
 // through prior steps. Wizard state still lives in EventWizard; the app renders
-// <EventWizard /> prop-less, so runtime is unchanged.
+// <EventWizard /> prop-less, so runtime is unchanged. The Drafts tab closes the
+// journey: where half-finished events wait to be resumed.
 const seed = mockEvents[0];
 
 export default {
-  title: "Organizer/Create & Edit Event",
+  title: "Organizer/5 · Create & Submit Event",
 };
 
 export const Step1EventInfo: Story = () => <EventWizard initialStep={1} />;
@@ -58,3 +60,6 @@ export const Step5Review: Story = () => (
   />
 );
 Step5Review.storyName = "Step 5 - Review & Submit (commission estimate)";
+
+export const DraftsTab: Story = () => <DashboardView initialTab="drafts" />;
+DraftsTab.storyName = "Dashboard - Drafts (resume later)";

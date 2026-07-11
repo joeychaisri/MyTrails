@@ -2,14 +2,14 @@ import type { StoryFn as Story } from "@storybook/react-vite";
 import { Routes, Route } from "react-router-dom";
 import EventManagerHub from "@/views/organizer/EventManagerHub";
 
-// Journey 6 · Organizer — Manage Event
-// The whole EventManagerHub storied at each of its section routes. The hub reads
-// :id and :section off the URL, so every export uses <Routes location> (the
-// global provider already supplies the Router — nesting a second one throws)
-// pinned to a real mock event id ("1" = Doi Inthanon) plus the section id.
-// Obsolete/experimental sections (overview2, orders2, orders3) live under Experiments.
+// Journey 7 · Organizer — Run the Event
+// Day-to-day operations on a live event, storied at each EventManagerHub section
+// route. The hub reads :id and :section off the URL, so every export uses
+// <Routes location> (the global provider already supplies the Router — nesting a
+// second one throws) pinned to a real mock event id ("1" = Doi Inthanon).
+// Orders/Finance lives in Journey 8 (Get Paid); obsolete sections in Experiments.
 export default {
-  title: "Organizer/Manage Event",
+  title: "Organizer/7 · Run the Event",
 };
 
 const hubAt = (section: string) => (
@@ -20,9 +20,6 @@ const hubAt = (section: string) => (
 
 export const RaceOperations: Story = () => hubAt("overview3");
 RaceOperations.storyName = "Race Operations (overview3)";
-
-export const Orders: Story = () => hubAt("orders");
-Orders.storyName = "Orders / Finance";
 
 export const Participants: Story = () => hubAt("participants");
 Participants.storyName = "Participants";

@@ -27,12 +27,17 @@ Caddy reverse-proxies `mytrails.theingress.co` → `https://localhost:8080`.
 ## Developer Hand-off Catalog (Storybook)
 
 `mytrails.theingress.co/journey` serves a **Storybook** catalog (migrated from Ladle):
-every user flow ("journey") as a sidebar group of isolated, pinned-state screens — the
-hand-off artifact for developers. Stories live in `src/stories/*.stories.tsx`; global
-provider decorator + sidebar order (journey 1→8, Experiments last) in `.storybook/preview.tsx`
-(`decorators` + `options.storySort`); framework config in `.storybook/main.ts`
-(`@storybook/react-vite`, addons: a11y, docs, mcp — **no** vitest/chromatic addons: the
-browser-test runner needs Chromium system libs the VPS doesn't have).
+every user journey as a sidebar group of isolated, pinned-state screens — the hand-off
+artifact for developers and the PO. The structure is a **12-journey map** in 4 acts
+(Runner 1-2 [3 reserved for Register & Pay], Organizer 4-8, Admin 9-11, plus
+System / Foundations / Experiments) — documented on the catalog's own **Journey Map**
+docs page (`src/stories/JourneyMap.mdx`). Stories live in `src/stories/*.stories.tsx`;
+global provider decorator (QueryClient → Tooltip → Auth → **Events** → Language →
+MemoryRouter) + sidebar order in `.storybook/preview.tsx` (`decorators` +
+`options.storySort` — update BOTH when adding a journey); framework config in
+`.storybook/main.ts` (`@storybook/react-vite`, addons: a11y, docs, mcp — **no**
+vitest/chromatic addons: the browser-test runner needs Chromium system libs the VPS
+doesn't have).
 
 - It is a **separate static build**, not an app route. Caddy serves `storybook-dist/` under
   `/journey/` (`handle_path /journey/*` in the Caddyfile, plus `redir /journey → /journey/`
@@ -41,7 +46,10 @@ browser-test runner needs Chromium system libs the VPS doesn't have).
 - Screens are pinned via **optional `initial*` props** on stateful views (e.g. RunnerLandingPage
   `initialView`, DashboardView `initialTab`, EventWizard `initialStep`/`initialScenario`); every
   such prop defaults to current behavior, so the app (which renders prop-less) is unchanged.
-- Stories render-tested in jsdom via portable stories (`src/test/storybook-smoke.test.tsx`).
+  Pages that read the URL (EventManagerHub, AdminEventReview, PublicEventPage, wizard edit
+  mode) are pinned with `<Routes location="...">` instead — never nest a second Router.
+- Stories render-tested in jsdom via portable stories (`src/test/storybook-smoke.test.tsx`);
+  portal-only stories (bare dialogs) must assert on `document.body`, not the container.
 
 ## Route Structure
 

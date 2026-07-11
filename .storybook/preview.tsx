@@ -32,14 +32,25 @@ const preview: Preview = {
   ],
   parameters: {
     options: {
-      // Journey order — same sequence the Ladle config pinned
+      // The 12-journey hand-off map (journey 3 · Register & Pay is reserved —
+      // no registration flow in the product yet). See the Journey Map docs page.
       storySort: {
         order: [
+          'Journey Map',
           'Runner',
-          ['Browse & Discover', 'Event Page'],
+          ['1 · Discover Events', '2 · Explore an Event'],
           'Organizer',
-          ['Login', 'Dashboard', 'Create & Edit Event', 'Manage Event', 'Account & Security'],
+          [
+            '4 · Get Started',
+            '5 · Create & Submit Event',
+            '6 · Approval Outcomes',
+            '7 · Run the Event',
+            '8 · Get Paid',
+          ],
           'Admin',
+          ['9 · Moderate Events', '10 · Platform Finance', '11 · Platform Administration'],
+          'System',
+          'Foundations',
           'Experiments (not for build)',
         ],
       },

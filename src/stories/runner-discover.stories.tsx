@@ -1,11 +1,11 @@
 import type { StoryFn as Story } from "@storybook/react-vite";
 import RunnerLandingPage from "@/views/runner/RunnerLandingPage";
 
-// Journey 1 · Runner — Browse & Discover Events
+// Journey 1 · Runner — Discover Events
 // The public platform home: hero, event grid, region filter, list/calendar
 // toggle, EN/TH. Each export below is one PINNED state — no clicking to reach it.
 export default {
-  title: "Runner/Browse & Discover",
+  title: "Runner/1 · Discover Events",
 };
 
 export const Default: Story = () => <RunnerLandingPage />;

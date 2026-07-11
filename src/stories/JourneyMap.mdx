@@ -1,0 +1,58 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Journey Map" />
+
+# MyTrails — Journey Map
+
+This catalog is the **hand-off artifact** for MyTrails: every user journey as a
+sidebar group of isolated, pinned-state screens. Each story is one exact state —
+no clicking through flows to reach it. Developers use it to match pixels and
+behavior; the PO uses it to verify every business rule has a visible surface.
+
+## The 12 journeys
+
+**Act 1 — Runner (public, no login)**
+
+1. **Discover Events** — browse the platform home: grid / list / calendar, region filter, EN/TH.
+2. **Explore an Event** — the PYT 2026 microsite and the generic event-preview template.
+3. **Register & Pay** — _reserved._ No registration flow in the product yet; the
+   candidates live under **Experiments** until a direction is chosen.
+
+**Act 2 — Organizer: from zero to a live event**
+
+4. **Get Started** — login, first look at the dashboard, profile & security surfaces.
+5. **Create & Submit Event** — the 5-step wizard (Info → Race Config → Tickets →
+   Publishing → Review & Submit) plus the Drafts tab.
+6. **Approval Outcomes** — the state machine: `pending_review` → `live` / `scheduled` /
+   `rejected` (reason shown in the edit wizard, resubmit loop). Editing a live or
+   scheduled event drops it back to `pending_review`.
+
+**Act 3 — Organizer: running a live event**
+
+7. **Run the Event** — race operations, participants, BIB, promotions, broadcast, settings.
+8. **Get Paid** — payout account setup and per-event Orders/Finance (2-part commission).
+
+**Act 4 — Admin: running the platform**
+
+9. **Moderate Events** — approvals queue + full event review (approve / reject with
+   reason / commission override / force unpublish).
+10. **Platform Finance** — the payout queue (`held` → `payable` → `paid`).
+11. **Platform Administration** — overview, organizer accounts, tiers & settings.
+
+**Extras**
+
+- **System** — the 404 page and future error states.
+- **Foundations** — shared primitives (status badges, event cards). Reference for
+  developers; PO can skip.
+- **Experiments (not for build)** — order-flow directions pending a decision. Not
+  part of any build.
+
+## Conventions
+
+- **1 journey = 1 user goal; 1 story = 1 pinned state.** Screens are pinned via
+  optional `initial*` props (default = live-app behavior) or `<Routes location>`
+  for pages that read the URL.
+- Data comes from the shared `EventsProvider` store, seeded with events covering
+  **every** status — tabs and queues are populated out of the box.
+- After editing stories run `npm run storybook:deploy` to refresh the live catalog
+  at `mytrails.theingress.co/journey`.
