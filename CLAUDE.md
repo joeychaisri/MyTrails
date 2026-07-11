@@ -30,8 +30,11 @@ Caddy reverse-proxies `mytrails.theingress.co` → `https://localhost:8080`.
 every user journey as a sidebar group of isolated, pinned-state screens — the hand-off
 artifact for developers and the PO. The structure is a **12-journey map** in 4 acts
 (Runner 1-2 [3 reserved for Register & Pay], Organizer 4-8, Admin 9-11, plus
-System / Foundations / Experiments) — documented on the catalog's own **Journey Map**
-docs page (`src/stories/JourneyMap.mdx`). Stories live in `src/stories/*.stories.tsx`;
+Design System / System / Experiments) — documented on the catalog's own **Journey Map**
+docs page (`src/stories/JourneyMap.mdx`). The **Design System** group
+(`src/stories/design-system/`) documents the real tokens from `src/index.css` (MDX
+pages: Colors / Typography / Surfaces) and the core primitives as CSF3 stories with
+`tags: ['autodocs']` + Controls — extend it there, never invent values in stories. Stories live in `src/stories/*.stories.tsx`;
 global provider decorator (QueryClient → Tooltip → Auth → **Events** → Language →
 MemoryRouter) + sidebar order in `.storybook/preview.tsx` (`decorators` +
 `options.storySort` — update BOTH when adding a journey); framework config in

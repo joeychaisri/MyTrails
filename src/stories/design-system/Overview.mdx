@@ -1,0 +1,44 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design System/Overview" />
+
+# MyTrails Design System
+
+The single source of truth for how MyTrails looks. Everything documented here is
+**extracted from the live code** (`src/index.css`, `tailwind.config.ts`,
+`src/components/ui/*`) — nothing is invented for the catalog. If a screen and this
+section disagree, the screen is wrong.
+
+## One system, two dialects
+
+The same design tokens exist under two naming systems, on purpose:
+
+| Side | Naming | Usage |
+|------|--------|-------|
+| **Organizer / Admin** | shadcn convention — `--primary`, `--foreground`, `--border` … | Tailwind classes + shadcn/ui primitives (`bg-primary`, `text-muted-foreground`) |
+| **Runner (public)** | `--mt-*` aliases — `--mt-brand`, `--mt-fg`, `--mt-border` … | Inline styles + bespoke CSS, pixel-matched to the Claude Design prototype |
+
+They point at the **same values** (`--mt-brand` ≡ `--primary`). Pick the dialect of
+the side you're working on; never hardcode a raw color.
+
+## Rules for contributors
+
+1. **Never invent a color, shadow, or radius.** If a value you need isn't on the
+   [Colors](?path=/docs/design-system-colors--docs), [Typography](?path=/docs/design-system-typography--docs)
+   or [Surfaces](?path=/docs/design-system-surfaces--docs) pages, stop and ask Joey
+   (the UX owner) before adding one.
+2. **Compose from primitives.** Reach for a `src/components/ui/*` component before
+   writing custom markup. Each documented component's Docs tab shows its full props
+   table and copy-paste code.
+3. **Dark mode exists** (`.dark` overrides in `index.css`) but isn't part of the
+   product surface yet — don't design against it without asking.
+4. Runner-side text must go through the i18n layer (`t('key')`) — see the project
+   CLAUDE.md for the TH/EN rules.
+
+## How to use this section
+
+- **Foundations pages** (Colors / Typography / Surfaces) — look up token names and
+  values while implementing.
+- **Components** — each has a **Docs** tab (auto-generated props table + examples)
+  and a **Canvas** tab with **Controls** to flip variants live. Use "Show code" to
+  copy the exact JSX.

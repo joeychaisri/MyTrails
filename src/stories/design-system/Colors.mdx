@@ -1,0 +1,102 @@
+import { Meta, ColorPalette, ColorItem } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design System/Colors" />
+
+# Colors
+
+All colors are HSL CSS custom properties defined in `src/index.css`. Swatches below
+render from the live variables, so they can never drift from the code. Each token
+lists both dialects: the shadcn name (Organizer/Admin, via Tailwind) and the `--mt-*`
+alias (Runner side).
+
+## Brand
+
+<ColorPalette>
+  <ColorItem
+    title="primary / accent"
+    subtitle="--primary · --accent · --mt-brand — the MyTrails orange; CTAs, active states, links"
+    colors={{ "24 95% 46%": "hsl(var(--primary))" }}
+  />
+  <ColorItem
+    title="brand-deep"
+    subtitle="--mt-brand-deep — dark end of the hero gradient"
+    colors={{ "16 90% 40%": "hsl(var(--mt-brand-deep))" }}
+  />
+  <ColorItem
+    title="brand-tint"
+    subtitle="--mt-brand-tint · --sidebar-accent — soft brand wash for selected/hover surfaces"
+    colors={{ "24 95% 96%": "hsl(var(--mt-brand-tint))" }}
+  />
+  <ColorItem
+    title="primary-foreground"
+    subtitle="--primary-foreground · --mt-fg-onbrand — text/icons on brand surfaces"
+    colors={{ "0 0% 100%": "hsl(var(--primary-foreground))" }}
+  />
+</ColorPalette>
+
+## Neutrals
+
+<ColorPalette>
+  <ColorItem
+    title="background"
+    subtitle="--background · --mt-bg — the app canvas"
+    colors={{ "0 0% 98%": "hsl(var(--background))" }}
+  />
+  <ColorItem
+    title="card / popover"
+    subtitle="--card · --popover · --mt-card — raised surfaces"
+    colors={{ "0 0% 100%": "hsl(var(--card))" }}
+  />
+  <ColorItem
+    title="secondary / muted"
+    subtitle="--secondary · --muted · --mt-muted — quiet fills, secondary buttons"
+    colors={{ "220 14% 96%": "hsl(var(--muted))" }}
+  />
+  <ColorItem
+    title="border / input"
+    subtitle="--border · --input · --mt-border · --mt-input"
+    colors={{ "220 13% 91%": "hsl(var(--border))" }}
+  />
+  <ColorItem
+    title="foreground"
+    subtitle="--foreground · --mt-fg — primary text"
+    colors={{ "220 20% 10%": "hsl(var(--foreground))" }}
+  />
+  <ColorItem
+    title="muted-foreground"
+    subtitle="--muted-foreground · --mt-fg-muted — secondary text, captions"
+    colors={{ "220 10% 46%": "hsl(var(--muted-foreground))" }}
+  />
+</ColorPalette>
+
+## Semantic
+
+<ColorPalette>
+  <ColorItem
+    title="destructive"
+    subtitle="--destructive — errors, rejection, irreversible actions"
+    colors={{ "0 84% 60%": "hsl(var(--destructive))" }}
+  />
+  <ColorItem
+    title="success"
+    subtitle="--success · --mt-success — live status, confirmations"
+    colors={{ "142 76% 36%": "hsl(var(--success))" }}
+  />
+  <ColorItem
+    title="warning"
+    subtitle="--warning — pending states, caution"
+    colors={{ "45 93% 47%": "hsl(var(--warning))" }}
+  />
+  <ColorItem
+    title="ring"
+    subtitle="--ring · --mt-ring — focus outlines (matches brand)"
+    colors={{ "24 95% 46%": "hsl(var(--ring))" }}
+  />
+</ColorPalette>
+
+> **Status colors in context:** see the
+> [StatusBadge](?path=/docs/design-system-components-statusbadge--docs) component —
+> the canonical mapping of the 5 event statuses to these tokens.
+
+A `.dark` theme override exists in `index.css` but is not part of the product
+surface yet — don't build against it without asking.

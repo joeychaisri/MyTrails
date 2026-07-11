@@ -1,0 +1,67 @@
+import { Meta, Typeset } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design System/Typography" />
+
+# Typography
+
+One family stack for the whole product, loaded via `@fontsource` in `src/index.css`:
+
+```
+Inter, Noto Sans Thai, system-ui, sans-serif     (--mt-font-sans / Tailwind font-sans)
+```
+
+**Inter** carries Latin text; **Noto Sans Thai** transparently covers Thai glyphs in
+the same runs — never switch families manually for Thai. Loaded weights: **400 / 500 /
+600 / 700** (regular, medium, semibold, bold). Don't use other weights; they'd render
+as faux-bold.
+
+## Scale
+
+Sizes come from the default Tailwind scale — these are the steps the screens actually use:
+
+<Typeset
+  fontFamily="Inter, 'Noto Sans Thai', system-ui, sans-serif"
+  fontSizes={["12px", "14px", "16px", "18px", "20px", "24px", "30px", "36px"]}
+  fontWeight={400}
+  sampleText="Run wild. Run Thailand. วิ่งให้สุด ทั่วทุกเทรลไทย"
+/>
+
+## Weights
+
+<Typeset
+  fontFamily="Inter, 'Noto Sans Thai', system-ui, sans-serif"
+  fontSizes={["20px"]}
+  fontWeight={400}
+  sampleText="400 Regular — body text, descriptions"
+/>
+<Typeset
+  fontFamily="Inter, 'Noto Sans Thai', system-ui, sans-serif"
+  fontSizes={["20px"]}
+  fontWeight={500}
+  sampleText="500 Medium — buttons, labels, nav items"
+/>
+<Typeset
+  fontFamily="Inter, 'Noto Sans Thai', system-ui, sans-serif"
+  fontSizes={["20px"]}
+  fontWeight={600}
+  sampleText="600 Semibold — card titles, section headings, badges"
+/>
+<Typeset
+  fontFamily="Inter, 'Noto Sans Thai', system-ui, sans-serif"
+  fontSizes={["20px"]}
+  fontWeight={700}
+  sampleText="700 Bold — page titles, hero headlines"
+/>
+
+## Runner-side helpers
+
+The Runner pages define a few typographic utility classes in `index.css` — reuse them
+instead of re-declaring the same recipe:
+
+- `.mt-eyebrow` — `600 12px`, muted, uppercase-tracking eyebrow above section titles.
+
+## Rules
+
+- Thai copy: keep the year **Gregorian** when formatting dates (`Intl.DateTimeFormat`
+  with `th-TH` flips to the Buddhist era — append the year number yourself).
+- Don't introduce new sizes off the scale above without asking the UX owner.

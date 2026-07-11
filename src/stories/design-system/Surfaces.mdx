@@ -1,0 +1,66 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design System/Surfaces" />
+
+# Surfaces — radius, shadows, gradients
+
+How raised things look. All values live in `src/index.css` / `tailwind.config.ts`.
+
+## Border radius
+
+Base token `--radius: 0.75rem` (`--mt-radius`), stepped down by Tailwind config:
+
+<div style={{ display: "flex", gap: 24, alignItems: "flex-end", padding: "16px 0" }}>
+  <div>
+    <div style={{ width: 120, height: 80, background: "hsl(var(--muted))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)" }} />
+    <p style={{ font: "500 13px Inter", marginTop: 8 }}>rounded-lg · var(--radius) = 12px</p>
+  </div>
+  <div>
+    <div style={{ width: 120, height: 80, background: "hsl(var(--muted))", border: "1px solid hsl(var(--border))", borderRadius: "calc(var(--radius) - 2px)" }} />
+    <p style={{ font: "500 13px Inter", marginTop: 8 }}>rounded-md · 10px</p>
+  </div>
+  <div>
+    <div style={{ width: 120, height: 80, background: "hsl(var(--muted))", border: "1px solid hsl(var(--border))", borderRadius: "calc(var(--radius) - 4px)" }} />
+    <p style={{ font: "500 13px Inter", marginTop: 8 }}>rounded-sm · 8px</p>
+  </div>
+  <div>
+    <div style={{ width: 120, height: 80, background: "hsl(var(--muted))", border: "1px solid hsl(var(--border))", borderRadius: 9999 }} />
+    <p style={{ font: "500 13px Inter", marginTop: 8 }}>rounded-full · badges, avatars</p>
+  </div>
+</div>
+
+Cards use `rounded-xl` (16px); badges and pills use `rounded-full`.
+
+## Shadows
+
+Two elevation steps only — resting and lifted:
+
+<div style={{ display: "flex", gap: 32, padding: "24px 8px" }}>
+  <div>
+    <div style={{ width: 180, height: 100, background: "hsl(var(--card))", borderRadius: 12, border: "1px solid hsl(var(--border))", boxShadow: "var(--shadow-card)" }} />
+    <p style={{ font: "500 13px Inter", marginTop: 10 }}>shadow-card · --shadow-card / --mt-shadow-card</p>
+    <p style={{ font: "400 12px Inter", color: "hsl(var(--muted-foreground))" }}>resting cards, list rows</p>
+  </div>
+  <div>
+    <div style={{ width: 180, height: 100, background: "hsl(var(--card))", borderRadius: 12, border: "1px solid hsl(var(--border))", boxShadow: "var(--shadow-elevated)" }} />
+    <p style={{ font: "500 13px Inter", marginTop: 10 }}>shadow-elevated · --shadow-elevated / --mt-shadow-elevated</p>
+    <p style={{ font: "400 12px Inter", color: "hsl(var(--muted-foreground))" }}>hover states, modals, popovers</p>
+  </div>
+</div>
+
+Pattern in the wild: `shadow-card hover:shadow-elevated` (see EventCard).
+
+## Gradients
+
+<div style={{ display: "flex", gap: 32, padding: "24px 8px" }}>
+  <div>
+    <div style={{ width: 220, height: 100, borderRadius: 12, background: "var(--gradient-hero)" }} />
+    <p style={{ font: "500 13px Inter", marginTop: 10 }}>--gradient-hero / --mt-gradient-hero</p>
+    <p style={{ font: "400 12px Inter", color: "hsl(var(--muted-foreground))" }}>brand → brand-deep 135° · hero sections</p>
+  </div>
+  <div>
+    <div style={{ width: 220, height: 100, borderRadius: 12, border: "1px solid hsl(var(--border))", background: "var(--gradient-card)" }} />
+    <p style={{ font: "500 13px Inter", marginTop: 10 }}>--gradient-card</p>
+    <p style={{ font: "400 12px Inter", color: "hsl(var(--muted-foreground))" }}>subtle white → near-white card wash</p>
+  </div>
+</div>
