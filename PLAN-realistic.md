@@ -30,7 +30,7 @@ excluded from "real" scope).
 ## Status board
 
 - [ ] **Phase 0 — Production serving + data realism** (detailed plan exists)
-  - [ ] 0.1 Serve `dist/` static via Caddy (replace Vite dev service)
+  - [x] 0.1 Serve `dist/` static via Caddy (replace Vite dev service) — done 2026-07-11, verified live + 0 console errors
   - [ ] 0.2 Time-aware event phases (`src/lib/eventPhase.ts`, unit-tested)
   - [ ] 0.3 Rich seed data: ~18 events / 5 organizers, cover images, spread dates
 - [ ] **Phase 1 — Runner registration (Direction 2) on the mock store**

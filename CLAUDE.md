@@ -14,15 +14,16 @@ Trail running event platform for Thailand. Two distinct sides: **Organizer** (ev
 ## Commands
 
 ```bash
-npm run dev      # dev server → https://localhost:8080 (self-signed cert)
-npm run build    # production build → dist/
+npm run dev      # local dev server → https://localhost:8080 (NOT proxied to the domain anymore)
+npm run build    # production build → dist/  ← THIS is what mytrails.theingress.co serves
+# deploy = npm run build (Caddy serves dist/ statically with SPA fallback; mytrails.service retired 2026-07-11)
 npm run test     # vitest unit tests
 npm run typecheck # type check only (tsc -p tsconfig.app.json --noEmit — plain `npx tsc --noEmit` checks NOTHING because root tsconfig has files:[])
 npm run storybook        # dev hand-off catalog (Storybook) → http://localhost:6006
 npm run storybook:deploy # static build → storybook-dist/ for the live catalog at /journey/
 ```
 
-Caddy reverse-proxies `mytrails.theingress.co` → `https://localhost:8080`.
+Caddy serves `mytrails.theingress.co` from `dist/` (static SPA, `try_files → /index.html`).
 
 ## Developer Hand-off Catalog (Storybook)
 
