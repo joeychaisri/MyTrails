@@ -11,6 +11,7 @@ import {
 import { ArrowLeft, Calendar, MapPin, Mountain, Clock, Award, ChevronDown } from "lucide-react";
 import Logo from "@/components/Logo";
 import { useEvent } from "@/hooks/data/useEvents";
+import { eventPhase, ticketWindowState } from "@/lib/eventPhase";
 import { format } from "date-fns";
 import heroImage from "@/assets/hero-trail.webp";
 import { useState } from "react";
@@ -33,6 +34,7 @@ const PublicEventPage = () => {
   };
 
   const selectedCat = event.categories.find((c) => c.id === selectedCategory);
+  const phase = eventPhase(event);
 
   return (
     <div className="min-h-screen bg-background">
@@ -154,7 +156,13 @@ const PublicEventPage = () => {
             <div className="sticky top-24 rounded-xl border border-border bg-card p-6 shadow-elevated">
               <h3 className="mb-4 text-xl font-bold text-card-foreground">Register Now</h3>
 
-              {event.categories.length > 0 ? (
+              {phase === "finished" ? (
+                <p className="text-center text-muted-foreground">This event has finished</p>
+              ) : phase === "ongoing" ? (
+                <p className="text-center text-muted-foreground">Event in progress — registration closed</p>
+              ) : phase === "registration_closed" ? (
+                <p className="text-center text-muted-foreground">Registration closed</p>
+              ) : event.categories.length > 0 ? (
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Select Category</label>
@@ -177,7 +185,8 @@ const PublicEventPage = () => {
                       <label className="text-sm font-medium text-foreground">Select Ticket</label>
                       <div className="space-y-2">
                         {selectedCat.tickets.map((ticket) => {
-                          const soldOut = ticket.sold >= ticket.quantity;
+                          const windowState = ticketWindowState(ticket);
+                          const soldOut = ticket.sold >= ticket.quantity || windowState !== "on_sale";
                           return (
                             <label
                               key={ticket.id}
@@ -200,7 +209,11 @@ const PublicEventPage = () => {
                                 <div>
                                   <p className="font-medium">{ticket.name}</p>
                                   <p className="text-sm text-muted-foreground">
-                                    {ticket.quantity - ticket.sold} spots left
+                                    {windowState === "ended"
+                                      ? "Sales ended"
+                                      : windowState === "not_yet"
+                                        ? "Not on sale yet"
+                                        : `${ticket.quantity - ticket.sold} spots left`}
                                   </p>
                                 </div>
                               </div>
