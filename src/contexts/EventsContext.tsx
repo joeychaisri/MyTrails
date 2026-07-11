@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { Event, mockEvents } from "@/data/mockData";
+import { Event, Registration, RunnerInfo, mockEvents } from "@/data/mockData";
+import { ticketWindowState } from "@/lib/eventPhase";
 import {
   AdminOrganizer,
   PlatformSettings,
@@ -18,18 +19,20 @@ import {
 // and so on. Still mock (in-memory + localStorage) — no backend.
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = "mt_store_v8";
+const STORAGE_KEY = "mt_store_v9";
 
 interface StoreShape {
   events: Event[];
   organizers: AdminOrganizer[];
   settings: PlatformSettings;
+  registrations: Registration[];
 }
 
 const seedStore = (): StoreShape => ({
   events: [...mockEvents, ...mockOtherEvents],
   organizers: mockAdminOrganizers,
   settings: mockPlatformSettings,
+  registrations: [], // no seed data — runners create these through the flow
 });
 
 const loadStore = (): StoreShape => {
@@ -83,6 +86,56 @@ export function eventFinance(e: Event, organizers: AdminOrganizer[], settings: P
 
 const today = () => new Date().toISOString().split("T")[0];
 
+// ---------------------------------------------------------------------------
+// Registration domain helpers
+// ---------------------------------------------------------------------------
+
+const HOLD_MINUTES = 15; // a pending_payment registration holds its seat this long
+
+const CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+// Runner-facing confirmation code: MT- + 6 alphanumerics, retried on collision.
+const generateCode = (taken: Set<string>): string => {
+  let code: string;
+  do {
+    code =
+      "MT-" +
+      Array.from({ length: 6 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
+  } while (taken.has(code));
+  return code;
+};
+
+// Seats a ticket has left. ticket.sold covers seeded sales + confirmed
+// registrations (confirm/verify increment it), so on top of that we only count
+// live holds: pending_payment not yet past expiresAt, and awaiting_verification.
+const seatsLeft = (s: StoreShape, ticketId: string, ticketQuantity: number, ticketSold: number, now: Date): number => {
+  const holds = s.registrations.filter(
+    (r) =>
+      r.ticketId === ticketId &&
+      (r.status === "awaiting_verification" ||
+        (r.status === "pending_payment" && (!r.expiresAt || new Date(r.expiresAt) > now)))
+  ).length;
+  return ticketQuantity - ticketSold - holds;
+};
+
+// Adjust the sold counters (ticket + event) for a registration's seat.
+const applySold = (s: StoreShape, reg: Registration, delta: number): StoreShape => ({
+  ...s,
+  events: s.events.map((e) =>
+    e.id !== reg.eventId
+      ? e
+      : {
+          ...e,
+          sold: e.sold + delta,
+          categories: e.categories.map((c) =>
+            c.id !== reg.categoryId
+              ? c
+              : { ...c, tickets: c.tickets.map((t) => (t.id !== reg.ticketId ? t : { ...t, sold: t.sold + delta })) }
+          ),
+        }
+  ),
+});
+
 interface EventsContextType {
   events: Event[];
   organizers: AdminOrganizer[];
@@ -105,6 +158,19 @@ interface EventsContextType {
   addTier: (name: string, commissionRate: number) => void;
   updateTier: (id: string, patch: Partial<Tier>) => void;
   deleteTier: (id: string) => void;
+  // Runner registrations (order + participant in one record, with capacity holds)
+  registrations: Registration[];
+  createRegistration: (input: {
+    eventId: string;
+    categoryId: string;
+    ticketId: string;
+    runner: RunnerInfo;
+  }) => { ok: true; registration: Registration } | { ok: false; reason: "sold_out" | "window_closed" | "duplicate" };
+  confirmRegistration: (id: string, method: "card" | "promptpay", slipDataUrl?: string) => void; // card → confirmed; promptpay → awaiting_verification
+  failRegistration: (id: string) => void;
+  verifySlip: (id: string, approve: boolean) => void; // organizer action on a promptpay slip
+  cancelRegistration: (id: string, refundPct: number) => void;
+  expireStaleRegistrations: (now?: Date) => void; // pending_payment past expiresAt → expired
   // Wipe any locally-persisted state and reseed from the mock data.
   resetStore: () => void;
 }
@@ -141,6 +207,28 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     promoteDue();
     const timer = setInterval(promoteDue, 30_000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Same no-cron trick for registration holds: a pending_payment registration
+  // past its expiresAt flips to expired (releasing the seat). Mount + interval.
+  const expireStaleRegistrations = (now: Date = new Date()) =>
+    setStore((s) => {
+      let changed = false;
+      const registrations = s.registrations.map((r) => {
+        if (r.status === "pending_payment" && r.expiresAt && new Date(r.expiresAt) <= now) {
+          changed = true;
+          return { ...r, status: "expired" as const };
+        }
+        return r;
+      });
+      return changed ? { ...s, registrations } : s;
+    });
+
+  useEffect(() => {
+    expireStaleRegistrations();
+    const timer = setInterval(() => expireStaleRegistrations(), 60_000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const setEvents = (fn: (prev: Event[]) => Event[]) =>
@@ -218,6 +306,101 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         if (s.organizers.some((o) => o.tierId === id)) return s; // in use — block
         return { ...s, settings: { ...s.settings, tiers: s.settings.tiers.filter((t) => t.id !== id) } };
       }),
+    registrations: store.registrations,
+    createRegistration: (input) => {
+      const event = store.events.find((e) => e.id === input.eventId);
+      const category = event?.categories.find((c) => c.id === input.categoryId);
+      const ticket = category?.tickets.find((t) => t.id === input.ticketId);
+      // Unknown event/category/ticket ≈ nothing on sale here.
+      if (!event || !category || !ticket) return { ok: false, reason: "window_closed" };
+
+      const now = new Date();
+      if (ticketWindowState(ticket, now) !== "on_sale") return { ok: false, reason: "window_closed" };
+
+      const isDuplicate = store.registrations.some(
+        (r) =>
+          r.eventId === input.eventId &&
+          r.runner.email === input.runner.email &&
+          !["expired", "payment_failed", "cancelled"].includes(r.status)
+      );
+      if (isDuplicate) return { ok: false, reason: "duplicate" };
+
+      if (seatsLeft(store, ticket.id, ticket.quantity, ticket.sold, now) <= 0)
+        return { ok: false, reason: "sold_out" };
+
+      const code = generateCode(new Set(store.registrations.map((r) => r.code)));
+      const registration: Registration = {
+        id: `reg-${Date.now()}-${code.slice(3)}`,
+        code,
+        eventId: input.eventId,
+        categoryId: input.categoryId,
+        ticketId: input.ticketId,
+        amount: ticket.price,
+        status: "pending_payment",
+        createdAt: now.toISOString(),
+        expiresAt: new Date(now.getTime() + HOLD_MINUTES * 60 * 1000).toISOString(),
+        runner: input.runner,
+      };
+      setStore((s) => ({ ...s, registrations: [registration, ...s.registrations] }));
+      return { ok: true, registration };
+    },
+    // Card settles instantly → confirmed (sold +1). PromptPay stores the slip and
+    // waits for the organizer → awaiting_verification (seat stays a hold).
+    confirmRegistration: (id, method, slipDataUrl) =>
+      setStore((s) => {
+        const reg = s.registrations.find((r) => r.id === id);
+        if (!reg || reg.status !== "pending_payment") return s;
+        const status = method === "card" ? ("confirmed" as const) : ("awaiting_verification" as const);
+        const next: StoreShape = {
+          ...s,
+          registrations: s.registrations.map((r) =>
+            r.id === id ? { ...r, status, paymentMethod: method, slipDataUrl } : r
+          ),
+        };
+        return method === "card" ? applySold(next, reg, +1) : next;
+      }),
+    failRegistration: (id) =>
+      setStore((s) => ({
+        ...s,
+        registrations: s.registrations.map((r) =>
+          r.id === id && r.status === "pending_payment" ? { ...r, status: "payment_failed" } : r
+        ),
+      })),
+    // Organizer verdict on an uploaded slip. Approve is the single point where a
+    // promptpay registration increments sold; reject cancels without selling.
+    verifySlip: (id, approve) =>
+      setStore((s) => {
+        const reg = s.registrations.find((r) => r.id === id);
+        if (!reg || reg.status !== "awaiting_verification") return s;
+        const next: StoreShape = {
+          ...s,
+          registrations: s.registrations.map((r) =>
+            r.id === id ? { ...r, status: approve ? "confirmed" : "cancelled" } : r
+          ),
+        };
+        return approve ? applySold(next, reg, +1) : next;
+      }),
+    // Cancel a confirmed registration: seat released, refundPct% of the amount
+    // accrues to the event's refundedAmount (feeds eventFinance).
+    cancelRegistration: (id, refundPct) =>
+      setStore((s) => {
+        const reg = s.registrations.find((r) => r.id === id);
+        if (!reg || reg.status !== "confirmed") return s;
+        const refund = Math.round((reg.amount * refundPct) / 100);
+        let next: StoreShape = {
+          ...s,
+          registrations: s.registrations.map((r) => (r.id === id ? { ...r, status: "refunded" } : r)),
+        };
+        next = applySold(next, reg, -1);
+        return {
+          ...next,
+          events: next.events.map((e) =>
+            e.id === reg.eventId ? { ...e, refundedAmount: (e.refundedAmount ?? 0) + refund } : e
+          ),
+        };
+      }),
+    expireStaleRegistrations,
+
     resetStore: () => setStore(seedStore()),
   };
 

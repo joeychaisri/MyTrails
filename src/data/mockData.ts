@@ -138,6 +138,59 @@ export interface Order {
   log: OrderLogEntry[];
 }
 
+// Lifecycle of a runner registration (order + participant in one record).
+// pending_payment ─(card ok)→ confirmed
+//                 ─(promptpay slip)→ awaiting_verification ─(organizer approves)→ confirmed
+//                                                          ─(organizer rejects)→ cancelled
+// pending_payment past expiresAt → expired (capacity hold released)
+// payment declined → payment_failed · confirmed → refunded (cancel with refund %)
+export type RegistrationStatus =
+  | 'pending_payment'
+  | 'awaiting_verification'
+  | 'confirmed'
+  | 'payment_failed'
+  | 'expired'
+  | 'cancelled'
+  | 'refunded';
+
+// Everything the registration form collects about the runner. Thai-name fields
+// are optional (foreign runners); pdpaConsentAt records when consent was ticked.
+export interface RunnerInfo {
+  firstName: string;
+  lastName: string;
+  firstNameTh?: string;
+  lastNameTh?: string;
+  dob: string;
+  gender: 'male' | 'female' | 'other';
+  nationality: string;
+  idNumber: string;
+  phone: string;
+  email: string;
+  emergencyName: string;
+  emergencyPhone: string;
+  bloodGroup: 'A' | 'B' | 'AB' | 'O' | 'unknown';
+  medicalConditions?: string;
+  shirtSize: 'XS' | 'S' | 'M' | 'L' | 'XL' | '2XL';
+  pdpaConsentAt: string;
+}
+
+// A runner's registration for one ticket of one event. While pending_payment it
+// holds a seat until expiresAt; once confirmed it is counted in ticket/event sold.
+export interface Registration {
+  id: string;
+  code: string; // MT-XXXXXX — the runner's lookup/confirmation code
+  eventId: string;
+  categoryId: string;
+  ticketId: string;
+  amount: number;
+  status: RegistrationStatus;
+  createdAt: string;
+  expiresAt?: string;
+  paymentMethod?: 'card' | 'promptpay';
+  slipDataUrl?: string;
+  runner: RunnerInfo;
+}
+
 export interface Participant {
   id: string;
   bibNo: string;
