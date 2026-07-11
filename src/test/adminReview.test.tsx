@@ -24,8 +24,8 @@ describe("AdminEventReview page", () => {
     renderAt("2");
     expect(screen.getByRole("heading", { name: "Khao Yai Night Trail" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "25K Night Run" })).toBeTruthy();
-    // Cover-photo state is surfaced (none uploaded on mock events).
-    expect(screen.getByText(/No cover photo uploaded/i)).toBeTruthy();
+    // Cover-photo state is surfaced (seed events ship with a cover image).
+    expect(screen.getByRole("img", { name: "Khao Yai Night Trail" })).toBeTruthy();
     // Organizer side panel.
     expect(screen.getByText("Trail Events Co.")).toBeTruthy();
     // Commission estimate must not collapse to ฿0 for a pending event (regression).

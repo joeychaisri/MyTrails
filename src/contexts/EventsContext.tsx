@@ -18,7 +18,7 @@ import {
 // and so on. Still mock (in-memory + localStorage) — no backend.
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = "mt_store_v7";
+const STORAGE_KEY = "mt_store_v8";
 
 interface StoreShape {
   events: Event[];
