@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Check,
   Download,
   RefreshCw,
   Search,
@@ -39,6 +40,7 @@ import {
   ArrowRightLeft,
   Shirt,
   Tag,
+  X,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -51,6 +53,7 @@ import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Order, Participant, OrderStatus, PaymentMethod } from "@/data/mockData";
+import { useEventsStore } from "@/contexts/EventsContext";
 import {
   ORDER_STATUS_LABEL,
   ORDER_STATUS_COLOR,
@@ -95,14 +98,31 @@ export function useOrdersSectionState() {
 
 export type OrdersSectionState = ReturnType<typeof useOrdersSectionState>;
 
+// Data URLs can't be opened as a top-level tab in Chromium; convert to a blob
+// URL first so the slip opens full-size in a new tab.
+const openSlip = async (dataUrl: string) => {
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    window.open(URL.createObjectURL(blob), "_blank", "noopener");
+  } catch {
+    window.open(dataUrl, "_blank", "noopener");
+  }
+};
+
 interface OrdersSectionProps {
+  eventId: string;
   orders: Order[];
   setOrders: Dispatch<SetStateAction<Order[]>>;
   participants: Participant[];
   state: OrdersSectionState;
 }
 
-const OrdersSection = ({ orders, setOrders, participants, state }: OrdersSectionProps) => {
+const OrdersSection = ({ eventId, orders, setOrders, participants, state }: OrdersSectionProps) => {
+  const { registrations, verifySlip } = useEventsStore();
+  const slipQueue = useMemo(
+    () => registrations.filter((r) => r.eventId === eventId && r.status === "awaiting_verification"),
+    [registrations, eventId]
+  );
   const {
     orderFilter, setOrderFilter,
     orderSearch, setOrderSearch,
@@ -231,6 +251,76 @@ const OrdersSection = ({ orders, setOrders, participants, state }: OrdersSection
 
         return (
           <div className="space-y-4">
+            {/* Slip verification queue — PromptPay registrations awaiting review */}
+            {slipQueue.length > 0 && (
+              <div className="rounded-xl border border-border bg-card shadow-card">
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                  <h3 className="text-lg font-semibold text-foreground">Slip verification</h3>
+                  <span className="inline-flex rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning">
+                    {slipQueue.length} รอตรวจ
+                  </span>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Runner</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Slip</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {slipQueue.map((reg) => (
+                      <TableRow key={reg.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{reg.runner.firstName} {reg.runner.lastName}</p>
+                            <p className="text-sm text-muted-foreground">{reg.runner.email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>{formatCurrency(reg.amount)}</TableCell>
+                        <TableCell>
+                          {reg.slipDataUrl ? (
+                            <button
+                              type="button"
+                              onClick={() => openSlip(reg.slipDataUrl!)}
+                              title="เปิดสลิปเต็มขนาด"
+                              className="rounded border border-border transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            >
+                              <img
+                                src={reg.slipDataUrl}
+                                alt={`Payment slip ${reg.code}`}
+                                className="h-12 w-9 rounded object-cover"
+                              />
+                            </button>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" onClick={() => verifySlip(reg.id, true)}>
+                              <Check className="mr-1.5 h-3.5 w-3.5" />
+                              Approve
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => verifySlip(reg.id, false)}
+                            >
+                              <X className="mr-1.5 h-3.5 w-3.5" />
+                              Reject
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground">Transaction History</h3>
@@ -324,6 +414,7 @@ const OrdersSection = ({ orders, setOrders, participants, state }: OrdersSection
                 <SelectContent className="bg-popover">
                   <SelectItem value="all">All Payments</SelectItem>
                   <SelectItem value="Stripe">Stripe</SelectItem>
+                  <SelectItem value="PromptPay">PromptPay</SelectItem>
                   <SelectItem value="Cash">Cash</SelectItem>
                   <SelectItem value="VIP">VIP</SelectItem>
                   <SelectItem value="Sponsor">Sponsor</SelectItem>

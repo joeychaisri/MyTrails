@@ -101,9 +101,13 @@ export type OrderStatus =
   | 'refunded' | 'refunded_receipt_issued'
   | 'complete_wns' | 'complete_wns_receipt'
   | 'complete_wait_crn' | 'complete_crn_issued'
-  | 'issue_refund' | 'pending_refund' | 'edit_trc';
+  | 'issue_refund' | 'pending_refund' | 'edit_trc'
+  // Registration-flow statuses (orders derived from store registrations).
+  // Named so the existing ORDER_FILTER buckets catch them without changes:
+  // "pending_slip" contains "pending", "issue_payment_failed" starts with "issue_".
+  | 'pending_slip' | 'issue_payment_failed' | 'expired' | 'cancelled';
 
-export type PaymentMethod = 'Stripe' | 'Cash' | 'VIP' | 'Sponsor';
+export type PaymentMethod = 'Stripe' | 'Cash' | 'VIP' | 'Sponsor' | 'PromptPay';
 
 export interface OrderLogEntry {
   timestamp: string;
@@ -136,6 +140,9 @@ export interface Order {
   slipUrl?: string;
   slip?: OrderSlip;
   log: OrderLogEntry[];
+  // Set only on rows derived from store registrations (useOrders) — marks the
+  // row as live data so the hub can re-sync it when the store changes.
+  registrationId?: string;
 }
 
 // Lifecycle of a runner registration (order + participant in one record).
@@ -202,11 +209,21 @@ export interface Participant {
   shirtSize: 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
   nationality: string;
   age: number;
-  bloodType: 'A' | 'B' | 'AB' | 'O' | 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+  bloodType: 'A' | 'B' | 'AB' | 'O' | 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | 'unknown';
   medicalConditions: string;
   emergencyContact: string;
   club: string;
   itraId: string;
+  // Present only on rows derived from store registrations (useParticipants).
+  // registrationCode doubles as the "derived row" marker (also used by CSV export).
+  registrationCode?: string;
+  dob?: string;
+  idNumber?: string;
+  emergencyName?: string;
+  emergencyPhone?: string;
+  genderDetail?: 'male' | 'female' | 'other';
+  category?: string;
+  ticket?: string;
 }
 
 export interface DiscountCodeUsage {

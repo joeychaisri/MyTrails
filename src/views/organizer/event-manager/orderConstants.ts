@@ -23,6 +23,10 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   issue_refund: "มีปัญหา · คืนเงิน",
   pending_refund: "รอคืนเงิน",
   edit_trc: "แก้ไข TRC",
+  pending_slip: "รอตรวจสลิป · PromptPay",
+  issue_payment_failed: "มีปัญหา · ชำระเงินไม่สำเร็จ",
+  expired: "หมดเวลาชำระเงิน",
+  cancelled: "ยกเลิก",
 };
 
 export const ORDER_STATUS_COLOR: Record<OrderStatus, string> = {
@@ -48,6 +52,10 @@ export const ORDER_STATUS_COLOR: Record<OrderStatus, string> = {
   issue_refund: "bg-destructive/10 text-destructive",
   pending_refund: "bg-warning/10 text-warning",
   edit_trc: "bg-warning/10 text-warning",
+  pending_slip: "bg-warning/10 text-warning",
+  issue_payment_failed: "bg-destructive/10 text-destructive",
+  expired: "bg-muted text-muted-foreground",
+  cancelled: "bg-muted text-muted-foreground",
 };
 
 export const ORDER_FILTER: Record<string, (s: OrderStatus) => boolean> = {
@@ -74,4 +82,5 @@ export const PAYMENT_METHOD_COLOR: Record<PaymentMethod, string> = {
   Cash: "bg-amber-500/10 text-amber-600",
   VIP: "bg-purple-500/10 text-purple-500",
   Sponsor: "bg-emerald-500/10 text-emerald-600",
+  PromptPay: "bg-success/10 text-success",
 };

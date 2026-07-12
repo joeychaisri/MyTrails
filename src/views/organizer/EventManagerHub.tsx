@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,15 +68,41 @@ const EventManagerHub = () => {
   const onBack = () => navigate("/organizer/dashboard");
   const onEditWizard = () => navigate(`/organizer/events/${id}/edit`);
 
-  const { data: initialParticipants } = useParticipants();
-  const { data: initialOrders } = useOrders();
+  const { data: liveParticipants } = useParticipants(id);
+  const { data: liveOrders } = useOrders(id);
   const { data: initialDiscountCodes } = useDiscountCodes();
   const { data: stats } = useEventStats();
 
   // Shared domain data — lives at the hub so it persists across section switches
-  const [participants, setParticipants] = useState<Participant[]>(initialParticipants);
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [participants, setParticipants] = useState<Participant[]>(liveParticipants);
+  const [orders, setOrders] = useState<Order[]>(liveOrders);
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>(initialDiscountCodes);
+
+  // Store registrations live-update the hub copies: rows derived from the store
+  // (marked registrationCode / registrationId) are re-synced from the hooks so a
+  // runner registering — or a slip approval — reflects here instantly, while
+  // local edits to legacy mock rows are preserved.
+  useEffect(() => {
+    setParticipants((prev) => {
+      const legacy = prev.filter((p) => !p.registrationCode);
+      const derived = liveParticipants
+        .filter((p) => p.registrationCode)
+        .map((d) => prev.find((p) => p.id === d.id) ?? d); // keep local edits on known rows
+      return [...derived, ...legacy];
+    });
+  }, [liveParticipants]);
+  useEffect(() => {
+    setOrders((prev) => {
+      const legacy = prev.filter((o) => !o.registrationId);
+      const derived = liveOrders
+        .filter((o) => o.registrationId)
+        .map((d) => {
+          const old = prev.find((o) => o.id === d.id);
+          return old ? { ...d, note: old.note } : d; // store wins on status, keep local notes
+        });
+      return [...derived, ...legacy];
+    });
+  }, [liveOrders]);
 
   // Per-section UI state — hooks are called unconditionally at the hub level
   // (Rules of Hooks) so filter/modal state persists when switching sections.
@@ -130,6 +156,7 @@ const EventManagerHub = () => {
       case "orders":
         return (
           <OrdersSection
+            eventId={event.id}
             orders={orders}
             setOrders={setOrders}
             participants={participants}
@@ -149,6 +176,7 @@ const EventManagerHub = () => {
       case "participants":
         return (
           <ParticipantsSection
+            eventId={event.id}
             participants={participants}
             setParticipants={setParticipants}
             state={participantsState}

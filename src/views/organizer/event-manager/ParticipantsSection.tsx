@@ -60,12 +60,13 @@ export function useParticipantsSectionState() {
 export type ParticipantsSectionState = ReturnType<typeof useParticipantsSectionState>;
 
 interface ParticipantsSectionProps {
+  eventId: string;
   participants: Participant[];
   setParticipants: Dispatch<SetStateAction<Participant[]>>;
   state: ParticipantsSectionState;
 }
 
-const ParticipantsSection = ({ participants, setParticipants, state }: ParticipantsSectionProps) => {
+const ParticipantsSection = ({ eventId, participants, setParticipants, state }: ParticipantsSectionProps) => {
   const {
     participantFilter, setParticipantFilter,
     participantSearch, setParticipantSearch,
@@ -142,6 +143,44 @@ const ParticipantsSection = ({ participants, setParticipants, state }: Participa
   };
 
         const uniqueNationalities = useMemo(() => [...new Set(participants.map((p) => p.nationality))].sort(), [participants]);
+
+        // CSV of all currently displayed participants. Rows derived from store
+        // registrations carry the full RunnerInfo detail; legacy mock rows fill
+        // in what they have (blank where unavailable).
+        const exportCSV = () => {
+          const headers = [
+            "name", "email", "phone", "gender", "dob", "nationality", "idNumber",
+            "emergencyName", "emergencyPhone", "bloodGroup", "shirtSize",
+            "category", "ticket", "registrationCode",
+          ];
+          const rows = filteredParticipants.map((p) => [
+            p.name,
+            p.email,
+            p.phone,
+            p.genderDetail ?? (p.gender === "M" ? "male" : "female"),
+            p.dob ?? "",
+            p.nationality,
+            p.idNumber ?? "",
+            p.emergencyName ?? p.emergencyContact,
+            p.emergencyPhone ?? "",
+            p.bloodType,
+            p.shirtSize,
+            p.category ?? p.distance,
+            p.ticket ?? "",
+            p.registrationCode ?? "",
+          ]);
+          const csv = [headers, ...rows]
+            .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+            .join("\n");
+          const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `participants-${eventId}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+
         return (
           <div className="space-y-4">
             {/* Header */}
@@ -152,7 +191,7 @@ const ParticipantsSection = ({ participants, setParticipants, state }: Participa
                   {filteredParticipants.length} / {participants.length}
                 </span>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={exportCSV}>
                 <Download className="mr-2 h-4 w-4" />
                 Export CSV
               </Button>

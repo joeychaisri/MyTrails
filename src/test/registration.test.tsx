@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act, RenderHookResult } from "@testing-library/react";
 import { EventsProvider, useEventsStore } from "@/contexts/EventsContext";
-import { Category, Event, Registration, RunnerInfo, Ticket } from "@/data/mockData";
+import { Category, Event, Registration, RunnerInfo, Ticket, mockOrders, mockParticipants } from "@/data/mockData";
+import { useOrders } from "@/hooks/data/useOrders";
+import { useParticipants } from "@/hooks/data/useParticipants";
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <EventsProvider>{children}</EventsProvider>
@@ -231,5 +233,105 @@ describe("Registration domain — capacity holds, payment, slip verification", (
       codes.add(mustOk(register(result, eventId, { email: `r${i}@example.com` })).code);
     }
     expect(codes.size).toBe(5);
+  });
+});
+
+describe("Organizer data hooks — registrations surface in useParticipants/useOrders", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("registration rows are prepended ahead of legacy mocks and live-update through the lifecycle", () => {
+    const { result, rerender } = renderHook(
+      ({ eventId }: { eventId: string }) => ({
+        store: useEventsStore(),
+        participants: useParticipants(eventId),
+        orders: useOrders(eventId),
+      }),
+      { wrapper, initialProps: { eventId: "none" } }
+    );
+
+    let eventId!: string;
+    act(() => { eventId = result.current.store.submitEvent(draft([ticket()])).id; });
+    act(() => result.current.store.approveEvent(eventId));
+    rerender({ eventId });
+
+    // No registrations yet: hooks return exactly the legacy mock rows.
+    expect(result.current.participants.data).toHaveLength(mockParticipants.length);
+    expect(result.current.orders.data).toHaveLength(mockOrders.length);
+
+    let res!: ReturnType<Store["createRegistration"]>;
+    act(() => {
+      res = result.current.store.createRegistration({
+        eventId, categoryId: "cat1", ticketId: "tk1", runner: runner(),
+      });
+    });
+    const reg = mustOk(res);
+
+    // pending_payment: order row prepended, no participant yet.
+    expect(result.current.orders.data).toHaveLength(mockOrders.length + 1);
+    expect(result.current.orders.data[0]).toMatchObject({
+      id: reg.code,
+      registrationId: reg.id,
+      buyerName: "Somchai Jaidee",
+      buyerEmail: "somchai@example.com",
+      amount: 1200,
+      status: "submitted",
+      category: "25K",
+      ticketType: "Early Bird",
+    });
+    expect(result.current.participants.data).toHaveLength(mockParticipants.length);
+
+    // promptpay slip uploaded → awaiting_verification → pending_slip order row.
+    act(() => result.current.store.confirmRegistration(reg.id, "promptpay", "data:image/png;base64,AAAA"));
+    expect(result.current.orders.data[0]).toMatchObject({
+      status: "pending_slip",
+      paymentMethod: "PromptPay",
+      slipUrl: "data:image/png;base64,AAAA",
+    });
+
+    // organizer approves the slip → confirmed → participant row appears, marked for CSV.
+    act(() => result.current.store.verifySlip(reg.id, true));
+    expect(result.current.orders.data[0].status).toBe("complete_wait_receipt");
+    expect(result.current.participants.data).toHaveLength(mockParticipants.length + 1);
+    expect(result.current.participants.data[0]).toMatchObject({
+      id: reg.id,
+      name: "Somchai Jaidee",
+      email: "somchai@example.com",
+      gender: "M",
+      genderDetail: "male",
+      distance: "25K",
+      shirtSize: "M",
+      bloodType: "O",
+      dob: "1990-05-01",
+      idNumber: "1234567890123",
+      emergencyName: "Somsri Jaidee",
+      emergencyPhone: "0898765432",
+      category: "25K",
+      ticket: "Early Bird",
+      registrationCode: reg.code,
+    });
+  });
+
+  it("hooks scope rows to the requested event", () => {
+    const { result, rerender } = renderHook(
+      ({ eventId }: { eventId: string }) => ({
+        store: useEventsStore(),
+        orders: useOrders(eventId),
+      }),
+      { wrapper, initialProps: { eventId: "none" } }
+    );
+    let eventId!: string;
+    act(() => { eventId = result.current.store.submitEvent(draft([ticket()])).id; });
+    act(() => result.current.store.approveEvent(eventId));
+    act(() => {
+      result.current.store.createRegistration({
+        eventId, categoryId: "cat1", ticketId: "tk1", runner: runner(),
+      });
+    });
+
+    // Other event id → only legacy mock rows.
+    rerender({ eventId: "some-other-event" });
+    expect(result.current.orders.data).toHaveLength(mockOrders.length);
+    rerender({ eventId });
+    expect(result.current.orders.data).toHaveLength(mockOrders.length + 1);
   });
 });
