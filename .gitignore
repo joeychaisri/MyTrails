@@ -31,3 +31,4 @@ vite.config.ts.bak
 *storybook.log
 storybook-static
 storybook-dist/
+.env.local
