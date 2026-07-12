@@ -24,6 +24,8 @@ interface AuthContextType {
   // role comes from app_metadata.role, organizerId from the organizers table.
   loginWithPassword: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
+  /** false only in supabase mode until the session restore resolves */
+  authReady: boolean;
 }
 
 // Demo organizer that any non-admin login maps to (Trail Events Co. = org1).
@@ -36,6 +38,7 @@ const AuthContext = createContext<AuthContextType>({
   login: () => {},
   loginWithPassword: async () => ({ ok: false, error: "No AuthProvider" }),
   logout: () => {},
+  authReady: true,
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -50,6 +53,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [organizerName, setOrganizerName] = useState<string | null>(() =>
     dataSource === "supabase" ? null : localStorage.getItem("mt_org_name")
   );
+  // Route guards must not judge the role before the async session restore
+  // finishes (deep links / refreshes on protected pages would bounce).
+  const [authReady, setAuthReady] = useState(dataSource !== "supabase");
 
   // Map a supabase session onto the existing {role, organizerId} API: admin via
   // app_metadata.role, organizer identity via their organizers row (RLS lets an
@@ -81,7 +87,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (dataSource !== "supabase") return;
     const supabase = getSupabase();
-    supabase.auth.getSession().then(({ data }) => void applySession(data.session));
+    supabase.auth
+      .getSession()
+      .then(({ data }) => applySession(data.session))
+      .finally(() => setAuthReady(true));
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       // setTimeout: supabase-js warns against awaiting its own calls inside
       // this callback (deadlock) — defer to the next tick instead.
@@ -133,7 +142,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ role, organizerId, organizerName, login, loginWithPassword, logout }}>
+    <AuthContext.Provider value={{ role, organizerId, organizerName, login, loginWithPassword, logout, authReady }}>
       {children}
     </AuthContext.Provider>
   );

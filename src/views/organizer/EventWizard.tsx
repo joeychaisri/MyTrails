@@ -108,7 +108,24 @@ interface EventWizardProps {
   }>;
 }
 
-const EventWizard = ({ initialStep, initialScenario }: EventWizardProps = {}) => {
+// Guard wrapper: in edit mode (/organizer/events/:id/edit) the wizard seeds its
+// form state from the event ONCE on mount. In supabase mode the store hydrates
+// async — mounting before the event arrives would seed an empty form and a
+// later submit would overwrite the real event with blanks. Wait for hydration.
+const EventWizard = (props: EventWizardProps = {}) => {
+  const { id } = useParams<{ id?: string }>();
+  const { getEvent, hydrated } = useEventsStore();
+  if (id && !getEvent(id)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground">{hydrated ? "Event not found" : "Loading event…"}</p>
+      </div>
+    );
+  }
+  return <WizardBody {...props} />;
+};
+
+const WizardBody = ({ initialStep, initialScenario }: EventWizardProps = {}) => {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const { logout, organizerId, organizerName } = useAuth();

@@ -29,7 +29,15 @@ const ProtectedRoute = ({
   children: ReactNode;
   allowedRole?: "organizer" | "admin";
 }) => {
-  const { role } = useAuth();
+  const { role, authReady } = useAuth();
+  // Supabase restores the session async — don't bounce a deep link before we know.
+  if (!authReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
   const effectiveRole = role ?? "organizer";
   if (allowedRole === "admin" && effectiveRole !== "admin") return <Navigate to="/organizer/dashboard" replace />;
   return <>{children}</>;
