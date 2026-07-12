@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import heroImg from "@/assets/hero-trail.webp";
 import { Button, I, Logo, IconDisc, ProgressBar } from "./RunnerComponents";
 import CalendarView from "./CalendarView";
-import { MOCK_EVENTS, REGIONS, type RunnerEvent } from "./runnerEvents";
+import { useRunnerEvents, REGIONS, type RunnerEvent } from "./runnerEvents";
 import { LanguageProvider, useLang } from "./i18n";
 
 type ViewMode = "grid" | "list" | "calendar";
@@ -233,15 +233,16 @@ function EventCard({ event, layout = "grid", onOpen }: { event: RunnerEvent; lay
 
 function FeaturedEvents({ view, setView, onOpen, initialRegion }: { view: ViewMode; setView: (v: ViewMode) => void; onOpen?: (e: RunnerEvent) => void; initialRegion?: string }) {
   const { t } = useLang();
+  const events = useRunnerEvents();
   const [region, setRegion] = useState(initialRegion ?? "all");
   const [query, setQuery] = useState("");
 
   const regionLabel = (value: string) => t(`events.region${cap(value)}`);
 
-  const filtered = useMemo(() => MOCK_EVENTS.filter((e) =>
+  const filtered = useMemo(() => events.filter((e) =>
     (region === "all" || e.region === region) &&
     (query === "" || e.title.toLowerCase().includes(query.toLowerCase()) || e.province.toLowerCase().includes(query.toLowerCase()))
-  ), [region, query]);
+  ), [events, region, query]);
 
   const heading = t("events.heading", { count: filtered.length }) +
     (region !== "all" ? t("events.headingRegion", { region: regionLabel(region) }) : "");
@@ -512,12 +513,15 @@ function RunnerLanding({ initialView, initialRegion }: { initialView?: ViewMode;
     setView("calendar");
     browseRef();
   };
+  // Store events open the generic public preview. (The bespoke PYT landing keeps
+  // its own /events/pong-yaeng-trail-2026 route in App.tsx — not linked from cards.)
+  const openEvent = (e: RunnerEvent) => navigate(`/events/${e.id}/preview`);
 
   return (
     <div style={{ fontFamily: "var(--mt-font-sans)" }}>
       <TopNav onCTA={() => navigate("/runner/login")} />
       <HeroEditorial onBrowse={browseRef} onCalendar={showCalendar} />
-      <FeaturedEvents view={view} setView={setView} initialRegion={initialRegion} />
+      <FeaturedEvents view={view} setView={setView} initialRegion={initialRegion} onOpen={openEvent} />
       <RaceCategoriesExplainer />
       <WhyMyTrails />
       <CTAStrip onBrowse={browseRef} />

@@ -1,9 +1,14 @@
 // Shared event data for the runner side.
-// Single import point — replace MOCK_EVENTS with a real API call here and
-// every runner view (landing grid/list, calendar) updates at once.
+// Single import point — useRunnerEvents() adapts the shared store (EventsContext)
+// into the RunnerEvent shape, and every runner view (landing grid/list, calendar)
+// updates at once.
 
-export const UNSPLASH = (id: string, w = 800) =>
-  `https://images.unsplash.com/${id}?w=${w}&q=80&auto=format&fit=crop`;
+import { useMemo } from "react";
+import { format } from "date-fns";
+import { useEventsStore } from "@/contexts/EventsContext";
+import { eventPhase } from "@/lib/eventPhase";
+import type { Event } from "@/data/mockData";
+import heroImg from "@/assets/hero-trail.webp";
 
 export interface RunnerEvent {
   id: string;
@@ -22,14 +27,72 @@ export interface RunnerEvent {
   tag: string;
 }
 
-export const MOCK_EVENTS: RunnerEvent[] = [
-  { id: "doi-inthanon", title: "Doi Inthanon Sky Trail 2026", province: "Chiang Mai", region: "north", date: "Apr 27, 2026", dateShort: "27 APR", distances: ["21K", "42K", "70K"], elevation: "3,800m", price: 1500, sold: 847, capacity: 1200, image: UNSPLASH("photo-1464822759023-fed622ff2c3b"), tag: "Featured" },
-  { id: "khao-yai", title: "Khao Yai Forest Ultra", province: "Nakhon Ratchasima", region: "central", date: "May 18, 2026", dateShort: "18 MAY", distances: ["12K", "25K", "50K"], elevation: "2,100m", price: 1200, sold: 320, capacity: 800, image: UNSPLASH("photo-1486870591958-9b9d0d1dda99"), tag: "Open" },
-  { id: "phu-kradueng", title: "Phu Kradueng Ridge Run", province: "Loei", region: "north", date: "Jun 7, 2026", dateShort: "07 JUN", distances: ["10K", "21K", "42K"], elevation: "1,600m", price: 1100, sold: 612, capacity: 900, image: UNSPLASH("photo-1551524559-8af4e6624178"), tag: "Early Bird" },
-  { id: "krabi-coast", title: "Krabi Coast & Cliff 42", province: "Krabi", region: "south", date: "Jul 12, 2026", dateShort: "12 JUL", distances: ["15K", "30K", "42K"], elevation: "1,400m", price: 1400, sold: 188, capacity: 600, image: UNSPLASH("photo-1551632811-561732d1e306"), tag: "New" },
-  { id: "pai-jungle", title: "Pai Jungle Marathon", province: "Mae Hong Son", region: "north", date: "Aug 24, 2026", dateShort: "24 AUG", distances: ["10K", "21K", "42K"], elevation: "1,900m", price: 1300, sold: 95, capacity: 500, image: UNSPLASH("photo-1469474968028-56623f02e42e"), tag: "Open" },
-  { id: "kanchanaburi", title: "Erawan Falls Trail 21", province: "Kanchanaburi", region: "central", date: "Sep 14, 2026", dateShort: "14 SEP", distances: ["10K", "21K"], elevation: "900m", price: 950, sold: 432, capacity: 700, image: UNSPLASH("photo-1455218873509-8097305ee378"), tag: "Open" },
-];
+const REGION_BY_PROVINCE: Record<string, string> = {
+  "Chiang Mai": "north",
+  "Chiang Rai": "north",
+  "Mae Hong Son": "north",
+  Loei: "north",
+  Nan: "north",
+  Phetchabun: "north",
+  Tak: "north",
+  Krabi: "south",
+  Phuket: "south",
+  "Surat Thani": "south",
+  "Prachuap Khiri Khan": "south",
+};
+
+/** Province → landing filter region. Anything unmapped is treated as central. */
+export function provinceRegion(province: string): string {
+  return REGION_BY_PROVINCE[province] ?? "central";
+}
+
+function runnerTag(event: Event): string {
+  if (event.capacity > 0 && event.sold >= event.capacity) return "Sold Out";
+  const phase = eventPhase(event);
+  if (phase === "registration_open") return "Open";
+  if (phase === "upcoming") return "Coming Soon";
+  return "Closed";
+}
+
+function toRunnerEvent(event: Event): RunnerEvent {
+  // Store dates are ISO "yyyy-MM-dd"; parse as local midnight (same convention
+  // as eventPhase). date-fns format is Gregorian regardless of UI locale — the
+  // runner views localise month names themselves via Intl (see CLAUDE.md i18n).
+  const parsed = event.date ? new Date(`${event.date}T00:00:00`) : new Date(NaN);
+  const valid = !isNaN(parsed.getTime());
+
+  const distances = event.categories
+    .map((c) => c.distance)
+    .sort((a, b) => a - b)
+    .map((d) => `${d}K`);
+  const maxElevation = event.categories.reduce((max, c) => Math.max(max, c.elevation), 0);
+  const prices = event.categories.flatMap((c) => c.tickets).map((t) => t.price);
+
+  return {
+    id: event.id,
+    title: event.title,
+    province: event.province,
+    region: provinceRegion(event.province),
+    date: valid ? format(parsed, "MMM d, yyyy") : "",
+    dateShort: valid ? format(parsed, "dd MMM").toUpperCase() : "",
+    distances,
+    elevation: `${maxElevation.toLocaleString()}m`,
+    price: prices.length ? Math.min(...prices) : 0,
+    sold: event.sold,
+    capacity: event.capacity,
+    image: event.coverImage || heroImg,
+    tag: runnerTag(event),
+  };
+}
+
+/** Live events from the shared store, mapped for the runner-side views. */
+export function useRunnerEvents(): RunnerEvent[] {
+  const { events } = useEventsStore();
+  return useMemo(
+    () => events.filter((e) => e.status === "live").map(toRunnerEvent),
+    [events],
+  );
+}
 
 export const REGIONS = [
   { value: "all",     label: "All Regions" },
