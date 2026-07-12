@@ -15,8 +15,11 @@ behavior; the PO uses it to verify every business rule has a visible surface.
 
 1. **Discover Events** — browse the platform home: grid / list / calendar, region filter, EN/TH.
 2. **Explore an Event** — the PYT 2026 microsite and the generic event-preview template.
-3. **Register & Pay** — _reserved._ No registration flow in the product yet; the
-   candidates live under **Experiments** until a direction is chosen.
+3. **Register & Pay** — the Direction-2 registration flow on a live event: runner
+   form (PDPA consent) → mock payment (Stripe-shaped card or PromptPay QR + slip
+   upload) → `MT-XXXXXX` confirmation code → the runner lands in the organizer's
+   Orders/Participants, with PromptPay slips queued for verification (see
+   Journey 8's slip queue). Plus the public registration lookup page.
 
 **Act 2 — Organizer: from zero to a live event**
 
@@ -46,8 +49,9 @@ behavior; the PO uses it to verify every business rule has a visible surface.
   Tabs, Dialog, StatusBadge, EventCard) with props tables and live Controls.
   Reference for developers; PO can skip.
 - **System** — the 404 page and future error states.
-- **Experiments (not for build)** — order-flow directions pending a decision. Not
-  part of any build.
+- **Experiments (not for build)** — the original Direction-2 order-flow screen,
+  kept as the visual reference the registration flow (Journey 3) was built from.
+  Not part of any build.
 
 ## Conventions
 

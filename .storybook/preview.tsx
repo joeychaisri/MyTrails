@@ -54,13 +54,12 @@ const preview: Preview = {
   ],
   parameters: {
     options: {
-      // The 12-journey hand-off map (journey 3 · Register & Pay is reserved —
-      // no registration flow in the product yet). See the Journey Map docs page.
+      // The 12-journey hand-off map. See the Journey Map docs page.
       storySort: {
         order: [
           'Journey Map',
           'Runner',
-          ['1 · Discover Events', '2 · Explore an Event'],
+          ['1 · Discover Events', '2 · Explore an Event', '3 · Register & Pay'],
           'Organizer',
           [
             '4 · Get Started',

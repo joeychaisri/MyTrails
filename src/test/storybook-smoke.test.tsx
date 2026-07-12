@@ -6,6 +6,7 @@ import * as getStartedStories from "@/stories/organizer-get-started.stories";
 import * as discoverStories from "@/stories/runner-discover.stories";
 import * as moderationStories from "@/stories/admin-moderation.stories";
 import * as approvalStories from "@/stories/organizer-approval-outcomes.stories";
+import * as registerStories from "@/stories/runner-register.stories";
 
 // Smoke test: stories render through the .storybook/preview decorator chain
 // (QueryClient → Tooltip → Auth → Language → MemoryRouter) without throwing.
@@ -52,6 +53,16 @@ describe("storybook portable stories", () => {
 
   it("renders Approval Outcomes stories", () => {
     const stories = composeStories(approvalStories);
+    for (const Story of Object.values(stories)) {
+      const { unmount } = render(<Story />);
+      // Portal-based stories (dialogs) render into document.body, not the container
+      expect(document.body.textContent).not.toBe("");
+      unmount();
+    }
+  });
+
+  it("renders Register & Pay stories (route params + pinned steps)", () => {
+    const stories = composeStories(registerStories);
     for (const Story of Object.values(stories)) {
       const { unmount } = render(<Story />);
       // Portal-based stories (dialogs) render into document.body, not the container

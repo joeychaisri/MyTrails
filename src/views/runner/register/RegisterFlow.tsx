@@ -22,9 +22,16 @@ const STEPS = [
   { number: 3, title: "Confirmation" },
 ] as const;
 
+// Story-pinning props (Storybook catalog only): both optional and defaulting
+// to live behavior — the app renders <RegisterFlow /> prop-less and is unchanged.
+interface RegisterFlowProps {
+  initialStep?: 1 | 2 | 3;
+  initialRegistration?: Registration;
+}
+
 // Direction-2 registration flow (sibling of OrderTwoView's visual language):
 // orchestrator only — each step lives in its own component in this folder.
-const RegisterFlow = () => {
+const RegisterFlow = ({ initialStep, initialRegistration }: RegisterFlowProps = {}) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,13 +42,15 @@ const RegisterFlow = () => {
   // button; a direct URL visit gets inline pickers on step 1 instead.
   const routerState = (location.state ?? {}) as { categoryId?: string; ticketId?: string };
   const [showPickers] = useState(!(routerState.categoryId && routerState.ticketId));
-  const [categoryId, setCategoryId] = useState(routerState.categoryId ?? "");
-  const [ticketId, setTicketId] = useState(routerState.ticketId ?? "");
+  const [categoryId, setCategoryId] = useState(routerState.categoryId ?? initialRegistration?.categoryId ?? "");
+  const [ticketId, setTicketId] = useState(routerState.ticketId ?? initialRegistration?.ticketId ?? "");
 
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
-  const [registration, setRegistration] = useState<Registration | null>(null);
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(initialStep ?? 1);
+  const [registration, setRegistration] = useState<Registration | null>(initialRegistration ?? null);
   const [createError, setCreateError] = useState<CreateFailure | null>(null);
-  const [paidMethod, setPaidMethod] = useState<"card" | "promptpay" | null>(null);
+  const [paidMethod, setPaidMethod] = useState<"card" | "promptpay" | null>(
+    initialRegistration?.paymentMethod ?? null
+  );
 
   if (!event) {
     return (
