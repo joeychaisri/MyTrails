@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -257,6 +257,12 @@ const PublicEventPage = () => {
                     style={{ width: `${(event.sold / event.capacity) * 100}%` }}
                   />
                 </div>
+                <p className="mt-4 text-center text-xs text-muted-foreground">
+                  Already registered?{" "}
+                  <Link to="/registration/lookup" className="underline hover:text-foreground">
+                    Look up your registration
+                  </Link>
+                </p>
               </div>
             </div>
           </div>
