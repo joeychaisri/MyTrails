@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Logo from "@/components/Logo";
 import heroImage from "@/assets/hero-trail.webp";
 import { useAuth } from "@/contexts/AuthContext";
+import { dataSource } from "@/lib/dataSource";
 
 interface AuthViewProps {
   /** Story/seed only — pins the submit buttons in their "Signing in…" loading state. Defaults to idle. */
@@ -16,11 +17,25 @@ interface AuthViewProps {
 const AuthView = ({ initialLoading = false }: AuthViewProps = {}) => {
   const [isLoading, setIsLoading] = useState(initialLoading);
   const [loginEmail, setLoginEmail] = useState("");
-  const { login } = useAuth();
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [signupNotice, setSignupNotice] = useState<string | null>(null);
+  const { login, loginWithPassword } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (dataSource === "supabase") {
+      // Real auth: email+password against Supabase; role comes from the session.
+      setIsLoading(true);
+      setLoginError(null);
+      void loginWithPassword(loginEmail, loginPassword).then((res) => {
+        setIsLoading(false);
+        if (res.ok) navigate(res.role === "admin" ? "/admin" : "/dashboard");
+        else setLoginError(res.error);
+      });
+      return;
+    }
     setIsLoading(true);
     const role = loginEmail.trim().toLowerCase() === "admin@mytrails.com" ? "admin" : "organizer";
     setTimeout(() => {
@@ -28,6 +43,19 @@ const AuthView = ({ initialLoading = false }: AuthViewProps = {}) => {
       login(role);
       navigate(role === "admin" ? "/admin" : "/dashboard");
     }, 800);
+  };
+
+  // Supabase mode: self-signup is intentionally closed (organizer accounts are
+  // provisioned by the platform admin — invite model); mock keeps the demo login.
+  const handleSignup = (e: React.FormEvent) => {
+    if (dataSource === "supabase") {
+      e.preventDefault();
+      setSignupNotice(
+        "New organizer accounts are provisioned by the platform admin. Contact MyTrails to get your organization onboarded."
+      );
+      return;
+    }
+    handleSubmit(e);
   };
 
   return (
@@ -88,6 +116,8 @@ const AuthView = ({ initialLoading = false }: AuthViewProps = {}) => {
                     id="login-password"
                     type="password"
                     placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
                     required
                   />
                 </div>
@@ -98,6 +128,9 @@ const AuthView = ({ initialLoading = false }: AuthViewProps = {}) => {
                 >
                   {isLoading ? "Signing in..." : "Log In"}
                 </Button>
+                {loginError && (
+                  <p className="text-center text-sm text-destructive">{loginError}</p>
+                )}
                 <p className="text-center text-sm text-muted-foreground">
                   <a href="#" className="hover:text-primary">
                     Forgot your password?
@@ -107,7 +140,7 @@ const AuthView = ({ initialLoading = false }: AuthViewProps = {}) => {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="org-name">Organization Name</Label>
                   <Input
@@ -141,6 +174,9 @@ const AuthView = ({ initialLoading = false }: AuthViewProps = {}) => {
                 >
                   {isLoading ? "Creating account..." : "Create Account"}
                 </Button>
+                {signupNotice && (
+                  <p className="text-center text-sm text-muted-foreground">{signupNotice}</p>
+                )}
                 <p className="text-center text-sm text-muted-foreground">
                   By signing up, you agree to our{" "}
                   <a href="#" className="hover:text-primary underline">

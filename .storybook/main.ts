@@ -10,6 +10,8 @@ const config: StorybookConfig = {
     "@storybook/addon-docs",
     "@storybook/addon-mcp"
   ],
-  "framework": "@storybook/react-vite"
+  "framework": "@storybook/react-vite",
+  // The catalog documents the prototype: always mock data, never Supabase.
+  "env": (config) => ({ ...config, VITE_DATA_SOURCE: "mock" })
 };
 export default config;

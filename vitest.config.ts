@@ -9,6 +9,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // Tests always exercise the mock store, even if the shell exports
+    // VITE_DATA_SOURCE=supabase (test.env feeds import.meta.env).
+    env: { VITE_DATA_SOURCE: "mock" },
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },

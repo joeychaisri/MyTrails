@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Logo from "@/components/Logo";
 import { useEventsStore } from "@/contexts/EventsContext";
-import { RegistrationStatus } from "@/data/mockData";
+import { Registration, RegistrationStatus } from "@/data/mockData";
+import { dataSource } from "@/lib/dataSource";
+import { getSupabase } from "@/lib/supabaseClient";
+import { rpcLookupRegistration } from "@/lib/supabaseAdapter";
 import { fmtTHB } from "./RegisterFlow";
 
 // Runner-facing copy + badge style per registration status (same badge pattern
@@ -33,20 +36,27 @@ const LookupPage = () => {
   const [code, setCode] = useState("");
   // Set on submit; the match itself is derived at render so status stays live.
   const [query, setQuery] = useState<{ email: string; code: string } | null>(null);
+  // Supabase mode only: anon can't select registrations, so a fresh browser
+  // resolves the lookup through the security-definer RPC instead of the store.
+  const [remoteHit, setRemoteHit] = useState<{ registration: Registration; eventTitle: string } | null>(null);
 
-  const registration = query
+  const localMatch = query
     ? registrations.find(
         (r) => r.runner.email.trim().toLowerCase() === query.email && r.code === query.code
       )
     : undefined;
+  const registration = localMatch ?? (dataSource === "supabase" ? remoteHit?.registration : undefined);
   const event = registration ? getEvent(registration.eventId) : undefined;
   const category = event?.categories.find((c) => c.id === registration?.categoryId);
   const ticket = category?.tickets.find((t) => t.id === registration?.ticketId);
   const status = registration ? STATUS_COPY[registration.status] : undefined;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setQuery({ email: email.trim().toLowerCase(), code: normalizeCode(code) });
+    const q = { email: email.trim().toLowerCase(), code: normalizeCode(code) };
+    // Resolve the RPC before exposing the query so "not found" never flashes.
+    if (dataSource === "supabase") setRemoteHit(await rpcLookupRegistration(getSupabase(), q.email, q.code));
+    setQuery(q);
   };
 
   return (
@@ -128,7 +138,9 @@ const LookupPage = () => {
             </div>
 
             <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm space-y-1">
-              <p className="font-medium text-foreground">{event?.title ?? "Unknown event"}</p>
+              <p className="font-medium text-foreground">
+                {event?.title ?? remoteHit?.eventTitle ?? "Unknown event"}
+              </p>
               {category && ticket && (
                 <p className="text-muted-foreground">
                   {category.name} ({category.distance}K) · {ticket.name}

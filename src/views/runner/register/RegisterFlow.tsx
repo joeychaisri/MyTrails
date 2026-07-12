@@ -69,8 +69,10 @@ const RegisterFlow = ({ initialStep, initialRegistration }: RegisterFlowProps = 
   const category = event.categories.find((c) => c.id === categoryId);
   const ticket = category?.tickets.find((t) => t.id === ticketId);
 
-  const handleRunnerSubmit = (runner: RunnerInfo) => {
-    const result = createRegistration({ eventId: event.id, categoryId, ticketId, runner });
+  const handleRunnerSubmit = async (runner: RunnerInfo) => {
+    // Sync result in mock mode, a Promise in supabase mode (server-side RPC) —
+    // Promise.resolve() handles both without changing the store's signature.
+    const result = await Promise.resolve(createRegistration({ eventId: event.id, categoryId, ticketId, runner }));
     if (!result.ok) {
       setCreateError(result.reason);
       return;

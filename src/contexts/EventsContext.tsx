@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { Event, Registration, RunnerInfo, mockEvents } from "@/data/mockData";
 import { ticketWindowState } from "@/lib/eventPhase";
 import {
@@ -9,6 +10,21 @@ import {
   mockOtherEvents,
   mockPlatformSettings,
 } from "@/data/adminMockData";
+import { dataSource } from "@/lib/dataSource";
+import { getSupabase } from "@/lib/supabaseClient";
+import {
+  RegistrationRow,
+  deleteEventTree,
+  deleteTierRemote,
+  fetchAll,
+  must,
+  pushEventTree,
+  pushSettings,
+  registrationRowToRegistration,
+  upsertOrganizer,
+  upsertTiers,
+} from "@/lib/supabaseAdapter";
+import { useAuth } from "@/contexts/AuthContext";
 
 // ---------------------------------------------------------------------------
 // Shared, writable store for the whole platform. Before this, the organizer,
@@ -43,6 +59,24 @@ const loadStore = (): StoreShape => {
     // Corrupt/absent — fall through to a fresh seed.
   }
   return seedStore();
+};
+
+// Supabase mode boots empty and hydrates from the server on mount; settings
+// fall back to the mock seed values so runner pages render even if the
+// settings select is denied. No localStorage — the server IS the store.
+const emptyStore = (): StoreShape => ({
+  events: [],
+  organizers: [],
+  settings: mockPlatformSettings,
+  registrations: [],
+});
+
+// Reconcile fetched registrations with local state: server rows win by id, but
+// registrations only this browser knows about are kept — an anon runner's own
+// registration is hidden from the select by RLS yet must survive a refetch.
+const mergeRegistrations = (server: Registration[], local: Registration[]): Registration[] => {
+  const seen = new Set(server.map((r) => r.id));
+  return [...server, ...local.filter((r) => !seen.has(r.id))];
 };
 
 // Event-portion commission by number of registrations (PO spec, tunable mock):
@@ -178,15 +212,42 @@ interface EventsContextType {
 const EventsContext = createContext<EventsContextType | null>(null);
 
 export const EventsProvider = ({ children }: { children: ReactNode }) => {
-  const [store, setStore] = useState<StoreShape>(loadStore);
+  const [store, setStore] = useState<StoreShape>(dataSource === "supabase" ? emptyStore : loadStore);
+  // Auth scope drives what fetchAll can see (RLS does the real enforcement).
+  // In mock mode these are simply unused.
+  const { role, organizerId } = useAuth();
 
   useEffect(() => {
+    if (dataSource === "supabase") return; // server is the store — nothing to persist
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
     } catch {
       // Storage full/unavailable — the in-memory store still works this session.
     }
   }, [store]);
+
+  // Supabase mode: hydrate on mount and whenever the auth scope changes
+  // (login/logout swaps which slice of the tree RLS lets us read).
+  const applyFetched = () =>
+    fetchAll(getSupabase(), { isAdmin: role === "admin", organizerId }).then((fetched) =>
+      setStore((s) => ({ ...fetched, registrations: mergeRegistrations(fetched.registrations, s.registrations) }))
+    );
+
+  useEffect(() => {
+    if (dataSource !== "supabase") return;
+    applyFetched().catch((e) => console.error("[supabase] hydrate failed", e));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, organizerId]);
+
+  // Fire-and-forget remote write: run it, log failures, then refetch so the
+  // optimistic local state reconciles with the server. No-op in mock mode.
+  const remote = (write: (client: SupabaseClient) => Promise<unknown>) => {
+    if (dataSource !== "supabase") return;
+    write(getSupabase())
+      .catch((e) => console.error("[supabase] write failed", e))
+      .then(() => applyFetched())
+      .catch((e) => console.error("[supabase] refetch failed", e));
+  };
 
   // No backend/cron in this prototype: promote scheduled events to live once their
   // publishAt time passes. Runs on mount and on an interval.
@@ -211,7 +272,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
 
   // Same no-cron trick for registration holds: a pending_payment registration
   // past its expiresAt flips to expired (releasing the seat). Mount + interval.
-  const expireStaleRegistrations = (now: Date = new Date()) =>
+  const expireStaleRegistrations = (now: Date = new Date()) => {
     setStore((s) => {
       let changed = false;
       const registrations = s.registrations.map((r) => {
@@ -223,6 +284,9 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       });
       return changed ? { ...s, registrations } : s;
     });
+    // Server-side expiry (ignores the `now` override — the DB clock rules there).
+    remote(async (client) => must(await client.rpc("expire_stale_registrations")));
+  };
 
   useEffect(() => {
     expireStaleRegistrations();
@@ -231,8 +295,24 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setEvents = (fn: (prev: Event[]) => Event[]) =>
+  const setEvents = (fn: (prev: Event[]) => Event[]) => {
     setStore((s) => ({ ...s, events: fn(s.events) }));
+    if (dataSource === "supabase") {
+      // Mirror the event mutation to the server: every event mutation flows
+      // through here as a pure transform, so diffing prev vs next (by object
+      // identity per id) tells us exactly which trees to upsert or delete.
+      const prev = store.events;
+      const next = fn(prev);
+      const prevById = new Map(prev.map((e) => [e.id, e]));
+      const changed = next.filter((e) => prevById.get(e.id) !== e);
+      const removedIds = prev.filter((e) => !next.some((n) => n.id === e.id)).map((e) => e.id);
+      if (changed.length || removedIds.length)
+        remote(async (client) => {
+          for (const e of changed) await pushEventTree(client, e);
+          for (const id of removedIds) await deleteEventTree(client, id);
+        });
+    }
+  };
 
   const patchEvent = (id: string, patch: Partial<Event>) =>
     setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
@@ -275,39 +355,83 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     forceUnpublish: (id) => patchEvent(id, { status: "draft" }),
     markPayoutPaid: (id) => patchEvent(id, { payoutStatus: "paid", payoutDate: today() }),
 
-    createOrganizer: (org) =>
-      setStore((s) => ({
-        ...s,
-        organizers: [
-          { ...org, id: `org${Date.now()}`, createdAt: today(), eventsCount: 0 },
-          ...s.organizers,
-        ],
-      })),
-    suspendOrganizer: (id) =>
+    createOrganizer: (org) => {
+      const newOrganizer: AdminOrganizer = { ...org, id: `org${Date.now()}`, createdAt: today(), eventsCount: 0 };
+      setStore((s) => ({ ...s, organizers: [newOrganizer, ...s.organizers] }));
+      remote((client) => upsertOrganizer(client, newOrganizer));
+    },
+    suspendOrganizer: (id) => {
       setStore((s) => ({
         ...s,
         organizers: s.organizers.map((o) =>
           o.id === id ? { ...o, status: o.status === "active" ? "suspended" : "active" } : o
         ),
-      })),
-    saveSettings: (settings) => setStore((s) => ({ ...s, settings })),
-    addTier: (name, commissionRate) =>
+      }));
+      const org = store.organizers.find((o) => o.id === id);
+      if (org)
+        remote((client) =>
+          upsertOrganizer(client, { ...org, status: org.status === "active" ? "suspended" : "active" })
+        );
+    },
+    saveSettings: (settings) => {
+      setStore((s) => ({ ...s, settings }));
+      remote((client) => pushSettings(client, settings));
+    },
+    addTier: (name, commissionRate) => {
+      const tier: Tier = { id: `tier-${Date.now()}`, name, commissionRate };
       setStore((s) => ({
         ...s,
-        settings: { ...s.settings, tiers: [...s.settings.tiers, { id: `tier-${Date.now()}`, name, commissionRate }] },
-      })),
-    updateTier: (id, patch) =>
+        settings: { ...s.settings, tiers: [...s.settings.tiers, tier] },
+      }));
+      remote((client) => upsertTiers(client, [tier]));
+    },
+    updateTier: (id, patch) => {
       setStore((s) => ({
         ...s,
         settings: { ...s.settings, tiers: s.settings.tiers.map((t) => (t.id === id ? { ...t, ...patch } : t)) },
-      })),
-    deleteTier: (id) =>
+      }));
+      const tier = store.settings.tiers.find((t) => t.id === id);
+      if (tier) remote((client) => upsertTiers(client, [{ ...tier, ...patch }]));
+    },
+    deleteTier: (id) => {
       setStore((s) => {
         if (s.organizers.some((o) => o.tierId === id)) return s; // in use — block
         return { ...s, settings: { ...s.settings, tiers: s.settings.tiers.filter((t) => t.id !== id) } };
-      }),
+      });
+      if (!store.organizers.some((o) => o.tierId === id)) remote((client) => deleteTierRemote(client, id));
+    },
     registrations: store.registrations,
     createRegistration: (input) => {
+      if (dataSource === "supabase") {
+        // Capacity/window/duplicate checks run server-side in the RPC, which
+        // returns the same result union. This branch is async — RegisterFlow
+        // awaits it via Promise.resolve() — but the declared sync signature is
+        // kept so mock mode (and its tests/stories) stays byte-identical.
+        const promise = (async () => {
+          const { data, error } = await getSupabase().rpc("create_registration", {
+            p_event_id: input.eventId,
+            p_category_id: input.categoryId,
+            p_ticket_id: input.ticketId,
+            p_runner: input.runner,
+          });
+          if (error) {
+            console.error("[supabase] create_registration failed", error);
+            return { ok: false as const, reason: "window_closed" as const };
+          }
+          const res = data as {
+            ok: boolean;
+            reason?: "sold_out" | "window_closed" | "duplicate";
+            registration?: RegistrationRow;
+          };
+          if (!res.ok || !res.registration)
+            return { ok: false as const, reason: res.reason ?? ("window_closed" as const) };
+          const registration = registrationRowToRegistration(res.registration);
+          setStore((s) => ({ ...s, registrations: [registration, ...s.registrations] }));
+          return { ok: true as const, registration };
+        })();
+        return promise as unknown as ReturnType<EventsContextType["createRegistration"]>;
+      }
+
       const event = store.events.find((e) => e.id === input.eventId);
       const category = event?.categories.find((c) => c.id === input.categoryId);
       const ticket = category?.tickets.find((t) => t.id === input.ticketId);
@@ -346,7 +470,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     },
     // Card settles instantly → confirmed (sold +1). PromptPay stores the slip and
     // waits for the organizer → awaiting_verification (seat stays a hold).
-    confirmRegistration: (id, method, slipDataUrl) =>
+    confirmRegistration: (id, method, slipDataUrl) => {
       setStore((s) => {
         const reg = s.registrations.find((r) => r.id === id);
         if (!reg || reg.status !== "pending_payment") return s;
@@ -358,17 +482,25 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           ),
         };
         return method === "card" ? applySold(next, reg, +1) : next;
-      }),
-    failRegistration: (id) =>
+      });
+      // Server mirrors the same transition (card also bumps sold/revenue there).
+      // The slip dataURL goes straight into the text slip_path column (demo-ok).
+      remote(async (client) =>
+        must(await client.rpc("confirm_registration", { p_id: id, p_method: method, p_slip_path: slipDataUrl ?? null }))
+      );
+    },
+    failRegistration: (id) => {
       setStore((s) => ({
         ...s,
         registrations: s.registrations.map((r) =>
           r.id === id && r.status === "pending_payment" ? { ...r, status: "payment_failed" } : r
         ),
-      })),
+      }));
+      remote(async (client) => must(await client.rpc("fail_registration", { p_id: id })));
+    },
     // Organizer verdict on an uploaded slip. Approve is the single point where a
     // promptpay registration increments sold; reject cancels without selling.
-    verifySlip: (id, approve) =>
+    verifySlip: (id, approve) => {
       setStore((s) => {
         const reg = s.registrations.find((r) => r.id === id);
         if (!reg || reg.status !== "awaiting_verification") return s;
@@ -379,10 +511,12 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           ),
         };
         return approve ? applySold(next, reg, +1) : next;
-      }),
+      });
+      remote(async (client) => must(await client.rpc("verify_slip", { p_id: id, p_approve: approve })));
+    },
     // Cancel a confirmed registration: seat released, refundPct% of the amount
     // accrues to the event's refundedAmount (feeds eventFinance).
-    cancelRegistration: (id, refundPct) =>
+    cancelRegistration: (id, refundPct) => {
       setStore((s) => {
         const reg = s.registrations.find((r) => r.id === id);
         if (!reg || reg.status !== "confirmed") return s;
@@ -398,10 +532,41 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
             e.id === reg.eventId ? { ...e, refundedAmount: (e.refundedAmount ?? 0) + refund } : e
           ),
         };
-      }),
+      });
+      if (dataSource === "supabase") {
+        // No RPC for cancel — the organizer/admin session updates the rows
+        // directly (their RLS allows it): registration → refunded, seat back,
+        // refund accrued on the event.
+        const reg = store.registrations.find((r) => r.id === id && r.status === "confirmed");
+        if (!reg) return;
+        const event = store.events.find((e) => e.id === reg.eventId);
+        const ticket = event?.categories
+          .find((c) => c.id === reg.categoryId)
+          ?.tickets.find((t) => t.id === reg.ticketId);
+        const refund = Math.round((reg.amount * refundPct) / 100);
+        remote(async (client) => {
+          must(await client.from("registrations").update({ status: "refunded" }).eq("id", id));
+          if (ticket) must(await client.from("tickets").update({ sold: ticket.sold - 1 }).eq("id", reg.ticketId));
+          if (event)
+            must(
+              await client
+                .from("events")
+                .update({ sold: event.sold - 1, refunded_amount: (event.refundedAmount ?? 0) + refund })
+                .eq("id", reg.eventId)
+            );
+        });
+      }
+    },
     expireStaleRegistrations,
 
-    resetStore: () => setStore(seedStore()),
+    resetStore: () => {
+      if (dataSource === "supabase") {
+        // Server owns the data — "reset" just re-syncs local state from it.
+        applyFetched().catch((e) => console.error("[supabase] refetch failed", e));
+        return;
+      }
+      setStore(seedStore());
+    },
   };
 
   return <EventsContext.Provider value={value}>{children}</EventsContext.Provider>;
