@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Calendar, Users, DollarSign, LogOut, User, ChevronDown, CreditCard, Shield } from "lucide-react";
+import { Plus, Calendar, Users, DollarSign, LogOut, User, ChevronDown, CreditCard, Shield, Bell, Mail } from "lucide-react";
 import Logo from "@/components/Logo";
 import EventCard from "@/components/EventCard";
 import StatsCard from "@/components/StatsCard";
@@ -23,6 +23,7 @@ import EventActionDialog, { EventActionMode } from "@/components/event/EventActi
 import DateRangeFilter, { DateFilterOption } from "@/components/DateRangeFilter";
 import { Event, UserProfile, PaymentInfo } from "@/data/mockData";
 import { useEventsStore } from "@/contexts/EventsContext";
+import { useNotifications } from "@/hooks/data/useNotifications";
 import { useOrganizerProfile } from "@/hooks/data/useOrganizerProfile";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,12 +34,15 @@ interface DashboardViewProps {
   initialProfileModalOpen?: boolean;
   /** Story/seed only — opens the Payment modal on mount. Defaults to closed. */
   initialPaymentModalOpen?: boolean;
+  /** Story/seed only — opens the notification bell dropdown on mount. Defaults to closed. */
+  initialNotificationsOpen?: boolean;
 }
 
 const DashboardView = ({
   initialTab = "all",
   initialProfileModalOpen = false,
   initialPaymentModalOpen = false,
+  initialNotificationsOpen = false,
 }: DashboardViewProps = {}) => {
   const navigate = useNavigate();
   const { logout, organizerId } = useAuth();
@@ -54,6 +58,7 @@ const DashboardView = ({
   // matching the route's default-to-organizer behaviour.
   const scopeId = organizerId ?? "org1";
   const events = store.events.filter((e) => e.organizerId === scopeId);
+  const notifications = useNotifications(scopeId);
   const [profile, setProfile] = useState<UserProfile>(organizerAccount.profile);
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(organizerAccount.paymentInfo);
   const [profileModalOpen, setProfileModalOpen] = useState(initialProfileModalOpen);
@@ -132,6 +137,40 @@ const DashboardView = ({
               <Plus className="mr-2 h-4 w-4" />
               Create New Event
             </Button>
+
+            {/* Notification center — derived from the store, mirrored as mock
+                emails on /organizer/outbox. */}
+            <DropdownMenu defaultOpen={initialNotificationsOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
+                  <Bell className="h-5 w-5" />
+                  {notifications.length > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+                      {notifications.length}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 bg-popover">
+                {notifications.length === 0 ? (
+                  <DropdownMenuItem disabled className="text-muted-foreground">
+                    You're all caught up
+                  </DropdownMenuItem>
+                ) : (
+                  notifications.map((n) => (
+                    <DropdownMenuItem key={n.id} className="flex flex-col items-start gap-0.5">
+                      <span className="text-sm font-medium text-foreground">{n.title}</span>
+                      <span className="w-full truncate text-xs text-muted-foreground">{n.body}</span>
+                    </DropdownMenuItem>
+                  ))
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/organizer/outbox")}>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Open email outbox
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

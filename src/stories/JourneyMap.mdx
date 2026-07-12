@@ -28,7 +28,9 @@ behavior; the PO uses it to verify every business rule has a visible surface.
    Publishing → Review & Submit) plus the Drafts tab.
 6. **Approval Outcomes** — the state machine: `pending_review` → `live` / `scheduled` /
    `rejected` (reason shown in the edit wizard, resubmit loop). Editing a live or
-   scheduled event drops it back to `pending_review`.
+   scheduled event drops it back to `pending_review`. Every outcome (plus payout and
+   registration activity) also surfaces in the dashboard's notification bell and as a
+   mock email on the outbox page (`/organizer/outbox`).
 
 **Act 3 — Organizer: running a live event**
 

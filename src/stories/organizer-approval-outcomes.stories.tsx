@@ -2,6 +2,7 @@ import type { StoryFn as Story } from "@storybook/react-vite";
 import { Routes, Route } from "react-router-dom";
 import DashboardView from "@/views/organizer/DashboardView";
 import EventWizard from "@/views/organizer/EventWizard";
+import OutboxPage from "@/views/organizer/OutboxPage";
 
 // Journey 6 · Organizer — Approval Outcomes
 // The approval state machine from the organizer's seat:
@@ -29,3 +30,13 @@ export const RejectedEdit: Story = () => (
   </Routes>
 );
 RejectedEdit.storyName = "Edit rejected event (reason banner + resubmit)";
+
+// Every approval outcome also lands in the header bell (in-app notification
+// center, derived from the store) and as a mock email on /organizer/outbox.
+export const NotificationCenter: Story = () => <DashboardView initialNotificationsOpen />;
+NotificationCenter.storyName = "Notification center (open)";
+
+// OutboxPage falls back to the demo organizer (org1) when the auth context has
+// no organizerId — same behavior as the dashboard — so it renders directly.
+export const EmailOutbox: Story = () => <OutboxPage />;
+EmailOutbox.storyName = "Email outbox";

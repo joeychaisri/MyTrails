@@ -11,6 +11,7 @@ import AuthView from "./views/organizer/AuthView";
 import DashboardView from "./views/organizer/DashboardView";
 import EventManagerHub from "./views/organizer/EventManagerHub";
 import EventWizard from "./views/organizer/EventWizard";
+import OutboxPage from "./views/organizer/OutboxPage";
 import PublicEventPage from "./views/organizer/PublicEventPage";
 import AdminDashboard from "./views/AdminDashboard";
 import AdminEventReview from "./views/admin/AdminEventReview";
@@ -65,6 +66,7 @@ const App = () => (
                 {/* Organizer portal */}
                 <Route path="/organizer/login" element={<AuthView />} />
                 <Route path="/organizer/dashboard" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />
+                <Route path="/organizer/outbox" element={<ProtectedRoute><OutboxPage /></ProtectedRoute>} />
                 <Route path="/organizer/events/new" element={<ProtectedRoute><EventWizard /></ProtectedRoute>} />
                 <Route path="/organizer/events/:id/edit" element={<ProtectedRoute><EventWizard /></ProtectedRoute>} />
                 <Route path="/organizer/events/:id/:section" element={<ProtectedRoute><EventManagerHub /></ProtectedRoute>} />
