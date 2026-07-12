@@ -225,7 +225,16 @@ const PublicEventPage = () => {
                     </div>
                   )}
 
-                  <Button className="w-full" size="lg" disabled={!selectedTicket}>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    disabled={!selectedTicket}
+                    onClick={() =>
+                      navigate(`/events/${event.id}/register`, {
+                        state: { categoryId: selectedCategory, ticketId: selectedTicket },
+                      })
+                    }
+                  >
                     Register
                   </Button>
                 </div>

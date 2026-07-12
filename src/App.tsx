@@ -16,6 +16,8 @@ import AdminDashboard from "./views/AdminDashboard";
 import AdminEventReview from "./views/admin/AdminEventReview";
 import RunnerLandingPage from "./views/runner/RunnerLandingPage";
 import PongYaengTrailPage from "./views/runner/pyt-landing/PongYaengTrailPage";
+import RegisterFlow from "./views/runner/register/RegisterFlow";
+import PdpaPage from "./views/runner/register/PdpaPage";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +49,8 @@ const App = () => (
                 <Route path="/" element={<RunnerLandingPage />} />
                 <Route path="/events/pong-yaeng-trail-2026" element={<PongYaengTrailPage />} />
                 <Route path="/events/:id/preview" element={<PublicEventPage />} />
+                <Route path="/events/:id/register" element={<RegisterFlow />} />
+                <Route path="/pdpa" element={<PdpaPage />} />
 
                 {/* Organizer portal */}
                 <Route path="/organizer/login" element={<AuthView />} />
