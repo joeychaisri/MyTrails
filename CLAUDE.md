@@ -16,7 +16,7 @@ Trail running event platform for Thailand. Two distinct sides: **Organizer** (ev
 ```bash
 npm run dev      # local dev server → https://localhost:8080 (NOT proxied to the domain anymore)
 npm run build    # production build → dist/  ← THIS is what mytrails.theingress.co serves
-# deploy = npm run build (Caddy serves dist/ statically with SPA fallback; mytrails.service retired 2026-07-11)
+# deploy = VITE_DATA_SOURCE=supabase npm run build  ← LIVE SITE RUNS SUPABASE since 2026-07-12 (plain build = mock mode)
 npm run test     # vitest unit tests
 npm run typecheck # type check only (tsc -p tsconfig.app.json --noEmit — plain `npx tsc --noEmit` checks NOTHING because root tsconfig has files:[])
 npm run storybook        # dev hand-off catalog (Storybook) → http://localhost:6006
@@ -139,8 +139,7 @@ Scope today: landing page + Calendar. Same pattern extends to other pages, and i
 
 ## Backend (Supabase) — behind a flag ⭐
 
-`VITE_DATA_SOURCE=mock|supabase` (src/lib/dataSource.ts, **default mock** — the live site
-runs mock until Joey flips it). Supabase project `mytrails` (dtmaoyuodcmnefdutipn,
+`VITE_DATA_SOURCE=mock|supabase` (src/lib/dataSource.ts, default mock for dev/tests/storybook; **the LIVE site is built with supabase since 2026-07-12** — deploy with `VITE_DATA_SOURCE=supabase npm run build`). Supabase project `mytrails` (dtmaoyuodcmnefdutipn,
 ap-southeast-1): Postgres schema mirroring the store 1:1, registration flow enforced
 server-side via RPCs (create/confirm/verify_slip/lookup — capacity, sale windows,
 duplicates, 15-min holds), RLS (anon = live events only; organizer = own tree via
@@ -148,8 +147,7 @@ auth.uid(); admin = jwt app_metadata.role), Storage buckets covers/slips.
 - Env: `.env.local` (gitignored) has VITE_SUPABASE_URL/_ANON_KEY; service_role +
   demo passwords (admin@mytrails.com, somchai@trailevents.co.th) in `~/.env.secrets`.
 - Seed/reset DB: `set -a; source ~/.env.secrets; set +a; npx tsx scripts/seed-supabase.ts`
-- Build supabase mode: `VITE_DATA_SOURCE=supabase npm run build` (to go live on real DB,
-  run that instead of plain build). Storybook + vitest are pinned to mock.
+- Server-side time logic: pg_cron in the DB runs tick_scheduled_events (*/5 min, scheduled→live at publishAt) + tick_payouts (daily). VPS cron 02:40 UTC runs ~/scripts/mytrails-ops.sh (backups, keep 7). Storybook + vitest pinned to mock.
 - Adapter internals: src/lib/supabaseAdapter.ts; EventsContext/AuthContext branch on
   dataSource at the edges only. `hydrated` flag on the store distinguishes loading vs
   not-found for deep links (async hydration).
