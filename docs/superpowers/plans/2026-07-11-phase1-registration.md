@@ -36,8 +36,8 @@ expireStaleRegistrations(now?: Date): void;           // pending_payment past ex
 ```
 Rules: `createRegistration` re-checks `ticketWindowState` + remaining capacity counting non-expired/non-failed registrations for that ticket, sets `expiresAt = now+15min`, generates unique code `MT-` + 6 alphanum; duplicate = same email+eventId with status not in (expired, payment_failed, cancelled) → reason "duplicate". `confirmRegistration`/`verifySlip(approve)` increment `ticket.sold`+`event.sold` exactly once (on confirmed). Refund decrements sold and sets refundedAmount on the event.
 
-- [ ] Write failing tests covering: happy card path (sold +1), promptpay path (awaiting → verify → confirmed sold +1; reject → cancelled sold +0), sold-out rejection, window_closed rejection, duplicate rejection, expiry releases the hold, cancel with refundPct updates event.refundedAmount.
-- [ ] Implement; all tests green; STORAGE_KEY → v9; commit `feat(store): registration domain with capacity holds and slip verification`.
+- [x] Write failing tests covering: happy card path (sold +1), promptpay path (awaiting → verify → confirmed sold +1; reject → cancelled sold +0), sold-out rejection, window_closed rejection, duplicate rejection, expiry releases the hold, cancel with refundPct updates event.refundedAmount.
+- [x] Implement; all tests green; STORAGE_KEY → v9; commit `feat(store): registration domain with capacity holds and slip verification`.
 
 ### Task 2: Payment providers
 
@@ -51,36 +51,36 @@ export interface PaymentProvider { id: "card" | "promptpay"; confirmCard?(input:
 ```
 stripeMock.confirmCard: strip spaces; `4242424242424242` → succeeded (after 1.5-2s delay); `4000000000000002` → failed "Your card was declined."; `4000000000009995` → failed "Insufficient funds."; luhn-invalid/short → failed "Invalid card number."; other valid-luhn → succeeded. promptpayMock: exports a deterministic fake QR payload string builder `promptpayQR(amount, code)`.
 
-- [ ] Failing tests for each card outcome (use vi.useFakeTimers or await with real short delay ≤50ms in test mode via injectable delay); implement; green; commit `feat(payments): Stripe-shaped mock provider + PromptPay mock`.
+- [x] Failing tests for each card outcome (use vi.useFakeTimers or await with real short delay ≤50ms in test mode via injectable delay); implement; green; commit `feat(payments): Stripe-shaped mock provider + PromptPay mock`.
 
 ### Task 3: Landing + runner data from the store
 
 **Files:** Modify `src/views/runner/runnerEvents.ts` (adapter), check `RunnerLandingPage.tsx` + `CalendarView.tsx` imports still work. 
 
 Replace `MOCK_EVENTS` export with `useRunnerEvents(): RunnerEvent[]` hook reading `useEventsStore()` — map live events only: image = `coverImage || heroImage fallback`, region from a province→region map (Chiang Mai/Chiang Rai/Mae Hong Son/Loei→north, Kanchanaburi/Nakhon Ratchasima/Bangkok→central, Krabi/Surat Thani/Phuket→south…), distances from categories (`${distance}K`), price = min ticket price, tag: phase registration_open→"Open", upcoming→"Coming Soon", sold out→"Sold Out", closed/ongoing/finished→"Closed". Keep the `RunnerEvent` interface EXACTLY — the landing/calendar components must not change visually. Card click / Register → navigate `/events/{id}/preview` (PYT keeps its bespoke route via slug match if id === "pyt" seed... check how the PYT card links today and preserve it).
-- [ ] Implement; typecheck+tests; browser-verify landing shows store events with covers, EN/TH toggle still fine; build; commit `feat(runner): landing + calendar read the shared store`.
+- [x] Implement; typecheck+tests; browser-verify landing shows store events with covers, EN/TH toggle still fine; build; commit `feat(runner): landing + calendar read the shared store`.
 
 ### Task 4: Registration flow UI (Direction 2)
 
 **Files:** Create `src/views/runner/register/RegisterFlow.tsx` (+ small step components in same folder), route `/events/:id/register` in `App.tsx`; wire PublicEventPage "Register" button → navigate with selected category/ticket (router state). Reference design: `src/views/OrderTwoView.tsx` — reuse its layout patterns/components; shadcn primitives ok.
 
 Steps: (1) Runner form — all RunnerInfo fields, validation inline (email confirm match, DOB age ≥18 for distances ≥50K else block with message, required PDPA checkbox linking to `/pdpa` static text page (create simple page, same typographic style as PublicEventPage sections)); (2) Payment — method toggle Card | PromptPay: Card = Stripe-checkout-styled form (test-card hint text visible: "demo: 4242 4242 4242 4242"), decline keeps data + shows provider message; PromptPay = QR + slip file upload (accept image, store dataURL); (3) Confirmation — big `MT-XXXXXX` code, status confirmed (card) or awaiting_verification (promptpay), link to lookup page. Countdown chip showing hold expiry (15 min) during steps 1-2.
-- [ ] Implement; typecheck+tests; **browser e2e**: full card path on a live event → code shown; decline path; promptpay path leaves awaiting_verification; sold-out event blocks with message; build; commit `feat(runner): Direction-2 registration flow with mock payments`.
+- [x] Implement; typecheck+tests; **browser e2e**: full card path on a live event → code shown; decline path; promptpay path leaves awaiting_verification; sold-out event blocks with message; build; commit `feat(runner): Direction-2 registration flow with mock payments`.
 
 ### Task 5: Lookup page
 
 **Files:** Create `src/views/runner/register/LookupPage.tsx`, route `/registration/lookup`. Form: email + code → show registration status card (status badge text per RegistrationStatus, event title, category, amount); not found → muted error. Link from confirmation page + PublicEventPage footer line.
-- [ ] Implement; browser-verify found + not-found; commit `feat(runner): registration lookup by email + code`.
+- [x] Implement; browser-verify found + not-found; commit `feat(runner): registration lookup by email + code`.
 
 ### Task 6: Organizer sees real registrations
 
 **Files:** Modify `src/hooks/data/useParticipants.ts` + `useOrders.ts` (source from store registrations for the event, falling back to legacy mock rows so existing stories/tests stay alive), `src/views/organizer/event-manager/OrdersSection.tsx` (add "Slip verification" queue: registrations awaiting_verification with slip preview + Approve/Reject via verifySlip), `ParticipantsSection.tsx` (real registrations rows + CSV export button — build CSV from RunnerInfo fields, download via blob).
-- [ ] Implement; tests (extend registration.test with a hooks-level read if cheap); browser-verify: register in one tab → appears in organizer Participants + slip queue approve flips status; commit `feat(organizer): live registrations, slip queue, CSV export`.
+- [x] Implement; tests (extend registration.test with a hooks-level read if cheap); browser-verify: register in one tab → appears in organizer Participants + slip queue approve flips status; commit `feat(organizer): live registrations, slip queue, CSV export`.
 
 ### Task 7: Storybook + catalog updates
 
 **Files:** Create `src/stories/runner-register.stories.tsx` — title `Runner/3 · Register & Pay`: form step (seeded), payment card, payment promptpay, confirmation, lookup found. Add slip-queue story into `organizer-get-paid.stories.tsx`. DELETE `src/views/OrderThreeView.tsx` + remove Direction stories from `experiments-order-flows.stories.tsx` (keep Direction 2 reference story until RegisterFlow fully supersedes it — then delete file + OrderTwoView… decision: keep OrderTwoView.tsx as reference this phase, delete OrderThreeView). Update `.storybook/preview.tsx` storySort (insert '3 · Register & Pay') and `JourneyMap.mdx` (J3 no longer reserved).
-- [ ] Implement; `npm run storybook:deploy`; browser-verify /journey/ new journey renders; commit `feat(handoff): Journey 3 stories — register & pay`.
+- [x] Implement; `npm run storybook:deploy`; browser-verify /journey/ new journey renders; commit `feat(handoff): Journey 3 stories — register & pay`.
 
 ### Task 8: Phase wrap
-- [ ] Full suite + build + deploy both artifacts; tick Phase 1 in `PLAN-realistic.md`; push; update project CLAUDE.md (routes table + registration section, payment lib note).
+- [x] Full suite + build + deploy both artifacts; tick Phase 1 in `PLAN-realistic.md`; push; update project CLAUDE.md (routes table + registration section, payment lib note).

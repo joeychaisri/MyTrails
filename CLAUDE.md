@@ -62,6 +62,9 @@ doesn't have).
 | `/` | Runner | `RunnerLandingPage` — platform home, browse events |
 | `/events/pong-yaeng-trail-2026` | Runner | `PongYaengTrailPage` — PYT 2026 event landing |
 | `/events/:id/preview` | Runner | `PublicEventPage` — generic event preview |
+| `/events/:id/register` | Runner | `RegisterFlow` — Direction-2 registration (form → mock payment → `MT-XXXXXX` code) |
+| `/registration/lookup` | Runner | `LookupPage` — guest lookup by email + code |
+| `/pdpa` | Runner | `PdpaPage` — PDPA consent notice (TH+EN) |
 | `/organizer/login` | Organizer | `AuthView` |
 | `/organizer/dashboard` | Organizer | `DashboardView` |
 | `/organizer/events/new` | Organizer | `EventWizard` |
@@ -88,20 +91,22 @@ src/
 │   │   PublicEventPage.tsx
 │   │   event-manager/        # OrdersSection, ParticipantsSection, BibSection, PromotionsSection, Overview*Section, orderConstants
 │   ├── admin/               # AdminOverview, AdminEventApprovals, AdminEventReview, AdminFinancials, AdminUserManagement, AdminSettings
-│   ├── OrderTwoView.tsx      # order-flow UX experiments (Direction 2/3) — pending decision, do not invest
-│   ├── OrderThreeView.tsx
+│   ├── OrderTwoView.tsx      # Direction-2 order-flow reference (ADOPTED — RegisterFlow was built from it; Direction 3 deleted)
 │   └── runner/
-│       ├── RunnerLandingPage.tsx     # platform home
+│       ├── RunnerLandingPage.tsx     # platform home — reads the store via useRunnerEvents()
 │       ├── RunnerComponents.tsx      # Button, Logo, I, IconDisc, ProgressBar
+│       ├── runnerEvents.ts           # RunnerEvent adapter: store live events → landing/calendar cards
+│       ├── register/                 # RegisterFlow + steps, LookupPage, PdpaPage (Journey 3)
 │       └── pyt-landing/
 │           ├── PongYaengTrailPage.tsx
 │           ├── hero-styles.css
 │           ├── landing-styles.css
 │           └── design-system/colors_and_type.css
 ├── components/ui/          # shadcn/ui primitives
-├── data/mockData.ts        # Event/Category/Ticket types + seed events (org1) + makeCategory factory
+├── data/mockData.ts        # Event/Category/Ticket + Registration/RunnerInfo types + seed events (org1) + makeCategory factory
 ├── data/adminMockData.ts   # Tier/AdminOrganizer/PlatformSettings + seed organizers & other-org events
-├── lib/                    # refundPolicy, distanceChangePolicy (unit-tested)
+├── lib/                    # refundPolicy, distanceChangePolicy, eventPhase (all unit-tested)
+├── lib/payments/           # PaymentProvider seam: stripeMock (test-card semantics: 4242… ok, …0002 declined, …9995 insufficient), promptpayMock (QR payload + slip). Real Stripe later = stripeReal.ts implementing the same interface
 └── index.css               # Tailwind + --mt-* design token aliases
 ```
 
@@ -155,6 +160,19 @@ draft → pending_review → (admin approves) ─┬→ live         (publishMod
 - **Admin does NOT manually publish.** On approve, the organizer's publish choice decides go-live: ASAP → `live`; scheduled → `scheduled`, then the store auto-promotes to `live` at `publishAt` (checked on load + interval — no real cron).
 - **No cancellation flow.** Organizers cannot cancel a published event. Admin's **Force Unpublish** (`live`/`scheduled` → `draft`) is the only takedown.
 - **Rejection reason** is shown to the organizer only in the edit wizard (not on the dashboard card); an **Action Needed** dashboard tab surfaces rejected events.
+
+## Runner registration (Journey 3)
+
+`RegisterFlow` (`/events/:id/register`, built from the adopted OrderTwoView direction):
+runner form (full RunnerInfo incl. PDPA consent; 18+ enforced for categories ≥50K) →
+payment (Card via `stripeMock` — decline keeps the form retryable — or PromptPay QR +
+slip upload) → confirmation code `MT-XXXXXX`. Store side (`EventsContext`):
+`createRegistration` re-checks capacity + `ticketWindowState` and holds a seat for
+15 min (`expireStaleRegistrations` releases it); card confirm increments `sold`
+immediately; PromptPay lands in `awaiting_verification` until the organizer's
+**Slip verification queue** (Orders section) approves/rejects (`verifySlip`).
+Confirmed runners appear in Participants (CSV export available). Guest model — no
+runner login; lookup by email + code at `/registration/lookup`.
 
 ## Commission model (2 parts)
 
