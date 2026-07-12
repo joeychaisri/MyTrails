@@ -11,12 +11,29 @@ import {
 import { ArrowLeft, Calendar, MapPin, Mountain, Clock, Award, ChevronDown } from "lucide-react";
 import Logo from "@/components/Logo";
 import { useEvent } from "@/hooks/data/useEvents";
+import { useEventsStore } from "@/contexts/EventsContext";
 import { eventPhase, ticketWindowState } from "@/lib/eventPhase";
 import { format } from "date-fns";
 import heroImage from "@/assets/hero-trail.webp";
 import { useState } from "react";
 
+// Guard wrapper: supabase mode hydrates async — deep links must not crash
+// before the store arrives. Hooks live in PageBody to keep hook order stable.
 const PublicEventPage = () => {
+  const { id } = useParams<{ id: string }>();
+  const { data: maybeEvent } = useEvent(id);
+  const { hydrated } = useEventsStore();
+  if (!maybeEvent) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground">{hydrated ? "Event not found" : "Loading event…"}</p>
+      </div>
+    );
+  }
+  return <PageBody />;
+};
+
+const PageBody = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const onBack = () => navigate(-1);

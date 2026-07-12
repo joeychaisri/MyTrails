@@ -34,7 +34,7 @@ excluded from "real" scope).
   - [x] 0.2 Time-aware event phases (`src/lib/eventPhase.ts`, 10 tests) — wired into PublicEventPage panel + ticket rows. NOTE for Joey: landing-page cards intentionally untouched (visual design of a closed-event card is a UX call — ask Joey in Phase 1)
   - [x] 0.3 Rich seed data — 17 events / 5 organizers, 16 local cover photos (LoremFlickr, public/covers/), sale windows on new events, STORAGE_KEY→v8. Verified live: covers render, Early Bird "Sales ended" vs Regular open on ae6, finished state on ae5, 0 console errors
 - [x] **Phase 1 — Runner registration (Direction 2) on the mock store** — COMPLETE 2026-07-12: store domain (holds/expiry/slip verify), payments lib, landing→store rewire (done as part of this phase, cards now navigate), RegisterFlow + PDPA + lookup, organizer slip queue + CSV, Journey 3 stories (59 total). E2E-verified in real browser: card decline→retry→MT code; slip approve→participant; 0 console errors
-- [ ] **Phase 2 — Supabase backend**
+- [x] **Phase 2 — Supabase backend** — COMPLETE 2026-07-12 (project mytrails: schema+RPC+RLS+storage+seed+adapters behind VITE_DATA_SOURCE flag; e2e verified vs live Postgres; live site intentionally still on mock — flip is one build command, waiting for Joey)
 - [ ] **Phase 3 — Ops realism**
 
 ## Phase specs (write detailed plan per phase before executing)

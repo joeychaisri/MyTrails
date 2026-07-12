@@ -171,6 +171,8 @@ const applySold = (s: StoreShape, reg: Registration, delta: number): StoreShape 
 });
 
 interface EventsContextType {
+  /** false only in supabase mode before the first fetch resolves */
+  hydrated: boolean;
   events: Event[];
   organizers: AdminOrganizer[];
   settings: PlatformSettings;
@@ -228,14 +230,21 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
 
   // Supabase mode: hydrate on mount and whenever the auth scope changes
   // (login/logout swaps which slice of the tree RLS lets us read).
+  // `hydrated` lets views distinguish "still loading" from "really not found"
+  // when they deep-link into an entity (mock mode is synchronous, so always true).
+  const [hydrated, setHydrated] = useState(dataSource !== "supabase");
   const applyFetched = () =>
-    fetchAll(getSupabase(), { isAdmin: role === "admin", organizerId }).then((fetched) =>
-      setStore((s) => ({ ...fetched, registrations: mergeRegistrations(fetched.registrations, s.registrations) }))
-    );
+    fetchAll(getSupabase(), { isAdmin: role === "admin", organizerId }).then((fetched) => {
+      setStore((s) => ({ ...fetched, registrations: mergeRegistrations(fetched.registrations, s.registrations) }));
+      setHydrated(true);
+    });
 
   useEffect(() => {
     if (dataSource !== "supabase") return;
-    applyFetched().catch((e) => console.error("[supabase] hydrate failed", e));
+    applyFetched().catch((e) => {
+      console.error("[supabase] hydrate failed", e);
+      setHydrated(true); // unblock views; they render not-found rather than spin forever
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, organizerId]);
 
@@ -330,6 +339,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const value: EventsContextType = {
+    hydrated,
     events: store.events,
     organizers: store.organizers,
     settings: store.settings,

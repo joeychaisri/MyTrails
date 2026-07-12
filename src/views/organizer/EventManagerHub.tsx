@@ -30,6 +30,7 @@ import OrderTwoView from "@/views/OrderTwoView";
 import StatusBadge from "@/components/StatusBadge";
 import { Order, Participant, DiscountCode } from "@/data/mockData";
 import { useEvent } from "@/hooks/data/useEvents";
+import { useEventsStore } from "@/contexts/EventsContext";
 import { useOrders } from "@/hooks/data/useOrders";
 import { useParticipants } from "@/hooks/data/useParticipants";
 import { useDiscountCodes } from "@/hooks/data/useDiscountCodes";
@@ -57,7 +58,24 @@ const sidebarItems: { id: HubSection; label: string; icon: typeof BarChart3 }[] 
 
 const COLORS = ["#E85D04", "#F97316", "#FB923C", "#34D399", "#6EE7B7"];
 
+// Guard wrapper: in supabase mode the store hydrates async, so a deep link can
+// render before the event exists. Hooks live in HubBody so the early return
+// here never changes hook order.
 const EventManagerHub = () => {
+  const { id } = useParams<{ id: string; section: string }>();
+  const { data: maybeEvent } = useEvent(id);
+  const { hydrated } = useEventsStore();
+  if (!maybeEvent) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground">{hydrated ? "Event not found" : "Loading event…"}</p>
+      </div>
+    );
+  }
+  return <HubBody />;
+};
+
+const HubBody = () => {
   const { id, section } = useParams<{ id: string; section: string }>();
   const navigate = useNavigate();
   const { data: maybeEvent } = useEvent(id);

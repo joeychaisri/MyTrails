@@ -137,6 +137,23 @@ Scope today: landing page + Calendar. Same pattern extends to other pages, and i
 
 `AuthContext` stores `role` + `organizerId` in `localStorage` (mock). Login is decided by the email only (see table). Any non-admin login maps to the demo organizer **org1** (Trail Events Co.).
 
+## Backend (Supabase) — behind a flag ⭐
+
+`VITE_DATA_SOURCE=mock|supabase` (src/lib/dataSource.ts, **default mock** — the live site
+runs mock until Joey flips it). Supabase project `mytrails` (dtmaoyuodcmnefdutipn,
+ap-southeast-1): Postgres schema mirroring the store 1:1, registration flow enforced
+server-side via RPCs (create/confirm/verify_slip/lookup — capacity, sale windows,
+duplicates, 15-min holds), RLS (anon = live events only; organizer = own tree via
+auth.uid(); admin = jwt app_metadata.role), Storage buckets covers/slips.
+- Env: `.env.local` (gitignored) has VITE_SUPABASE_URL/_ANON_KEY; service_role +
+  demo passwords (admin@mytrails.com, somchai@trailevents.co.th) in `~/.env.secrets`.
+- Seed/reset DB: `set -a; source ~/.env.secrets; set +a; npx tsx scripts/seed-supabase.ts`
+- Build supabase mode: `VITE_DATA_SOURCE=supabase npm run build` (to go live on real DB,
+  run that instead of plain build). Storybook + vitest are pinned to mock.
+- Adapter internals: src/lib/supabaseAdapter.ts; EventsContext/AuthContext branch on
+  dataSource at the edges only. `hydrated` flag on the store distinguishes loading vs
+  not-found for deep links (async hydration).
+
 ## Data & the shared store ⭐
 
 Data is still mock (this is a prototype), but it now lives in a **single writable store** — `src/contexts/EventsContext.tsx` (`EventsProvider`), backed by `localStorage` (key `mt_store_vN`). All three sides read/write the same store, so an organizer action reflects on the admin side and vice-versa.
