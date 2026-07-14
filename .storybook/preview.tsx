@@ -57,6 +57,7 @@ const preview: Preview = {
       // The 12-journey hand-off map. See the Journey Map docs page.
       storySort: {
         order: [
+          'Build Status',
           'Journey Map',
           'Runner',
           ['1 · Discover Events', '2 · Explore an Event', '3 · Register & Pay'],

@@ -54,6 +54,10 @@ doesn't have).
   mode) are pinned with `<Routes location="...">` instead — never nest a second Router.
 - Stories render-tested in jsdom via portable stories (`src/test/storybook-smoke.test.tsx`);
   portal-only stories (bare dialogs) must assert on `document.body`, not the container.
+- **Build Status page** (`src/stories/BuildStatus.mdx`, first in the sidebar) is the
+  dev-facing sign-off board: per-journey 🟢 Locked / 🟡 Tentative / 🔴 Draft + last-updated.
+  Joey owns the status values — update this page whenever a UI gets confirmed/changed.
+- MDX docs pages: use **HTML `<table>`**, not GFM markdown tables (Storybook MDX won't render pipe tables).
 
 ## Route Structure
 

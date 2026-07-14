@@ -1,0 +1,169 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Build Status" />
+
+# 🚦 Build Status — UI ไหนสร้างตามได้เลย
+
+**สำหรับ Dev: อ่านหน้านี้ก่อนเริ่มทำ UI ใดๆ** — บอกว่าแต่ละส่วนของ MyTrails ผ่านการยืนยัน
+กับ Joey (UX owner) / ผู้ใช้ แค่ไหนแล้ว จะได้ไม่ต้องถามกันไปมาว่า "อันนี้ทำได้หรือยัง" ดูสถานะ
+ที่นี่ก่อน แล้วค่อยไปดูรายละเอียดหน้าจอใน [Journey Map](?path=/docs/journey-map--docs)
+และ [Design System](?path=/docs/design-system-overview--docs)
+
+_ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าของสถานะ: **Joey** (แก้ได้ที่ `src/stories/BuildStatus.mdx`
+แล้ว `npm run storybook:deploy`)_
+
+## ความหมายของสถานะ
+
+<table>
+  <thead>
+    <tr><th>สถานะ</th><th>แปลว่า</th><th>Dev ควรทำยังไง</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>🟢 <strong>Locked</strong></td>
+      <td>ยืนยันแล้ว อิงได้ 100%</td>
+      <td>สร้างตาม Storybook + Design System ได้เลย</td>
+    </tr>
+    <tr>
+      <td>🟡 <strong>Tentative</strong></td>
+      <td>คุยแล้วค่อนข้างมั่นใจ แต่ยังไม่ final</td>
+      <td>เริ่มได้ แต่เผื่อ layout/detail ปรับ — เช็คกับ Joey ก่อน lock จริง</td>
+    </tr>
+    <tr>
+      <td>🔴 <strong>Draft</strong></td>
+      <td>ยังไม่ยืนยันกับผู้ใช้เลย</td>
+      <td><strong>อย่าเพิ่งลงมือ</strong> — ถาม Joey ก่อน</td>
+    </tr>
+  </tbody>
+</table>
+
+> สถานะด้านล่างเป็น **ร่างเริ่มต้น** ที่ Claude ประเมินจากที่คุยกัน — Joey เป็นคนรู้จริงว่าอันไหน
+> ยืนยันกับผู้ใช้แล้ว โปรดไล่ปรับ 🟢/🟡/🔴 ให้ตรงก่อนใช้สื่อสารกับ Dev จริง
+
+## 🏃 Runner
+
+<table>
+  <thead>
+    <tr><th>ส่วน</th><th>สถานะ</th><th>อัปเดต</th><th>หมายเหตุ</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1 · Discover Events (หน้าแรก + ค้นหา)</td>
+      <td>🟡</td>
+      <td>12 ก.ค.</td>
+      <td>Layout เดิมจาก prototype (Joey ออกแบบ); เพิ่งเปลี่ยนให้ดึง event จริงจาก store การ์ดหน้าตาเดิม</td>
+    </tr>
+    <tr>
+      <td>2 · Explore an Event</td>
+      <td>🟡</td>
+      <td>11 ก.ค.</td>
+      <td>PYT 2026 ทำ pixel-perfect; หน้า preview อีเวนต์ทั่วไปเป็น template — รอยืนยันว่า final</td>
+    </tr>
+    <tr>
+      <td>3 · Register &amp; Pay</td>
+      <td>🟡</td>
+      <td>12 ก.ค.</td>
+      <td><strong>Flow = Direction 2 (Joey เลือกแล้ว 🟢)</strong> แต่ฟอร์มฟิลด์ + หน้าจ่ายเงิน mock = Claude ร่าง ยังไม่รีวิว · หน้า PDPA ↓ 🔴</td>
+    </tr>
+    <tr>
+      <td>— PDPA consent page</td>
+      <td>🔴</td>
+      <td>12 ก.ค.</td>
+      <td>ข้อความ PDPA + อีเมล DPO = Claude ร่างเอง ต้องให้ Joey/ฝ่ายกฎหมายตรวจก่อนใช้จริง</td>
+    </tr>
+  </tbody>
+</table>
+
+## 📋 Organizer
+
+<table>
+  <thead>
+    <tr><th>ส่วน</th><th>สถานะ</th><th>อัปเดต</th><th>หมายเหตุ</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>4 · Get Started (login / dashboard / account)</td>
+      <td>🟡</td>
+      <td>11 ก.ค.</td>
+      <td>prototype เดิมของ Joey — รอยืนยันว่าคุยกับผู้ใช้แล้ว</td>
+    </tr>
+    <tr>
+      <td>5 · Create &amp; Submit Event (wizard 5 ขั้น)</td>
+      <td>🟡</td>
+      <td>11 ก.ค.</td>
+      <td>prototype เดิม + step Publishing/Review จากงาน approval flow</td>
+    </tr>
+    <tr>
+      <td>6 · Approval Outcomes</td>
+      <td>🟢</td>
+      <td>11 ก.ค.</td>
+      <td>Flow + สถานะ = งาน PO ของ Joey เอง (approval flow round 2) — ยืนยันแล้ว</td>
+    </tr>
+    <tr>
+      <td>7 · Run the Event (orders / participants / BIB / promo / broadcast)</td>
+      <td>🟡</td>
+      <td>12 ก.ค.</td>
+      <td>prototype เดิม; Orders/Participants ตอนนี้ผูกข้อมูลสมัครจริงแล้ว (คิวตรวจสลิป + CSV)</td>
+    </tr>
+    <tr>
+      <td>8 · Get Paid</td>
+      <td>🟡</td>
+      <td>11 ก.ค.</td>
+      <td>prototype เดิม</td>
+    </tr>
+    <tr>
+      <td>— Notification bell + Email outbox</td>
+      <td>🟡</td>
+      <td>12 ก.ค.</td>
+      <td>Joey อนุมัติให้ทำตาม design system เดิม แต่ยังไม่รีวิวดีไซน์ละเอียด</td>
+    </tr>
+  </tbody>
+</table>
+
+## 🛡️ Admin
+
+<table>
+  <thead>
+    <tr><th>ส่วน</th><th>สถานะ</th><th>อัปเดต</th><th>หมายเหตุ</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>9 · Moderate Events (คิวอนุมัติ + หน้า review)</td>
+      <td>🟡</td>
+      <td>11 ก.ค.</td>
+      <td>งาน approval flow (Joey PO); AdminEventReview ค่อนข้างนิ่ง</td>
+    </tr>
+    <tr>
+      <td>10 · Platform Finance (payout queue)</td>
+      <td>🟡</td>
+      <td>11 ก.ค.</td>
+      <td>prototype เดิม</td>
+    </tr>
+    <tr>
+      <td>11 · Platform Administration (users / tiers / settings)</td>
+      <td>🟡</td>
+      <td>11 ก.ค.</td>
+      <td>prototype เดิม</td>
+    </tr>
+  </tbody>
+</table>
+
+## อื่นๆ
+
+<table>
+  <thead>
+    <tr><th>ส่วน</th><th>สถานะ</th><th>หมายเหตุ</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Design System (Colors / Typography / Components)</td>
+      <td>🟢</td>
+      <td>ไม่ใช่ UI ที่ต้อง sign-off — เป็น token/component จริงจากโค้ด Dev อิงได้เลย</td>
+    </tr>
+    <tr>
+      <td>Experiments (order-flow directions)</td>
+      <td>🔴</td>
+      <td>ตัวสำรวจ ไม่ใช่ของที่จะ build — Direction 2 ถูกเลือกไปทำเป็น Journey 3 แล้ว</td>
+    </tr>
+  </tbody>
+</table>
