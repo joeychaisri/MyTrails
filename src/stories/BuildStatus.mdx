@@ -4,11 +4,6 @@ import { Meta } from "@storybook/addon-docs/blocks";
 
 # 🚦 Build Status — UI ไหนสร้างตามได้เลย
 
-**สำหรับ Dev: อ่านหน้านี้ก่อนเริ่มทำ UI ใดๆ** — บอกว่าแต่ละส่วนของ MyTrails ผ่านการยืนยัน
-กับ Joey (UX owner) / ผู้ใช้ แค่ไหนแล้ว จะได้ไม่ต้องถามกันไปมาว่า "อันนี้ทำได้หรือยัง" ดูสถานะ
-ที่นี่ก่อน แล้วค่อยไปดูรายละเอียดหน้าจอใน [Journey Map](?path=/docs/journey-map--docs)
-และ [Design System](?path=/docs/design-system-overview--docs)
-
 _ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าของสถานะ: **Joey** (แก้ได้ที่ `src/stories/BuildStatus.mdx`
 แล้ว `npm run storybook:deploy`)_
 
@@ -27,7 +22,7 @@ _ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าขอ�
     <tr>
       <td>🟡 <strong>Tentative</strong></td>
       <td>คุยแล้วค่อนข้างมั่นใจ แต่ยังไม่ final</td>
-      <td>เริ่มได้ แต่เผื่อ layout/detail ปรับ — เช็คกับ Joey ก่อน lock จริง</td>
+      <td>เริ่มได้ แต่เผื่อ layout/detail ปรับ</td>
     </tr>
     <tr>
       <td>🔴 <strong>Draft</strong></td>
@@ -37,10 +32,10 @@ _ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าขอ�
   </tbody>
 </table>
 
-> สถานะด้านล่างเป็น **ร่างเริ่มต้น** ที่ Claude ประเมินจากที่คุยกัน — Joey เป็นคนรู้จริงว่าอันไหน
-> ยืนยันกับผู้ใช้แล้ว โปรดไล่ปรับ 🟢/🟡/🔴 ให้ตรงก่อนใช้สื่อสารกับ Dev จริง
-
 ## 🏃 Runner
+
+> ⚠️ ฝั่ง Runner จะถูก **redesign ใหม่ทั้งหมด** — แต่จะเริ่มหลังจากฝั่ง Admin ใช้งานได้จริงก่อน
+> ตอนนี้จึงเป็น 🔴 ทั้งหมด **อย่าเพิ่งอิง**
 
 <table>
   <thead>
@@ -49,27 +44,21 @@ _ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าขอ�
   <tbody>
     <tr>
       <td>1 · Discover Events (หน้าแรก + ค้นหา)</td>
-      <td>🟡</td>
-      <td>12 ก.ค.</td>
-      <td>Layout เดิมจาก prototype (Joey ออกแบบ); เพิ่งเปลี่ยนให้ดึง event จริงจาก store การ์ดหน้าตาเดิม</td>
-    </tr>
-    <tr>
-      <td>2 · Explore an Event</td>
-      <td>🟡</td>
-      <td>11 ก.ค.</td>
-      <td>PYT 2026 ทำ pixel-perfect; หน้า preview อีเวนต์ทั่วไปเป็น template — รอยืนยันว่า final</td>
-    </tr>
-    <tr>
-      <td>3 · Register &amp; Pay</td>
-      <td>🟡</td>
-      <td>12 ก.ค.</td>
-      <td><strong>Flow = Direction 2 (Joey เลือกแล้ว 🟢)</strong> แต่ฟอร์มฟิลด์ + หน้าจ่ายเงิน mock = Claude ร่าง ยังไม่รีวิว · หน้า PDPA ↓ 🔴</td>
-    </tr>
-    <tr>
-      <td>— PDPA consent page</td>
       <td>🔴</td>
-      <td>12 ก.ค.</td>
-      <td>ข้อความ PDPA + อีเมล DPO = Claude ร่างเอง ต้องให้ Joey/ฝ่ายกฎหมายตรวจก่อนใช้จริง</td>
+      <td>14 ก.ค.</td>
+      <td>รอ redesign ฝั่ง Runner ใหม่ทั้งหมด (ทำหลัง Admin)</td>
+    </tr>
+    <tr>
+      <td>2 · Explore an Event (หน้ารายละเอียดอีเวนต์)</td>
+      <td>🔴</td>
+      <td>14 ก.ค.</td>
+      <td>รอ redesign ฝั่ง Runner ใหม่ทั้งหมด (ทำหลัง Admin)</td>
+    </tr>
+    <tr>
+      <td>3 · Register &amp; Pay (สมัคร + จ่ายเงิน)</td>
+      <td>🔴</td>
+      <td>14 ก.ค.</td>
+      <td>รอ redesign ฝั่ง Runner ใหม่ทั้งหมด (ทำหลัง Admin)</td>
     </tr>
   </tbody>
 </table>
@@ -82,45 +71,47 @@ _ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าขอ�
   </thead>
   <tbody>
     <tr>
-      <td>4 · Get Started (login / dashboard / account)</td>
-      <td>🟡</td>
-      <td>11 ก.ค.</td>
-      <td>prototype เดิมของ Joey — รอยืนยันว่าคุยกับผู้ใช้แล้ว</td>
-    </tr>
-    <tr>
-      <td>5 · Create &amp; Submit Event (wizard 5 ขั้น)</td>
-      <td>🟡</td>
-      <td>11 ก.ค.</td>
-      <td>prototype เดิม + step Publishing/Review จากงาน approval flow</td>
-    </tr>
-    <tr>
-      <td>6 · Approval Outcomes</td>
+      <td>4 · Get Started (login / dashboard / บัญชี)</td>
       <td>🟢</td>
-      <td>11 ก.ค.</td>
-      <td>Flow + สถานะ = งาน PO ของ Joey เอง (approval flow round 2) — ยืนยันแล้ว</td>
+      <td>14 ก.ค.</td>
+      <td>—</td>
     </tr>
     <tr>
-      <td>7 · Run the Event (orders / participants / BIB / promo / broadcast)</td>
-      <td>🟡</td>
-      <td>12 ก.ค.</td>
-      <td>prototype เดิม; Orders/Participants ตอนนี้ผูกข้อมูลสมัครจริงแล้ว (คิวตรวจสลิป + CSV)</td>
+      <td>5 · Create &amp; Submit Event (สร้างอีเวนต์ 5 ขั้น)</td>
+      <td>🟢</td>
+      <td>14 ก.ค.</td>
+      <td>—</td>
     </tr>
     <tr>
-      <td>8 · Get Paid</td>
-      <td>🟡</td>
-      <td>11 ก.ค.</td>
-      <td>prototype เดิม</td>
+      <td>6 · สถานะการอนุมัติอีเวนต์ (รออนุมัติ / อนุมัติ / ตีกลับ)</td>
+      <td>🔴</td>
+      <td>14 ก.ค.</td>
+      <td>ยังไม่ยืนยัน</td>
     </tr>
     <tr>
-      <td>— Notification bell + Email outbox</td>
-      <td>🟡</td>
-      <td>12 ก.ค.</td>
-      <td>Joey อนุมัติให้ทำตาม design system เดิม แต่ยังไม่รีวิวดีไซน์ละเอียด</td>
+      <td>7 · จัดการอีเวนต์ที่ live แล้ว (คำสั่งซื้อ / ผู้สมัคร / BIB / โปรโมชั่น / Broadcast)</td>
+      <td>🔴</td>
+      <td>14 ก.ค.</td>
+      <td>ยังไม่ยืนยัน</td>
+    </tr>
+    <tr>
+      <td>8 · การเงิน &amp; รับเงินคืนของผู้จัด (payout)</td>
+      <td>🔴</td>
+      <td>14 ก.ค.</td>
+      <td>ยังไม่ยืนยัน</td>
+    </tr>
+    <tr>
+      <td>— แจ้งเตือน (กระดิ่ง) + กล่องอีเมล</td>
+      <td>🔴</td>
+      <td>14 ก.ค.</td>
+      <td>ยังไม่ยืนยัน</td>
     </tr>
   </tbody>
 </table>
 
 ## 🛡️ Admin
+
+> 🎯 **โฟกัสถัดไป: ทำฝั่ง Admin ให้ใช้งานได้จริงก่อน** แล้วค่อยไป redesign ฝั่ง Runner
 
 <table>
   <thead>
@@ -128,22 +119,22 @@ _ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าขอ�
   </thead>
   <tbody>
     <tr>
-      <td>9 · Moderate Events (คิวอนุมัติ + หน้า review)</td>
+      <td>9 · อนุมัติอีเวนต์ (คิวรออนุมัติ + หน้า review)</td>
       <td>🟡</td>
-      <td>11 ก.ค.</td>
-      <td>งาน approval flow (Joey PO); AdminEventReview ค่อนข้างนิ่ง</td>
+      <td>14 ก.ค.</td>
+      <td>เริ่มได้ เผื่อปรับ detail</td>
     </tr>
     <tr>
-      <td>10 · Platform Finance (payout queue)</td>
-      <td>🟡</td>
-      <td>11 ก.ค.</td>
-      <td>prototype เดิม</td>
+      <td>10 · การเงินแพลตฟอร์ม (คิว payout)</td>
+      <td>🔴</td>
+      <td>14 ก.ค.</td>
+      <td>ยังไม่ยืนยัน</td>
     </tr>
     <tr>
-      <td>11 · Platform Administration (users / tiers / settings)</td>
+      <td>11 · ตั้งค่าแพลตฟอร์ม (ผู้ใช้ / tier ค่าคอม / settings)</td>
       <td>🟡</td>
-      <td>11 ก.ค.</td>
-      <td>prototype เดิม</td>
+      <td>14 ก.ค.</td>
+      <td>เริ่มได้ เผื่อปรับ detail</td>
     </tr>
   </tbody>
 </table>
@@ -159,11 +150,6 @@ _ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าขอ�
       <td>Design System (Colors / Typography / Components)</td>
       <td>🟢</td>
       <td>ไม่ใช่ UI ที่ต้อง sign-off — เป็น token/component จริงจากโค้ด Dev อิงได้เลย</td>
-    </tr>
-    <tr>
-      <td>Experiments (order-flow directions)</td>
-      <td>🔴</td>
-      <td>ตัวสำรวจ ไม่ใช่ของที่จะ build — Direction 2 ถูกเลือกไปทำเป็น Journey 3 แล้ว</td>
     </tr>
   </tbody>
 </table>
