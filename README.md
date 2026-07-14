@@ -20,9 +20,9 @@ MyTrails เชื่อมต่อ 2 กลุ่มผู้ใช้:
 
 ## ลองเล่นได้ที่ไหน
 
-> เว็บจริง (`mytrails.theingress.co`) รันบน backend จริง (Supabase) — ฝั่ง Organizer/Admin
-> จึงต้องใช้บัญชี demo ที่กำหนดไว้ (**ขอได้จากผู้ดูแล** ไม่เปิดเผยในที่สาธารณะ) ส่วนฝั่ง Runner
-> เล่นได้เลยไม่ต้อง login
+> นี่คือ **prototype** (ตัว demo ที่ `mytrails.theingress.co`) — ตอนนี้ต่อ Supabase จริงแล้ว
+> (ไม่ใช่ mock) จึงสมัครวิ่งได้ครบและข้อมูลถูกเก็บจริง ฝั่ง Organizer/Admin ต้องใช้บัญชี demo
+> ที่กำหนดไว้ (**ขอได้จากผู้ดูแล** ไม่เปิดเผยในที่สาธารณะ) ส่วนฝั่ง Runner เล่นได้เลยไม่ต้อง login
 
 **ดูทุกหน้าจอแบบ isolated (ไม่ต้อง login):** [`mytrails.theingress.co/journey`](https://mytrails.theingress.co/journey) — catalog รวมทุก user journey (Storybook)
 
@@ -76,7 +76,7 @@ npm run storybook        # catalog หน้าจอทุก journey → http:
 | ใดก็ได้ | ใดก็ได้ | Organizer |
 | `admin@mytrails.com` | ใดก็ได้ | Admin |
 
-> เว็บ production (`mytrails.theingress.co`) รันโหมด **supabase** (`VITE_DATA_SOURCE=supabase npm run build`)
+> ตัว demo ที่ deploy ไว้ (`mytrails.theingress.co`) รันโหมด **supabase** (`VITE_DATA_SOURCE=supabase npm run build`)
 > ซึ่งใช้ auth จริง — บัญชี demo ต้องขอจากผู้ดูแล ไม่ใช่ "ใส่อะไรก็ได้"
 
 ---
@@ -148,7 +148,7 @@ flowchart TB
 | Routing | react-router-dom v6 |
 | UI — Organizer/Admin | shadcn/ui (Radix UI) + Tailwind CSS |
 | UI — Runner | Inline styles + CSS design tokens |
-| Backend (prod) | Supabase — Postgres + Auth + Storage + pg_cron |
+| Backend | Supabase — Postgres + Auth + Storage + pg_cron |
 | Charts | Recharts |
 | Tests | Vitest |
 | Hand-off catalog | Storybook (`/journey`) |
@@ -163,7 +163,7 @@ flowchart TB
 | โหมด | เป็นค่าเริ่มต้นของ | เก็บข้อมูลที่ |
 |------|-------------------|--------------|
 | `mock` | dev / test / Storybook | `localStorage` (seed จาก `src/data/mockData.ts` + `adminMockData.ts`) |
-| `supabase` | **เว็บ production** | Postgres จริง — schema เท่ากับ store, business rule (capacity/ช่วงขาย/กันสมัครซ้ำ) บังคับใน RPC ฝั่ง server, RLS แยกสิทธิ์ anon/organizer/admin, Storage เก็บสลิป |
+| `supabase` | **ตัว demo ที่ deploy** (`mytrails.theingress.co`) | Postgres จริง — schema เท่ากับ store, business rule (capacity/ช่วงขาย/กันสมัครซ้ำ) บังคับใน RPC ฝั่ง server, RLS แยกสิทธิ์ anon/organizer/admin, Storage เก็บสลิป |
 
 - **Reads** ผ่าน `src/hooks/data/*` — โครง API เหมือนกันทั้งสองโหมด views ไม่ต้องแก้
 - โหมด supabase: adapter อยู่ที่ `src/lib/supabaseAdapter.ts`, auth = Supabase (map เป็น role/organizerId เดิม), scheduled-publish + payout tick รันด้วย `pg_cron` ใน DB
