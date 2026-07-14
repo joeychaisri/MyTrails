@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useEventsStore } from "@/contexts/EventsContext";
+import { dataSource } from "@/lib/dataSource";
 import { useToast } from "@/hooks/use-toast";
 import { Save, RotateCcw, Plus, Trash2 } from "lucide-react";
 
@@ -163,18 +164,24 @@ const AdminSettings = () => {
         <div>
           <h3 className="text-lg font-semibold text-card-foreground">Demo Data</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            This prototype keeps changes in your browser. Reset to reload the original sample data.
+            {dataSource === "supabase"
+              ? "Data lives on the server (Supabase). This reloads the latest data from the server. A full reseed is run from the command line (scripts/seed-supabase.ts)."
+              : "This prototype keeps changes in your browser. Reset to reload the original sample data."}
           </p>
         </div>
         <Button
           variant="outline"
           onClick={() => {
             resetStore();
-            toast({ title: "Demo data reset", description: "Sample events, organizers and tiers restored." });
+            toast(
+              dataSource === "supabase"
+                ? { title: "Data refreshed", description: "Reloaded the latest data from the server." }
+                : { title: "Demo data reset", description: "Sample events, organizers and tiers restored." }
+            );
           }}
         >
           <RotateCcw className="mr-2 h-4 w-4" />
-          Reset demo data
+          {dataSource === "supabase" ? "Refresh from server" : "Reset demo data"}
         </Button>
       </div>
     </div>

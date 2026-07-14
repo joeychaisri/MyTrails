@@ -355,17 +355,25 @@ export interface FetchAllScope {
 // pages still work off that. Settings/tiers fall back to the mock seed values
 // if the selects are denied or empty.
 export async function fetchAll(client: SupabaseClient, scope: FetchAllScope): Promise<RemoteStore> {
-  const authed = scope.isAdmin || scope.organizerId !== null;
+  // Force the client to finish restoring its persisted session BEFORE issuing any
+  // query. supabase-js attaches the auth token from its in-memory session; right
+  // after a page reload that session is still being read from localStorage, so
+  // queries can otherwise fire as `anon` and RLS-guarded tables (organizers,
+  // registrations) come back empty. Awaiting getSession() closes that window.
+  await client.auth.getSession();
+  // Always query every table and let RLS decide what comes back: anonymous
+  // visitors get [] for organizers/registrations (no policy grants them), while
+  // organizers/admins get their rows. Gating these on the JS `role` instead used
+  // to race page load — the query got skipped before the auth state settled, so
+  // admins saw an empty User Management / "organizer not found" on reload.
   const [evRes, catRes, tixRes, tierRes, setRes, orgRes, regRes] = await Promise.all([
     client.from("events").select("*").order("created_at", { ascending: false }),
     client.from("categories").select("*"),
     client.from("tickets").select("*"),
     client.from("tiers").select("*"),
     client.from("platform_settings").select("*").eq("id", 1).maybeSingle(),
-    authed ? client.from("organizers").select("*") : Promise.resolve({ data: [], error: null }),
-    authed
-      ? client.from("registrations").select("*").order("created_at", { ascending: false })
-      : Promise.resolve({ data: [], error: null }),
+    client.from("organizers").select("*"),
+    client.from("registrations").select("*").order("created_at", { ascending: false }),
   ]);
 
   const eventRows = (evRes.data ?? []) as EventRow[];

@@ -114,7 +114,7 @@ const AdminEventReview = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { getEvent, organizers, settings, approveEvent, rejectEvent, updateEvent } = useEventsStore();
+  const { getEvent, organizers, settings, approveEvent, rejectEvent, updateEvent, hydrated } = useEventsStore();
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [overrideInput, setOverrideInput] = useState("");
@@ -123,6 +123,14 @@ const AdminEventReview = () => {
   const backToQueue = () => navigate("/organizer/admin", { state: { page: "approvals" } });
 
   if (!event) {
+    // Supabase mode hydrates async — don't cry "not found" before the data arrives.
+    if (!hydrated) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <p className="text-muted-foreground">Loading event…</p>
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background">
         <p className="text-muted-foreground">Event not found.</p>
@@ -333,6 +341,8 @@ const AdminEventReview = () => {
                     <span className="font-medium">{fmtDate(organizer.createdAt)}</span>
                   </div>
                 </div>
+              ) : !hydrated ? (
+                <p className="text-sm text-muted-foreground">Loading organizer…</p>
               ) : (
                 <p className="text-sm text-muted-foreground">Organizer "{event.organizerName}" not found.</p>
               )}

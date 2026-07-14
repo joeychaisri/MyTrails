@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Event, Registration, RunnerInfo, mockEvents } from "@/data/mockData";
 import { ticketWindowState } from "@/lib/eventPhase";
@@ -217,7 +217,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   const [store, setStore] = useState<StoreShape>(dataSource === "supabase" ? emptyStore : loadStore);
   // Auth scope drives what fetchAll can see (RLS does the real enforcement).
   // In mock mode these are simply unused.
-  const { role, organizerId } = useAuth();
+  const { role, organizerId, authReady } = useAuth();
 
   useEffect(() => {
     if (dataSource === "supabase") return; // server is the store — nothing to persist
@@ -233,20 +233,33 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   // `hydrated` lets views distinguish "still loading" from "really not found"
   // when they deep-link into an entity (mock mode is synchronous, so always true).
   const [hydrated, setHydrated] = useState(dataSource !== "supabase");
-  const applyFetched = () =>
-    fetchAll(getSupabase(), { isAdmin: role === "admin", organizerId }).then((fetched) => {
+  // Monotonic token: a fetchAll only applies its result if no newer fetch has
+  // started since. Without this, the mount-time anon fetch and the post-login
+  // admin fetch race, and whichever resolves LAST wins — so organizers (readable
+  // only when authed) intermittently came back empty and clobbered the good data.
+  const fetchSeq = useRef(0);
+  const applyFetched = () => {
+    const seq = ++fetchSeq.current;
+    return fetchAll(getSupabase(), { isAdmin: role === "admin", organizerId }).then((fetched) => {
+      if (seq !== fetchSeq.current) return; // superseded by a newer fetch — drop this stale result
       setStore((s) => ({ ...fetched, registrations: mergeRegistrations(fetched.registrations, s.registrations) }));
       setHydrated(true);
     });
+  };
 
   useEffect(() => {
     if (dataSource !== "supabase") return;
+    // Wait for the auth session to be restored before the first fetch: that both
+    // gives the supabase client its access token (else RLS-guarded reads like
+    // `organizers` return []) and tells us the real scope, so we fetch ONCE with
+    // the right role instead of an anon→admin double fetch that can race.
+    if (!authReady) return;
     applyFetched().catch((e) => {
       console.error("[supabase] hydrate failed", e);
       setHydrated(true); // unblock views; they render not-found rather than spin forever
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role, organizerId]);
+  }, [authReady, role, organizerId]);
 
   // Fire-and-forget remote write: run it, log failures, then refetch so the
   // optimistic local state reconciles with the server. No-op in mock mode.
