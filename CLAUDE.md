@@ -46,7 +46,7 @@ doesn't have).
 - It is a **separate static build**, not an app route. Caddy serves `storybook-dist/` under
   `/journey/` (`handle_path /journey/*` in the Caddyfile, plus `redir /journey → /journey/`
   so the no-trailing-slash URL doesn't fall through to the SPA and 404); normal app URLs are untouched.
-- **After editing stories, rebuild**: `npm run storybook:deploy` (regenerates `storybook-dist/`, gitignored).
+- **After editing stories, rebuild**: `npm run storybook:deploy` (regenerates `storybook-dist/`, gitignored). Caddy serves the `.html`/`.json` entry files with `Cache-Control: no-cache` (they are NOT content-hashed) so a redeploy shows up on refresh — else browsers cache a stale `index.json` and the sidebar/new pages won't appear.
 - Screens are pinned via **optional `initial*` props** on stateful views (e.g. RunnerLandingPage
   `initialView`, DashboardView `initialTab`, EventWizard `initialStep`/`initialScenario`); every
   such prop defaults to current behavior, so the app (which renders prop-less) is unchanged.
