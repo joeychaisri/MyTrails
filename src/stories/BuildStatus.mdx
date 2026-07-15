@@ -4,8 +4,11 @@ import { Meta } from "@storybook/addon-docs/blocks";
 
 # 🚦 Build Status — UI ไหนสร้างตามได้เลย
 
-_ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าของสถานะ: **Joey** (แก้ได้ที่ `src/stories/BuildStatus.mdx`
+_ทบทวนล่าสุด: **15 ก.ค. 2026** · เจ้าของสถานะ: **Joey** (แก้ได้ที่ `src/stories/BuildStatus.mdx`
 แล้ว `npm run storybook:deploy`)_
+
+**"UX verified"** = วันที่ไล่เดิน user flow จริงจนจบแล้วยืนยันว่า flow ครบ + UX สมเหตุสมผล
+(ต่างจาก "สถานะ" ซึ่งเป็นระดับการยืนยันดีไซน์กับ user) — `—` = ยังไม่ได้เทส
 
 ## ความหมายของสถานะ
 
@@ -35,29 +38,32 @@ _ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าขอ�
 ## 🏃 Runner
 
 > ⚠️ ฝั่ง Runner จะถูก **redesign ใหม่ทั้งหมด** — แต่จะเริ่มหลังจากฝั่ง Admin ใช้งานได้จริงก่อน
-> ตอนนี้จึงเป็น 🔴 ทั้งหมด **อย่าเพิ่งอิง**
+> ตอนนี้จึงเป็น 🔴 ทั้งหมด **อย่าเพิ่งอิง** (ไม่ต้องเทส UX จนกว่าจะ redesign)
 
 <table>
   <thead>
-    <tr><th>ส่วน</th><th>สถานะ</th><th>อัปเดต</th><th>หมายเหตุ</th></tr>
+    <tr><th>ส่วน</th><th>สถานะ</th><th>อัปเดต</th><th>UX verified</th><th>หมายเหตุ</th></tr>
   </thead>
   <tbody>
     <tr>
       <td>1 · Discover Events (หน้าแรก + ค้นหา)</td>
       <td>🔴</td>
       <td>14 ก.ค.</td>
+      <td>—</td>
       <td>รอ redesign ฝั่ง Runner ใหม่ทั้งหมด (ทำหลัง Admin)</td>
     </tr>
     <tr>
       <td>2 · Explore an Event (หน้ารายละเอียดอีเวนต์)</td>
       <td>🔴</td>
       <td>14 ก.ค.</td>
+      <td>—</td>
       <td>รอ redesign ฝั่ง Runner ใหม่ทั้งหมด (ทำหลัง Admin)</td>
     </tr>
     <tr>
       <td>3 · Register &amp; Pay (สมัคร + จ่ายเงิน)</td>
       <td>🔴</td>
       <td>14 ก.ค.</td>
+      <td>—</td>
       <td>รอ redesign ฝั่ง Runner ใหม่ทั้งหมด (ทำหลัง Admin)</td>
     </tr>
   </tbody>
@@ -67,7 +73,7 @@ _ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าขอ�
 
 <table>
   <thead>
-    <tr><th>ส่วน</th><th>สถานะ</th><th>อัปเดต</th><th>หมายเหตุ</th></tr>
+    <tr><th>ส่วน</th><th>สถานะ</th><th>อัปเดต</th><th>UX verified</th><th>หมายเหตุ</th></tr>
   </thead>
   <tbody>
     <tr>
@@ -75,35 +81,41 @@ _ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าขอ�
       <td>🟢</td>
       <td>14 ก.ค.</td>
       <td>—</td>
+      <td>—</td>
     </tr>
     <tr>
       <td>5 · Create &amp; Submit Event (สร้างอีเวนต์ 5 ขั้น)</td>
       <td>🟢</td>
       <td>14 ก.ค.</td>
       <td>—</td>
+      <td>—</td>
     </tr>
     <tr>
       <td>6 · สถานะการอนุมัติอีเวนต์ (รออนุมัติ / อนุมัติ / ตีกลับ)</td>
       <td>🔴</td>
       <td>14 ก.ค.</td>
+      <td>—</td>
       <td>ยังไม่ยืนยัน</td>
     </tr>
     <tr>
       <td>7 · จัดการอีเวนต์ที่ live แล้ว (คำสั่งซื้อ / ผู้สมัคร / BIB / โปรโมชั่น / Broadcast)</td>
       <td>🔴</td>
       <td>14 ก.ค.</td>
+      <td>—</td>
       <td>ยังไม่ยืนยัน</td>
     </tr>
     <tr>
       <td>8 · การเงิน &amp; รับเงินคืนของผู้จัด (payout)</td>
       <td>🔴</td>
       <td>14 ก.ค.</td>
+      <td>—</td>
       <td>ยังไม่ยืนยัน</td>
     </tr>
     <tr>
       <td>— แจ้งเตือน (กระดิ่ง) + กล่องอีเมล</td>
       <td>🔴</td>
       <td>14 ก.ค.</td>
+      <td>—</td>
       <td>ยังไม่ยืนยัน</td>
     </tr>
   </tbody>
@@ -115,26 +127,29 @@ _ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าขอ�
 
 <table>
   <thead>
-    <tr><th>ส่วน</th><th>สถานะ</th><th>อัปเดต</th><th>หมายเหตุ</th></tr>
+    <tr><th>ส่วน</th><th>สถานะ</th><th>อัปเดต</th><th>UX verified</th><th>หมายเหตุ</th></tr>
   </thead>
   <tbody>
     <tr>
       <td>9 · อนุมัติอีเวนต์ (คิวรออนุมัติ + หน้า review)</td>
       <td>🟡</td>
       <td>14 ก.ค.</td>
-      <td>เริ่มได้ เผื่อปรับ detail</td>
+      <td><strong>14 ก.ค. 2026</strong></td>
+      <td>เทส UX จบทุกเส้น (approve / reject / override / force unpublish) + แก้บั๊ก organizer-loading แล้ว</td>
     </tr>
     <tr>
       <td>10 · การเงินแพลตฟอร์ม (คิว payout)</td>
       <td>🔴</td>
       <td>14 ก.ค.</td>
-      <td>ยังไม่ยืนยัน</td>
+      <td>—</td>
+      <td>ยังไม่เทส</td>
     </tr>
     <tr>
       <td>11 · ตั้งค่าแพลตฟอร์ม (ผู้ใช้ / tier ค่าคอม / settings)</td>
       <td>🟡</td>
       <td>14 ก.ค.</td>
-      <td>เริ่มได้ เผื่อปรับ detail</td>
+      <td><strong>14 ก.ค. 2026</strong></td>
+      <td>เทส UX: user mgmt / tiers CRUD / settings + แก้บั๊ก "in use by" และ reset copy แล้ว</td>
     </tr>
   </tbody>
 </table>
@@ -143,12 +158,13 @@ _ทบทวนล่าสุด: **14 ก.ค. 2026** · เจ้าขอ�
 
 <table>
   <thead>
-    <tr><th>ส่วน</th><th>สถานะ</th><th>หมายเหตุ</th></tr>
+    <tr><th>ส่วน</th><th>สถานะ</th><th>UX verified</th><th>หมายเหตุ</th></tr>
   </thead>
   <tbody>
     <tr>
       <td>Design System (Colors / Typography / Components)</td>
       <td>🟢</td>
+      <td>—</td>
       <td>ไม่ใช่ UI ที่ต้อง sign-off — เป็น token/component จริงจากโค้ด Dev อิงได้เลย</td>
     </tr>
   </tbody>
