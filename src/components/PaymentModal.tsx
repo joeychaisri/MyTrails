@@ -26,16 +26,16 @@ interface PaymentModalProps {
 }
 
 const banks = [
-  { value: "kbank", label: "ธนาคารกสิกรไทย (KBANK)" },
-  { value: "scb", label: "ธนาคารไทยพาณิชย์ (SCB)" },
-  { value: "bbl", label: "ธนาคารกรุงเทพ (BBL)" },
-  { value: "ktb", label: "ธนาคารกรุงไทย (KTB)" },
-  { value: "bay", label: "ธนาคารกรุงศรีอยุธยา (BAY)" },
-  { value: "tmb", label: "ธนาคารทหารไทยธนชาต (TTB)" },
-  { value: "gsb", label: "ธนาคารออมสิน (GSB)" },
-  { value: "uob", label: "ธนาคารยูโอบี (UOB)" },
-  { value: "cimb", label: "ธนาคารซีไอเอ็มบี (CIMB)" },
-  { value: "lh", label: "ธนาคารแลนด์ แอนด์ เฮ้าส์ (LH)" },
+  { value: "kbank", label: "Kasikornbank (KBank)" },
+  { value: "scb", label: "Siam Commercial Bank (SCB)" },
+  { value: "bbl", label: "Bangkok Bank (BBL)" },
+  { value: "ktb", label: "Krungthai Bank (KTB)" },
+  { value: "bay", label: "Krungsri (BAY)" },
+  { value: "tmb", label: "TMBThanachart (TTB)" },
+  { value: "gsb", label: "Government Savings Bank (GSB)" },
+  { value: "uob", label: "UOB Thailand (UOB)" },
+  { value: "cimb", label: "CIMB Thai (CIMB)" },
+  { value: "lh", label: "Land and Houses Bank (LH)" },
 ];
 
 const PaymentModal = ({ open, onOpenChange, paymentInfo, onSave }: PaymentModalProps) => {
@@ -62,27 +62,27 @@ const PaymentModal = ({ open, onOpenChange, paymentInfo, onSave }: PaymentModalP
           </div>
 
           <p className="text-center text-sm text-muted-foreground">
-            กรุณากรอกข้อมูลบัญชีธนาคารสำหรับรับเงินจากการขายบัตร
+            Enter the bank account where you'll receive ticket-sale payouts.
           </p>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="account-name">ชื่อบัญชีรับเงิน</Label>
+              <Label htmlFor="account-name">Account name</Label>
               <Input
                 id="account-name"
-                placeholder="ชื่อบัญชีตามที่ปรากฏในบัญชีธนาคาร"
+                placeholder="Name as it appears on your bank account"
                 value={formData.accountName}
                 onChange={(e) => setFormData({ ...formData, accountName: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bank">ธนาคาร</Label>
+              <Label htmlFor="bank">Bank</Label>
               <Select
                 value={formData.bank}
                 onValueChange={(value) => setFormData({ ...formData, bank: value })}
               >
                 <SelectTrigger id="bank" className="bg-background">
-                  <SelectValue placeholder="เลือกธนาคาร" />
+                  <SelectValue placeholder="Select bank" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover">
                   {banks.map((bank) => (
@@ -94,7 +94,7 @@ const PaymentModal = ({ open, onOpenChange, paymentInfo, onSave }: PaymentModalP
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="account-number">เลขบัญชี</Label>
+              <Label htmlFor="account-number">Account number</Label>
               <Input
                 id="account-number"
                 placeholder="xxx-x-xxxxx-x"

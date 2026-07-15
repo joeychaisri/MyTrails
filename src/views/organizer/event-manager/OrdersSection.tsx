@@ -257,7 +257,7 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <h3 className="text-lg font-semibold text-foreground">Slip verification</h3>
                   <span className="inline-flex rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning">
-                    {slipQueue.length} รอตรวจ
+                    {slipQueue.length} awaiting review
                   </span>
                 </div>
                 <Table>
@@ -284,7 +284,7 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
                             <button
                               type="button"
                               onClick={() => openSlip(reg.slipDataUrl!)}
-                              title="เปิดสลิปเต็มขนาด"
+                              title="Open slip full size"
                               className="rounded border border-border transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/50"
                             >
                               <img
@@ -333,7 +333,7 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
             {/* Date Filter */}
             <div className="flex flex-wrap items-center gap-2">
               {(["all", "today", "7days", "month", "custom"] as const).map((val) => {
-                const labels = { all: "ทั้งหมด", today: "วันนี้", "7days": "7 วันล่าสุด", month: "เดือนนี้", custom: "กำหนดเอง" };
+                const labels = { all: "All", today: "Today", "7days": "Last 7 days", month: "This month", custom: "Custom" };
                 if (val === "custom") {
                   return (
                     <Popover key="custom" open={orderCustomPickerOpen} onOpenChange={setOrderCustomPickerOpen}>
@@ -350,7 +350,7 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
                             ? orderCustomRange.to
                               ? `${format(orderCustomRange.from, "d MMM")} – ${format(orderCustomRange.to, "d MMM")}`
                               : format(orderCustomRange.from, "d MMM yyyy")
-                            : "กำหนดเอง"}
+                            : "Custom"}
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0 bg-popover" align="start">
@@ -498,7 +498,7 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {/* Buyer */}
                         <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2.5">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ผู้ซื้อ</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Buyer</p>
                           <div className="flex items-center gap-2 text-sm">
                             <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             <span className="font-medium">{o.buyerName}</span>
@@ -517,13 +517,13 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
 
                         {/* Order Info */}
                         <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2.5">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">รายละเอียดการสมัคร</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Registration details</p>
                           <div className="flex items-center gap-2 text-sm">
                             <Hash className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             <span>
                               {linkedParticipant?.bibNo
                                 ? <span className="font-mono font-medium">BIB #{linkedParticipant.bibNo}</span>
-                                : <span className="text-muted-foreground">ยังไม่มี BIB</span>}
+                                : <span className="text-muted-foreground">No BIB yet</span>}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 text-sm">
@@ -545,7 +545,7 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
 
                       {/* Payment */}
                       <div className="rounded-lg border border-border bg-muted/30 p-4">
-                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">การชำระเงิน</p>
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payment</p>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${PAYMENT_METHOD_COLOR[o.paymentMethod]}`}>
@@ -558,7 +558,7 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
 
                       {/* Status Change */}
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">เปลี่ยนสถานะ</Label>
+                        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Change status</Label>
                         <Select
                           value={o.status}
                           onValueChange={(val) => {
@@ -592,7 +592,7 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
                             updateOrderNote(o.id, e.target.value);
                             setSelectedOrder({ ...o, note: e.target.value });
                           }}
-                          placeholder="เพิ่ม note สำหรับ order นี้..."
+                          placeholder="Add a note for this order..."
                           rows={2}
                           className="bg-background text-sm"
                         />
@@ -606,7 +606,7 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
                         </Button>
                         <Button variant="outline" size="sm" className="gap-2">
                           <ArrowRightLeft className="h-3.5 w-3.5" />
-                          เปลี่ยนระยะวิ่ง
+                          Change distance
                         </Button>
                         <Button variant="outline" size="sm" className="gap-2">
                           <Receipt className="h-3.5 w-3.5" />
@@ -618,7 +618,7 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
                           className="ml-auto text-muted-foreground"
                           onClick={() => setSelectedOrder(null)}
                         >
-                          ปิด
+                          Close
                         </Button>
                       </div>
                     </div>
@@ -730,7 +730,7 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                               <ChevronDown className="mr-2 h-3.5 w-3.5" />
-                              เปลี่ยนแปลงระยะวิ่ง
+                              Change distance
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                               <Download className="mr-2 h-3.5 w-3.5" />
@@ -749,12 +749,12 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
             {selectedOrderIds.size > 0 && (
               <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-xl">
                 <span className="text-sm font-medium text-foreground whitespace-nowrap">
-                  เลือก {selectedOrderIds.size} orders
+                  {selectedOrderIds.size} orders selected
                 </span>
                 <div className="h-4 w-px bg-border" />
                 <Select onValueChange={(val) => bulkUpdateStatus(val as OrderStatus)}>
                   <SelectTrigger className="h-8 w-[200px] bg-background text-xs">
-                    <SelectValue placeholder="เปลี่ยนสถานะ..." />
+                    <SelectValue placeholder="Change status..." />
                   </SelectTrigger>
                   <SelectContent className="bg-popover max-h-64 overflow-y-auto">
                     {ALL_STATUSES.map((s) => (
@@ -772,7 +772,7 @@ const OrdersSection = ({ eventId, orders, setOrders, participants, state }: Orde
                   className="h-8 text-xs text-muted-foreground hover:text-foreground"
                   onClick={() => setSelectedOrderIds(new Set())}
                 >
-                  ยกเลิก
+                  Cancel
                 </Button>
               </div>
             )}
