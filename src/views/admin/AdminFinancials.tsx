@@ -10,6 +10,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Search, Banknote, Landmark, Wallet, Receipt } from "lucide-react";
 import StatsCard from "@/components/StatsCard";
 import { Event } from "@/data/mockData";
@@ -33,6 +41,9 @@ const fmtDate = (d?: string) => (d ? format(new Date(d), "MMM d, yyyy") : "—")
 const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFinancialsProps) => {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
+  // Marking a payout transferred records that real money was sent and can't be
+  // undone in-app — so confirm first (same pattern as Force Unpublish).
+  const [confirmEvent, setConfirmEvent] = useState<Event | null>(null);
 
   const payoutAccountFor = (organizerId: string) =>
     organizers.find((o) => o.id === organizerId)?.payoutAccount ?? "—";
@@ -56,10 +67,13 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
     .filter((e) => e.payoutStatus !== undefined)
     .reduce((s, e) => s + eventFinance(e, organizers, settings).totalCommission, 0);
 
-  const handleMarkPaid = (event: Event) => {
+  const handleMarkPaid = () => {
+    if (!confirmEvent) return;
+    const event = confirmEvent;
     onMarkPaid(event.id);
     const { netPayout } = eventFinance(event, organizers, settings);
     toast({ title: "Payout Transferred", description: `${formatCurrency(netPayout)} marked as sent to ${event.organizerName}.` });
+    setConfirmEvent(null);
   };
 
   return (
@@ -124,7 +138,7 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
                         <TableCell className="text-right font-semibold">{formatCurrency(f.netPayout)}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{payoutAccountFor(event.organizerId)}</TableCell>
                         <TableCell className="text-right">
-                          <Button size="sm" onClick={() => handleMarkPaid(event)}>
+                          <Button size="sm" onClick={() => setConfirmEvent(event)}>
                             <Banknote className="mr-1.5 h-3.5 w-3.5" />
                             Mark Transferred
                           </Button>
@@ -218,6 +232,24 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Confirm before recording a transfer — it's an irreversible money action. */}
+      <Dialog open={!!confirmEvent} onOpenChange={() => setConfirmEvent(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark payout as transferred?</DialogTitle>
+            <DialogDescription>
+              {confirmEvent
+                ? `Confirm you've sent ${formatCurrency(eventFinance(confirmEvent, organizers, settings).netPayout)} to ${confirmEvent.organizerName} (${payoutAccountFor(confirmEvent.organizerId)}) for "${confirmEvent.title}". This records the payout as paid and can't be undone here.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmEvent(null)}>Cancel</Button>
+            <Button onClick={handleMarkPaid}>Confirm Transfer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
