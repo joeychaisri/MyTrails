@@ -1,4 +1,4 @@
-import { Category, Event, EventStatus, makeCategory, withDerivedCapacity } from "./mockData";
+import { Category, Event, EventStatus, PaymentInfo, UserProfile, makeCategory, withDerivedCapacity } from "./mockData";
 
 // Organizer accounts are provisioned by the platform admin (invite model).
 // Each account is assigned a Tier, which carries the tier-portion commission.
@@ -20,6 +20,9 @@ export interface AdminOrganizer {
   eventsCount: number;
   // Where the platform transfers this organizer's net payout after events.
   payoutAccount?: string;
+  // The organizer's own editable account (profile + payout bank details).
+  // Persisted per-organizer in supabase mode; useOrganizerProfile reads it.
+  account?: { profile: UserProfile; paymentInfo: PaymentInfo };
 }
 
 // The platform takes commission on registrations in two parts (deducted at payout):

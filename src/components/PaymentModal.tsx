@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -40,6 +40,9 @@ const banks = [
 
 const PaymentModal = ({ open, onOpenChange, paymentInfo, onSave }: PaymentModalProps) => {
   const [formData, setFormData] = useState(paymentInfo);
+  // Re-sync when the saved info changes (e.g. arrives via async hydration) —
+  // useState only seeds once, so without this the form shows stale data.
+  useEffect(() => setFormData(paymentInfo), [paymentInfo]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

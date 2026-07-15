@@ -9,7 +9,7 @@
  * the storage bucket is for future organizer uploads.
  */
 import { createClient } from "@supabase/supabase-js";
-import { mockEvents, Event } from "../src/data/mockData";
+import { mockEvents, Event, mockProfile, mockPaymentInfo } from "../src/data/mockData";
 import { mockOtherEvents, mockAdminOrganizers, mockPlatformSettings } from "../src/data/adminMockData";
 
 const url = process.env.MYTRAILS_SUPABASE_URL;
@@ -73,6 +73,16 @@ async function main() {
       tier_id: o.tierId,
       payout_account: o.payoutAccount ?? null,
       created_at: o.createdAt,
+      // Editable account: org1 (the demo login) gets the full mock profile +
+      // payout details; others get a profile derived from their own fields so
+      // every organizer has a consistent, self-referential account.
+      account:
+        o.id === "org1"
+          ? { profile: mockProfile, paymentInfo: mockPaymentInfo }
+          : {
+              profile: { name: o.organizationName, email: o.email, phone: o.phone, avatar: "" },
+              paymentInfo: { accountName: o.organizationName, bank: "kbank", accountNumber: "" },
+            },
     })),
   ));
 

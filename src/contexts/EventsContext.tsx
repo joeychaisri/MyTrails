@@ -22,6 +22,7 @@ import {
   pushSettings,
   registrationRowToRegistration,
   upsertOrganizer,
+  updateOrganizerAccount,
   upsertTiers,
 } from "@/lib/supabaseAdapter";
 import { useAuth } from "@/contexts/AuthContext";
@@ -189,6 +190,8 @@ interface EventsContextType {
   markPayoutPaid: (id: string) => void;
   createOrganizer: (org: Omit<AdminOrganizer, "id" | "createdAt" | "eventsCount">) => void;
   suspendOrganizer: (id: string) => void;
+  /** Persist an organizer's own editable account (profile + payout details). */
+  updateMyAccount: (organizerId: string, account: NonNullable<AdminOrganizer["account"]>) => void;
   saveSettings: (settings: PlatformSettings) => void;
   // Tier management (commission per tier). deleteTier is a no-op if the tier is in use.
   addTier: (name: string, commissionRate: number) => void;
@@ -395,6 +398,13 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         remote((client) =>
           upsertOrganizer(client, { ...org, status: org.status === "active" ? "suspended" : "active" })
         );
+    },
+    updateMyAccount: (organizerId, account) => {
+      setStore((s) => ({
+        ...s,
+        organizers: s.organizers.map((o) => (o.id === organizerId ? { ...o, account } : o)),
+      }));
+      remote((client) => updateOrganizerAccount(client, organizerId, account));
     },
     saveSettings: (settings) => {
       setStore((s) => ({ ...s, settings }));

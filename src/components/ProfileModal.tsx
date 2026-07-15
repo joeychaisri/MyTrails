@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +21,8 @@ interface ProfileModalProps {
 
 const ProfileModal = ({ open, onOpenChange, profile, onSave }: ProfileModalProps) => {
   const [formData, setFormData] = useState(profile);
+  // Re-sync when the profile changes (e.g. arrives via async hydration).
+  useEffect(() => setFormData(profile), [profile]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

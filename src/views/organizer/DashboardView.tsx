@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { DateRange } from "react-day-picker";
@@ -61,6 +61,12 @@ const DashboardView = ({
   const notifications = useNotifications(scopeId);
   const [profile, setProfile] = useState<UserProfile>(organizerAccount.profile);
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>(organizerAccount.paymentInfo);
+  // useState seeds once on mount — but in supabase mode the real account arrives
+  // after async hydration, so re-sync local copies when it loads/changes.
+  useEffect(() => {
+    setProfile(organizerAccount.profile);
+    setPaymentInfo(organizerAccount.paymentInfo);
+  }, [organizerAccount.profile, organizerAccount.paymentInfo]);
   const [profileModalOpen, setProfileModalOpen] = useState(initialProfileModalOpen);
   const [paymentModalOpen, setPaymentModalOpen] = useState(initialPaymentModalOpen);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
@@ -305,21 +311,21 @@ const DashboardView = ({
         open={profileModalOpen}
         onOpenChange={setProfileModalOpen}
         profile={profile}
-        onSave={setProfile}
+        onSave={(p) => { setProfile(p); store.updateMyAccount(scopeId, { profile: p, paymentInfo }); }}
       />
 
       <PaymentModal
         open={paymentModalOpen}
         onOpenChange={setPaymentModalOpen}
         paymentInfo={paymentInfo}
-        onSave={setPaymentInfo}
+        onSave={(pay) => { setPaymentInfo(pay); store.updateMyAccount(scopeId, { profile, paymentInfo: pay }); }}
       />
 
       <AccountSecurityModal
         open={accountModalOpen}
         onOpenChange={setAccountModalOpen}
         email={profile.email}
-        onEmailChange={(email) => setProfile({ ...profile, email })}
+        onEmailChange={(email) => { const p = { ...profile, email }; setProfile(p); store.updateMyAccount(scopeId, { profile: p, paymentInfo }); }}
       />
 
       <EventActionDialog

@@ -79,6 +79,7 @@ interface OrganizerRow {
   tier_id: string;
   payout_account: string | null;
   created_at: string;
+  account: AdminOrganizer["account"] | null;
 }
 
 interface TierRow {
@@ -213,6 +214,7 @@ const organizerRowToAdminOrganizer = (o: OrganizerRow, eventsCount: number): Adm
   createdAt: (o.created_at ?? "").slice(0, 10),
   eventsCount,
   payoutAccount: o.payout_account ?? undefined,
+  account: o.account ?? undefined,
 });
 
 // --- client → row ---
@@ -282,6 +284,7 @@ const organizerToRow = (o: AdminOrganizer) => ({
   tier_id: o.tierId,
   payout_account: o.payoutAccount ?? null,
   created_at: o.createdAt,
+  account: o.account ?? {},
 });
 
 const tierToRow = (t: Tier) => ({ id: t.id, name: t.name, commission_rate: t.commissionRate });
@@ -320,6 +323,16 @@ export async function deleteEventTree(client: SupabaseClient, id: string): Promi
 
 export async function upsertOrganizer(client: SupabaseClient, o: AdminOrganizer): Promise<void> {
   must(await client.from("organizers").upsert(organizerToRow(o)));
+}
+
+// An organizer editing their OWN account can only UPDATE (RLS grants inserts to
+// admins only) — upsert would trip the insert policy. Update just the account.
+export async function updateOrganizerAccount(
+  client: SupabaseClient,
+  id: string,
+  account: AdminOrganizer["account"]
+): Promise<void> {
+  must(await client.from("organizers").update({ account: account ?? {} }).eq("id", id));
 }
 
 export async function upsertTiers(client: SupabaseClient, tiers: Tier[]): Promise<void> {
