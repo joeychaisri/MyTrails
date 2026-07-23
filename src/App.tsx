@@ -20,6 +20,7 @@ import PongYaengTrailPage from "./views/runner/pyt-landing/PongYaengTrailPage";
 import RegisterFlow from "./views/runner/register/RegisterFlow";
 import LookupPage from "./views/runner/register/LookupPage";
 import PdpaPage from "./views/runner/register/PdpaPage";
+import BoardListView from "./views/board/BoardListView";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const App = () => (
                 <Route path="/events/:id/register" element={<RegisterFlow />} />
                 <Route path="/registration/lookup" element={<LookupPage />} />
                 <Route path="/pdpa" element={<PdpaPage />} />
+                <Route path="/board" element={<BoardListView />} />
 
                 {/* Organizer portal */}
                 <Route path="/organizer/login" element={<AuthView />} />
