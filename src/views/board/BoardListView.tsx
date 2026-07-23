@@ -36,8 +36,13 @@ const BoardListView = () => {
   useEffect(() => { load(); }, []);
 
   const handleCreate = async (input: CreateTicketInput) => {
-    const id = await createTicket(getBoardClient(), input);
-    navigate(`/board/${id}`);
+    try {
+      const id = await createTicket(getBoardClient(), input);
+      navigate(`/board/${id}`);
+    } catch (e) {
+      toast({ title: "Could not create the topic", description: String(e), variant: "destructive" });
+      throw e;
+    }
   };
 
   const shown = filter === "all" ? tickets : tickets.filter((t) => t.status === filter);

@@ -62,6 +62,8 @@ const NewTopicModal = ({ open, onOpenChange, onCreate }: Props) => {
       setJourney(NONE);
       setNote("");
       onOpenChange(false);
+    } catch {
+      // Parent already surfaced the error via toast; keep the draft and modal open.
     } finally {
       setSubmitting(false);
     }
