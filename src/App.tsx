@@ -21,6 +21,7 @@ import RegisterFlow from "./views/runner/register/RegisterFlow";
 import LookupPage from "./views/runner/register/LookupPage";
 import PdpaPage from "./views/runner/register/PdpaPage";
 import BoardListView from "./views/board/BoardListView";
+import BoardThreadView from "./views/board/BoardThreadView";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,7 @@ const App = () => (
                 <Route path="/registration/lookup" element={<LookupPage />} />
                 <Route path="/pdpa" element={<PdpaPage />} />
                 <Route path="/board" element={<BoardListView />} />
+                <Route path="/board/:id" element={<BoardThreadView />} />
 
                 {/* Organizer portal */}
                 <Route path="/organizer/login" element={<AuthView />} />
