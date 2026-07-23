@@ -4,13 +4,14 @@
 
 **Goal:** Ship an in-app dev↔UX support-ticket board at `/board` (list + thread), Supabase-backed, no auth, reusing the existing shadcn design system.
 
-**Architecture:** Two new Supabase tables (`tickets`, `ticket_messages`) with anon read/insert + status-only update RLS. A self-contained `src/lib/board/` module (types, metadata, identity, API) isolated from `EventsContext`/`supabaseAdapter`. Two React views (`BoardListView`, `BoardThreadView`) + a `NewTopicModal`, wired into `App.tsx` as public routes. Board always talks to Supabase directly via the existing `getSupabase()` singleton (the deployed site builds with `VITE_DATA_SOURCE=supabase`), so it does not depend on the mock/supabase data-source flag.
+**Architecture:** Two new Supabase tables (`support_tickets`, `support_ticket_messages` — prefixed to avoid the existing production `tickets` table, which is event ticket-types) with anon read/insert + status-only update RLS. A self-contained `src/lib/board/` module (types, metadata, identity, API) isolated from `EventsContext`/`supabaseAdapter`. Two React views (`BoardListView`, `BoardThreadView`) + a `NewTopicModal`, wired into `App.tsx` as public routes. Board always talks to Supabase directly via the existing `getSupabase()` singleton (the deployed site builds with `VITE_DATA_SOURCE=supabase`), so it does not depend on the mock/supabase data-source flag.
 
 **Tech Stack:** Vite + React 18 + TypeScript, react-router-dom v6, @supabase/supabase-js, shadcn/ui + Tailwind, vitest + @testing-library/react.
 
 ## Global Constraints
 
 - Supabase project: **mytrails** (`VITE_SUPABASE_URL=https://dtmaoyuodcmnefdutipn.supabase.co`). Apply migrations via the `mcp__supabase__apply_migration` tool against this project.
+- Board table names are **`support_tickets`** and **`support_ticket_messages`** — the plain `tickets` name is already taken by the production event ticket-types table (do NOT touch it). Client TS types stay named `Ticket`/`TicketMessage`; only the DB table + relation names carry the `support_` prefix.
 - Copy/UI language: **English** (matches the back-office; board is an internal dev tool).
 - Reuse existing UI primitives under `@/components/ui/*` — do not add new dependencies.
 - No auth: identify posters by name + role (`dev` | `ux` | `po`), persisted in `localStorage`.
@@ -52,8 +53,14 @@
 Create `docs/superpowers/notes/2026-07-23-board-migration.sql`:
 
 ```sql
--- Support ticket board — tickets + ticket_messages (no auth, anon RLS)
-create table if not exists public.tickets (
+-- Support ticket board — support_tickets + support_ticket_messages (no auth, anon RLS).
+-- NOTE: named support_* because public.tickets already exists (event ticket-types,
+-- live data, FK'd from registrations/categories/events) — do NOT touch that table.
+-- DELETE is intentionally omitted (no policy = denied under RLS). The app restricts
+-- support_tickets UPDATE to the status/updated_at columns at the client layer
+-- (Postgres RLS can't scope columns without a trigger, and no-auth means we accept
+-- that convention here).
+create table if not exists public.support_tickets (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   status text not null default 'asked_ux'
@@ -66,32 +73,30 @@ create table if not exists public.tickets (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists public.ticket_messages (
+create table if not exists public.support_ticket_messages (
   id uuid primary key default gen_random_uuid(),
-  ticket_id uuid not null references public.tickets(id) on delete cascade,
+  ticket_id uuid not null references public.support_tickets(id) on delete cascade,
   author_name text not null,
   author_role text not null check (author_role in ('dev','ux','po')),
   body text not null,
   created_at timestamptz not null default now()
 );
 
-create index if not exists ticket_messages_ticket_id_idx on public.ticket_messages(ticket_id);
-create index if not exists tickets_updated_at_idx on public.tickets(updated_at desc);
+create index if not exists support_ticket_messages_ticket_id_idx on public.support_ticket_messages(ticket_id);
+create index if not exists support_tickets_updated_at_idx on public.support_tickets(updated_at desc);
 
-alter table public.tickets enable row level security;
-alter table public.ticket_messages enable row level security;
+alter table public.support_tickets enable row level security;
+alter table public.support_ticket_messages enable row level security;
 
--- tickets: anyone (anon) can read, create, and move status
-create policy tickets_select on public.tickets for select to anon, authenticated using (true);
-create policy tickets_insert on public.tickets for insert to anon, authenticated with check (true);
-create policy tickets_update on public.tickets for update to anon, authenticated using (true) with check (true);
+-- support_tickets: anyone (anon) can read, create, and move status
+create policy support_tickets_select on public.support_tickets for select to anon, authenticated using (true);
+create policy support_tickets_insert on public.support_tickets for insert to anon, authenticated with check (true);
+create policy support_tickets_update on public.support_tickets for update to anon, authenticated using (true) with check (true);
 
--- ticket_messages: append-only, readable by all
-create policy messages_select on public.ticket_messages for select to anon, authenticated using (true);
-create policy messages_insert on public.ticket_messages for insert to anon, authenticated with check (true);
+-- support_ticket_messages: append-only, readable by all
+create policy support_messages_select on public.support_ticket_messages for select to anon, authenticated using (true);
+create policy support_messages_insert on public.support_ticket_messages for insert to anon, authenticated with check (true);
 ```
-
-Note in the file header: DELETE is intentionally omitted (no policy = denied under RLS); the app restricts `tickets` UPDATE to the `status`/`updated_at` columns at the client layer (Postgres RLS can't scope columns without a trigger, and no-auth means we accept convention here).
 
 - [ ] **Step 2: Apply the migration**
 
@@ -99,18 +104,18 @@ Use `mcp__supabase__apply_migration` with `name: "support_ticket_board"` and the
 
 - [ ] **Step 3: Verify tables exist**
 
-Use `mcp__supabase__list_tables` (schema `public`). Expected: `tickets` and `ticket_messages` present with the columns above and `rowsecurity = true`.
+Use `mcp__supabase__list_tables` (schema `public`). Expected: `support_tickets` and `support_ticket_messages` present with the columns above and `rowsecurity = true`. (The pre-existing `tickets` table is unrelated — leave it alone.)
 
 - [ ] **Step 4: Verify RLS insert/select works as anon**
 
 Use `mcp__supabase__execute_sql`:
 ```sql
-insert into public.tickets (title, created_by_name, created_by_role)
+insert into public.support_tickets (title, created_by_name, created_by_role)
 values ('__smoke__', 'seed', 'dev') returning id, status;
 ```
 Expected: one row, `status = 'asked_ux'`. Then clean up:
 ```sql
-delete from public.tickets where title = '__smoke__';
+delete from public.support_tickets where title = '__smoke__';
 ```
 (Executed via service role in MCP; confirms schema/defaults. Client-side anon path is verified in Task 10.)
 
@@ -390,7 +395,7 @@ describe("board mappers", () => {
       created_by_role: "dev",
       created_at: "2026-07-23T00:00:00Z",
       updated_at: "2026-07-23T01:00:00Z",
-      ticket_messages: [{ count: 3 }],
+      support_ticket_messages: [{ count: 3 }],
     });
     expect(t).toMatchObject({
       id: "t1",
@@ -450,7 +455,7 @@ export function getBoardClient(): SupabaseClient {
 // --- row → client-type mappers (exported for tests) ---
 
 export function rowToTicket(row: any): Ticket {
-  const agg = Array.isArray(row.ticket_messages) ? row.ticket_messages[0] : undefined;
+  const agg = Array.isArray(row.support_ticket_messages) ? row.support_ticket_messages[0] : undefined;
   return {
     id: row.id,
     title: row.title,
@@ -480,8 +485,8 @@ export function rowToMessage(row: any): TicketMessage {
 
 export async function fetchTickets(client: SupabaseClient): Promise<Ticket[]> {
   const { data, error } = await client
-    .from("tickets")
-    .select("*, ticket_messages(count)")
+    .from("support_tickets")
+    .select("*, support_ticket_messages(count)")
     .order("updated_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(rowToTicket);
@@ -492,13 +497,13 @@ export async function fetchThread(
   ticketId: string
 ): Promise<{ ticket: Ticket; messages: TicketMessage[] }> {
   const { data: ticketRow, error: tErr } = await client
-    .from("tickets")
+    .from("support_tickets")
     .select("*")
     .eq("id", ticketId)
     .single();
   if (tErr) throw tErr;
   const { data: msgRows, error: mErr } = await client
-    .from("ticket_messages")
+    .from("support_ticket_messages")
     .select("*")
     .eq("ticket_id", ticketId)
     .order("created_at", { ascending: true });
@@ -517,7 +522,7 @@ export interface CreateTicketInput {
 
 export async function createTicket(client: SupabaseClient, input: CreateTicketInput): Promise<string> {
   const { data, error } = await client
-    .from("tickets")
+    .from("support_tickets")
     .insert({
       title: input.title,
       created_by_name: input.createdByName,
@@ -546,7 +551,7 @@ export interface PostMessageInput {
 }
 
 export async function postMessage(client: SupabaseClient, input: PostMessageInput): Promise<void> {
-  const { error } = await client.from("ticket_messages").insert({
+  const { error } = await client.from("support_ticket_messages").insert({
     ticket_id: input.ticketId,
     author_name: input.authorName,
     author_role: input.authorRole,
@@ -554,7 +559,7 @@ export async function postMessage(client: SupabaseClient, input: PostMessageInpu
   });
   if (error) throw error;
   const { error: bumpErr } = await client
-    .from("tickets")
+    .from("support_tickets")
     .update({ updated_at: new Date().toISOString() })
     .eq("id", input.ticketId);
   if (bumpErr) throw bumpErr;
@@ -566,7 +571,7 @@ export async function updateStatus(
   status: TicketStatus
 ): Promise<void> {
   const { error } = await client
-    .from("tickets")
+    .from("support_tickets")
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", ticketId);
   if (error) throw error;
@@ -1268,7 +1273,7 @@ After deploying/serving the supabase build behind Caddy, use the Playwright MCP 
 
 Use `mcp__supabase__execute_sql`:
 ```sql
-delete from public.tickets where title = '__smoke__';
+delete from public.support_tickets where title = '__smoke__';
 ```
 (Cascade removes its messages.)
 

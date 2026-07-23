@@ -21,9 +21,10 @@ page in the `/journey` Storybook catalog.
 ## Data model
 
 Two new tables in the existing Supabase project. Independent of `events`/`organizers`
-— no changes to existing policies.
+— no changes to existing policies. Named with a `support_` prefix because a `tickets`
+table already exists (event ticket-types, live data) and must not be touched.
 
-### `tickets`
+### `support_tickets`
 | column | type | notes |
 |---|---|---|
 | `id` | uuid pk | `default gen_random_uuid()` |
@@ -40,11 +41,11 @@ Two new tables in the existing Supabase project. Independent of `events`/`organi
 (`screen_ref_journey`) **and** a free-text note (`screen_ref_note`). Either, both,
 or neither may be set.
 
-### `ticket_messages`
+### `support_ticket_messages`
 | column | type | notes |
 |---|---|---|
 | `id` | uuid pk | `default gen_random_uuid()` |
-| `ticket_id` | uuid not null | fk → `tickets(id)` on delete cascade |
+| `ticket_id` | uuid not null | fk → `support_tickets(id)` on delete cascade |
 | `author_name` | text not null | |
 | `author_role` | text not null | `dev` \| `ux` \| `po` |
 | `body` | text not null | message text |
@@ -88,7 +89,7 @@ Reuse the existing shadcn + card design system.
 ### "+ New topic" modal
 - Fields: `title` (required) · poster name + role · first message body · `screen_ref_journey`
   dropdown (optional, list of the 12 journeys/screens) · `screen_ref_note` free text (optional).
-- On submit: creates a ticket with status `asked_ux` and its first `ticket_messages` row.
+- On submit: creates a ticket with status `asked_ux` and its first `support_ticket_messages` row.
 
 ## Identity (no auth)
 
@@ -101,11 +102,11 @@ Reuse the existing shadcn + card design system.
 
 On both new tables, with RLS enabled:
 - `anon`: **SELECT** and **INSERT** allowed (read, create topics, reply).
-- **UPDATE** on `tickets` allowed but restricted to `status` + `updated_at`
+- **UPDATE** on `support_tickets` allowed but restricted to `status` + `updated_at`
   (so status can be moved); no other column updates.
 - **No DELETE** policy (prevents accidental loss — use `closed` to archive).
-- `ticket_messages`: SELECT + INSERT only (messages are append-only; no edit/delete).
-- These tables are separate from `events`/`organizers`; existing policies are untouched.
+- `support_ticket_messages`: SELECT + INSERT only (messages are append-only; no edit/delete).
+- These tables are separate from `events`/`organizers`/`tickets`; existing policies are untouched.
 
 ## Out of scope (v1)
 
