@@ -33,3 +33,6 @@ storybook-static
 storybook-dist/
 .env.local
 dist-supabase/
+
+# runtime state (board notifier checkpoint)
+data/

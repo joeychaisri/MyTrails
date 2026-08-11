@@ -30,8 +30,8 @@ pushes it to Joey's LINE channel.
 The board is a static SPA served from `dist/` by Caddy — there is no server to receive
 a webhook. A `pg_net` trigger would require enabling the extension (not installed on
 this project), a new service + port + Caddy route + shared secret, and it fires
-without retry: a failed delivery is lost forever. Polling costs ~14 seconds of CPU per
-day at 15-minute intervals (measured: ~150 ms CPU per run on this VPS) and survives
+without retry: a failed delivery is lost forever. Polling costs ~37 seconds of CPU per
+day at 15-minute intervals (measured under systemd: 386 ms CPU per run) and survives
 downtime, because the checkpoint only advances after a successful push.
 
 An n8n workflow was also rejected: its logic would live outside the repo with no tests
@@ -42,7 +42,7 @@ An n8n workflow was also rejected: its logic would live outside the repo with no
 ```
 board-notify.timer  (OnUnitActiveSec=15min)
   └─ board-notify.service  (Type=oneshot)
-       └─ npx tsx scripts/board-notify.ts
+       └─ node --experimental-strip-types scripts/board-notify.ts
             1. read checkpoint  ← data/board-notify-state.json
             2. GET support_ticket_messages?created_at=gt.<checkpoint>
                    &select=id,ticket_id,author_name,author_role,body,created_at,
@@ -62,11 +62,20 @@ batch. Nothing is silently dropped.
 | Unit | Responsibility | Depends on |
 |---|---|---|
 | `src/lib/board/notify.ts` | Pure: `formatDigest(messages)`, `nextCheckpoint(messages)`. No I/O, no imports beyond board types. | `boardTypes.ts` |
-| `scripts/board-notify.ts` | I/O shell: read state, query Supabase, call the pure functions, push LINE, write state. | `notify.ts`, `@supabase/supabase-js`, `~/.hermes/.env` |
+| `scripts/board-notify.ts` | I/O shell: read state, query Supabase, call the pure functions, push LINE, write state. | `notify.ts`, `~/.hermes/.env` |
 | `board-notify.service/.timer` | Scheduling. | the script |
 
 The split exists so the formatting rules are unit-testable without a network, a
 database, or a LINE token — matching the existing `src/lib/` convention.
+
+**Runtime:** the script runs under `node --experimental-strip-types` (Node 22.23 on
+this VPS) rather than `tsx`, and queries PostgREST with plain `fetch` rather than
+`@supabase/supabase-js`. Both choices are about per-run cost: tsx re-transpiles on
+every start (1.43 s CPU) and the Supabase client adds another ~0.5 s and ~70 MB for
+what is a single anonymous GET. The current shape costs 386 ms. The trade-off is that
+relative imports in `notify.ts` and the script need explicit `.ts` extensions and
+`import type` for type-only imports — `allowImportingTsExtensions` is already on, so
+vite, vitest and `tsc` are unaffected.
 
 ## Data
 

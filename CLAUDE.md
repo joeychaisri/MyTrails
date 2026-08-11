@@ -76,7 +76,35 @@ doesn't have).
 | `/organizer/events/:id/:section` | Organizer | `EventManagerHub` |
 | `/organizer/admin` | Admin | `AdminDashboard` (Overview / Approvals / Financials / Users / Settings) |
 | `/organizer/admin/review/:id` | Admin | `AdminEventReview` — full-page event review before approve / request-changes |
+| `/board`, `/board/:id` | Internal | `BoardListView` / `BoardThreadView` — dev↔UX support board (see below) |
 | `/login`, `/dashboard` etc. | — | Legacy redirects → `/organizer/*` |
+
+## Support board (`/board`) — internal dev↔UX tool ⭐
+
+Public, **no auth**, English copy — devs raise UI/UX questions as threads and Joey
+answers. Replaces scattered Discord chat; linked from the Storybook Build Status page.
+Unlike the rest of the app it talks to **real Supabase in every mode** (own tables,
+outside `EventsContext`): `support_tickets` + `support_ticket_messages`, anon
+read/insert with status-only update. Code in `src/lib/board/` (types + `STATUS_META`,
+localStorage identity, `boardApi`), `src/components/board/`, `src/views/board/`.
+Statuses: asked_ux → in_progress → waiting_po → answered → closed. There is no edit or
+delete — removing a message means going into the DB.
+
+**LINE notifier** — `board-notify.timer` (systemd, every 15 min) runs
+`scripts/board-notify.ts` under `node --experimental-strip-types`: it polls
+`support_ticket_messages` for rows newer than the checkpoint in
+`data/board-notify-state.json` (gitignored), pushes one grouped digest to Joey's LINE,
+then advances the checkpoint — **in that order**, so a failed push is retried instead
+of lost. Creating a topic also inserts its first message, so polling that one table
+catches both new topics and replies. Formatting lives in `src/lib/board/notify.ts`
+(pure, unit-tested); the script is only I/O. Creds: `MYTRAILS_SUPABASE_URL` +
+`MYTRAILS_SUPABASE_ANON_KEY` from `~/.env.secrets`, LINE token from `~/.hermes/.env`.
+Missing state file = first run: it sets the checkpoint to *now* and sends nothing.
+Design: `docs/superpowers/specs/2026-08-11-board-line-notify-design.md`.
+
+Gotcha: `notify.ts` and the script import with explicit **`.ts` extensions** and
+`import type` — Node's type stripping resolves like Node, not like a bundler. Don't
+"tidy" those extensions away or the timer breaks (tests and `tsc` keep passing).
 
 ## Src Layout
 
