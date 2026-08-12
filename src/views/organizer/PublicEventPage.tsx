@@ -229,7 +229,7 @@ const PageBody = () => {
                                     {windowState === "ended"
                                       ? "Sales ended"
                                       : windowState === "not_yet"
-                                        ? "Not on sale yet"
+                                        ? `Opens ${format(new Date(ticket.salesStart!), "MMM d, yyyy")}`
                                         : `${ticket.quantity - ticket.sold} spots left`}
                                   </p>
                                 </div>

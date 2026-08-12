@@ -21,6 +21,16 @@ export function ticketWindowState(ticket: Ticket, now: Date = new Date()): Ticke
   return "on_sale";
 }
 
+/** Earliest salesStart among the event's not-yet-open tickets, or null if none are upcoming. */
+export function nextSalesOpenDate(event: Event, now: Date = new Date()): Date | null {
+  const opensAt = event.categories
+    .flatMap((c) => c.tickets)
+    .filter((t) => ticketWindowState(t, now) === "not_yet")
+    .map((t) => new Date(t.salesStart!));
+  if (opensAt.length === 0) return null;
+  return opensAt.reduce((earliest, d) => (d < earliest ? d : earliest));
+}
+
 export function eventPhase(event: Event, now: Date = new Date()): EventPhase {
   if (!event.date) return "upcoming"; // drafts without a date aren't public anyway
 

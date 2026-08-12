@@ -6,7 +6,7 @@
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { useEventsStore } from "@/contexts/EventsContext";
-import { eventPhase } from "@/lib/eventPhase";
+import { eventPhase, nextSalesOpenDate } from "@/lib/eventPhase";
 import type { Event } from "@/data/mockData";
 import heroImg from "@/assets/hero-trail.webp";
 
@@ -50,7 +50,10 @@ function runnerTag(event: Event): string {
   if (event.capacity > 0 && event.sold >= event.capacity) return "Sold Out";
   const phase = eventPhase(event);
   if (phase === "registration_open") return "Open";
-  if (phase === "upcoming") return "Coming Soon";
+  if (phase === "upcoming") {
+    const opensAt = nextSalesOpenDate(event);
+    return opensAt ? `Opens ${format(opensAt, "MMM d")}` : "Coming Soon";
+  }
   return "Closed";
 }
 

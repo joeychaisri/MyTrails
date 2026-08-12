@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { eventPhase, ticketWindowState } from "@/lib/eventPhase";
+import { eventPhase, nextSalesOpenDate, ticketWindowState } from "@/lib/eventPhase";
 import { mockEvents, Ticket } from "@/data/mockData";
 
 const at = (s: string) => new Date(s);
@@ -61,5 +61,35 @@ describe("eventPhase", () => {
   it("is upcoming before any window opens", () => {
     const t = ticket({ salesStart: "2026-08-01T00:00", salesEnd: "2026-08-31T23:59" });
     expect(eventPhase(eventWith([t]), at("2026-07-01T00:00:00"))).toBe("upcoming");
+  });
+});
+
+describe("nextSalesOpenDate", () => {
+  it("returns the salesStart of the only not-yet-open ticket", () => {
+    const t = ticket({ salesStart: "2026-08-01T00:00", salesEnd: "2026-08-31T23:59" });
+    const result = nextSalesOpenDate(eventWith([t]), at("2026-07-01T00:00:00"));
+    expect(result).toEqual(at("2026-08-01T00:00"));
+  });
+
+  it("returns the earliest salesStart across several not-yet tickets, ignoring an on-sale one", () => {
+    const early = ticket({ id: "early", salesStart: "2026-07-15T00:00", salesEnd: "2026-08-31T23:59" });
+    const late = ticket({ id: "late", salesStart: "2026-09-01T00:00", salesEnd: "2026-09-30T23:59" });
+    const onSale = ticket({ id: "onsale", salesStart: "2026-01-01T00:00", salesEnd: "2026-12-31T23:59" });
+    const result = nextSalesOpenDate(eventWith([late, early, onSale]), at("2026-07-01T00:00:00"));
+    expect(result).toEqual(at("2026-07-15T00:00"));
+  });
+
+  it("returns null when every ticket is already on sale", () => {
+    const t = ticket({ salesStart: "2026-01-01T00:00", salesEnd: "2026-12-31T23:59" });
+    expect(nextSalesOpenDate(eventWith([t]), at("2026-07-01T00:00:00"))).toBeNull();
+  });
+
+  it("returns null when a ticket has no salesStart at all (open-ended, already on sale)", () => {
+    expect(nextSalesOpenDate(eventWith([ticket()]), at("2026-07-01T00:00:00"))).toBeNull();
+  });
+
+  it("returns null once every ticket window has ended", () => {
+    const t = ticket({ salesStart: "2026-01-01T00:00", salesEnd: "2026-01-31T23:59" });
+    expect(nextSalesOpenDate(eventWith([t]), at("2026-07-01T00:00:00"))).toBeNull();
   });
 });

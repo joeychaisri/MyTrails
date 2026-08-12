@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { format } from "date-fns";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -229,7 +230,7 @@ const RunnerFormStep = ({
                             {windowState === "ended"
                               ? "Sales ended"
                               : windowState === "not_yet"
-                                ? "Not on sale yet"
+                                ? `Opens ${format(new Date(ticket.salesStart!), "MMM d, yyyy")}`
                                 : `${ticket.quantity - ticket.sold} spots left`}
                           </p>
                         </div>
