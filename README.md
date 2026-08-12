@@ -26,6 +26,8 @@ MyTrails เชื่อมต่อ 2 กลุ่มผู้ใช้:
 
 **ดูทุกหน้าจอแบบ isolated (ไม่ต้อง login):** [`mytrails.theingress.co/journey`](https://mytrails.theingress.co/journey) — catalog รวมทุก user journey (Storybook)
 
+> หน้าแรกของ catalog คือ **Build Status** — ตาราง sign-off ต่อ journey (🟢 Locked / 🟡 Tentative / 🔴 Draft) พร้อมลิงก์เปิด Support Board ถ้า dev มีคำถามระหว่างทำ
+
 **ฝั่ง Runner** — เปิด browser เข้าได้เลย ไม่ต้อง login
 
 | URL | เนื้อหา |
@@ -57,6 +59,15 @@ MyTrails เชื่อมต่อ 2 กลุ่มผู้ใช้:
 | URL | เนื้อหา |
 |-----|---------|
 | `mytrails.theingress.co/organizer/admin` | อนุมัติ/ตีกลับ Event, Payout & Escrow, จัดการ User + Tier (ค่าคอมมิชชั่น), Platform Settings |
+
+## Support Board (`/board`)
+
+ถ้า dev มีคำถามระหว่างทำงาน มาพิมพ์ทิ้งไว้ในนี้ได้เลย ไม่ต้อง login
+
+| URL | เนื้อหา |
+|-----|---------|
+| `mytrails.theingress.co/board` | รายการหัวข้อทั้งหมด กรองตามสถานะ (Asked UX / In progress / Waiting on PO / Answered / Closed) |
+| `mytrails.theingress.co/board/:id` | Thread ของหัวข้อนั้น — ตอบกลับ + เปลี่ยนสถานะ |
 
 ---
 
@@ -135,8 +146,6 @@ flowchart TB
 **Event Lifecycle:**
 `draft` → `pending_review` → (Admin อนุมัติ) → `live` (ถ้าเลือก publish ทันที) หรือ `scheduled` → `live` (ตามวันเวลาที่ตั้ง)
 `pending_review` → (ตีกลับ) → `rejected` → แก้แล้วส่งใหม่ · แก้ Event ที่อนุมัติแล้ว = ต้องรีวิวใหม่
-
-**Commission (2 ส่วน):** Event commission ตามจำนวนผู้สมัคร (`<300` = ฿1,000 · `300–999` = 8% · `≥1000` = 6%) + Tier commission ตาม tier ของบัญชี — หักตอนจ่ายเงินคืนผู้จัด (payout คิดจากยอดสมัครจริง)
 
 ---
 
