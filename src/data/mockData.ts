@@ -36,8 +36,10 @@ export interface Event {
   // 'asap' → live immediately; 'scheduled' → scheduled until publishAt, then auto-live.
   publishMode?: 'asap' | 'scheduled';
   publishAt?: string;
-  // Admin can override the event-portion commission (THB) for this event at review.
+  // Admin can override either platform charge (THB) for this event at review;
+  // unset means the event follows the platform-wide setting.
   eventCommissionOverride?: number;
+  serviceFeeOverride?: number;
   sold: number;
   capacity: number;
   revenue: number;

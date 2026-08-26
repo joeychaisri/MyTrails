@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import AdminStatusBadge from "@/components/AdminStatusBadge";
 import { Category } from "@/data/mockData";
-import { useEventsStore, eventCommissionAmount } from "@/contexts/EventsContext";
+import { useEventsStore, eventCommissionAmount, eventServiceFee, resolveBracket } from "@/contexts/EventsContext";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -117,7 +117,8 @@ const AdminEventReview = () => {
   const { getEvent, organizers, settings, approveEvent, rejectEvent, updateEvent, hydrated } = useEventsStore();
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
-  const [overrideInput, setOverrideInput] = useState("");
+  const [commissionOverrideInput, setCommissionOverrideInput] = useState("");
+  const [serviceFeeOverrideInput, setServiceFeeOverrideInput] = useState("");
 
   const event = getEvent(id);
   const backToQueue = () => navigate("/organizer/admin", { state: { page: "approvals" } });
@@ -143,7 +144,6 @@ const AdminEventReview = () => {
   }
 
   const organizer = organizers.find((o) => o.id === event.organizerId);
-  const tier = settings.tiers.find((t) => t.id === organizer?.tierId);
   const dateLabel =
     event.endDate && event.endDate !== event.date
       ? `${fmtDate(event.date)} – ${fmtDate(event.endDate)}`
@@ -153,9 +153,14 @@ const AdminEventReview = () => {
   // Pending events have revenue 0, so fall back to the ticket-priced gross.
   const ticketGross = event.categories.reduce((s, c) => s + c.tickets.reduce((a, t) => a + t.price * t.quantity, 0), 0);
   const grossEstimate = event.grossSales ?? (event.revenue || ticketGross);
-  const eventCommission = eventCommissionAmount(event.capacity, grossEstimate, event.eventCommissionOverride);
-  const tierRate = tier?.commissionRate ?? 0;
-  const tierCommission = Math.round((grossEstimate * tierRate) / 100);
+  const eventCommission = eventCommissionAmount(event.capacity, grossEstimate, settings.commissionBrackets, event.eventCommissionOverride);
+  const serviceFee = eventServiceFee(event, settings);
+  const resolvedBracket = resolveBracket(event.capacity, settings.commissionBrackets);
+  const bracketLabel = resolvedBracket
+    ? resolvedBracket.type === "flat"
+      ? formatCurrency(resolvedBracket.value)
+      : `${resolvedBracket.value}%`
+    : "—";
 
   const handleApprove = () => {
     approveEvent(event.id);
@@ -166,16 +171,28 @@ const AdminEventReview = () => {
     backToQueue();
   };
 
-  const saveOverride = () => {
-    const val = parseFloat(overrideInput);
+  const saveCommissionOverride = () => {
+    const val = parseFloat(commissionOverrideInput);
     updateEvent(event.id, { eventCommissionOverride: isNaN(val) ? undefined : Math.max(0, val) });
     toast({ title: "Commission updated", description: "Event commission override saved." });
-    setOverrideInput("");
+    setCommissionOverrideInput("");
   };
 
-  const clearOverride = () => {
+  const clearCommissionOverride = () => {
     updateEvent(event.id, { eventCommissionOverride: undefined });
     toast({ title: "Override cleared", description: "Reverted to the standard commission scale." });
+  };
+
+  const saveServiceFeeOverride = () => {
+    const val = parseFloat(serviceFeeOverrideInput);
+    updateEvent(event.id, { serviceFeeOverride: isNaN(val) ? undefined : Math.max(0, val) });
+    toast({ title: "Service fee updated", description: "Service fee override saved." });
+    setServiceFeeOverrideInput("");
+  };
+
+  const clearServiceFeeOverride = () => {
+    updateEvent(event.id, { serviceFeeOverride: undefined });
+    toast({ title: "Override cleared", description: "Reverted to the standard service fee." });
   };
 
   const handleReject = () => {
@@ -313,9 +330,6 @@ const AdminEventReview = () => {
                   <div>
                     <p className="font-medium">{organizer.organizationName}</p>
                     <div className="mt-1 flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                        {tier?.name ?? "—"} · {tierRate}%
-                      </span>
                       <span
                         className={cn(
                           "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
@@ -369,24 +383,49 @@ const AdminEventReview = () => {
               )}
             </div>
 
-            {/* Commission — two parts, with per-event override */}
+            {/* Commission — two parts, each independently overridable */}
             <div className="rounded-xl border border-border bg-card p-5 shadow-card text-sm">
               <h3 className="mb-3 font-semibold">Commission (estimate)</h3>
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
-                    Event {event.eventCommissionOverride !== undefined ? "(override)" : `(${event.capacity} regs)`}
+                    Service fee{event.serviceFeeOverride !== undefined ? " (override)" : ""}
+                  </span>
+                  <span className="font-medium">{formatCurrency(serviceFee)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Event commission{" "}
+                    {event.eventCommissionOverride !== undefined
+                      ? "(override)"
+                      : `(${event.capacity} regs · ${bracketLabel})`}
                   </span>
                   <span className="font-medium">{formatCurrency(eventCommission)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tier ({tierRate}%)</span>
-                  <span className="font-medium">{formatCurrency(tierCommission)}</span>
-                </div>
                 <div className="flex justify-between border-t border-border pt-2">
                   <span className="font-medium">Total</span>
-                  <span className="font-semibold">{formatCurrency(eventCommission + tierCommission)}</span>
+                  <span className="font-semibold">{formatCurrency(serviceFee + eventCommission)}</span>
                 </div>
+              </div>
+
+              <div className="mt-4 border-t border-border pt-3">
+                <p className="mb-1.5 text-xs text-muted-foreground">Override service fee (THB)</p>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    value={serviceFeeOverrideInput}
+                    onChange={(e) => setServiceFeeOverrideInput(e.target.value)}
+                    placeholder={`${serviceFee}`}
+                    className="h-8 w-full rounded-md border border-border bg-background px-2 text-sm"
+                  />
+                  <Button size="sm" variant="outline" onClick={saveServiceFeeOverride} disabled={serviceFeeOverrideInput === ""}>Set</Button>
+                </div>
+                {event.serviceFeeOverride !== undefined && (
+                  <button className="mt-2 text-xs text-primary hover:underline" onClick={clearServiceFeeOverride}>
+                    Clear override (use standard service fee)
+                  </button>
+                )}
               </div>
 
               <div className="mt-4 border-t border-border pt-3">
@@ -395,15 +434,15 @@ const AdminEventReview = () => {
                   <input
                     type="number"
                     min={0}
-                    value={overrideInput}
-                    onChange={(e) => setOverrideInput(e.target.value)}
+                    value={commissionOverrideInput}
+                    onChange={(e) => setCommissionOverrideInput(e.target.value)}
                     placeholder={`${eventCommission}`}
                     className="h-8 w-full rounded-md border border-border bg-background px-2 text-sm"
                   />
-                  <Button size="sm" variant="outline" onClick={saveOverride} disabled={overrideInput === ""}>Set</Button>
+                  <Button size="sm" variant="outline" onClick={saveCommissionOverride} disabled={commissionOverrideInput === ""}>Set</Button>
                 </div>
                 {event.eventCommissionOverride !== undefined && (
-                  <button className="mt-2 text-xs text-primary hover:underline" onClick={clearOverride}>
+                  <button className="mt-2 text-xs text-primary hover:underline" onClick={clearCommissionOverride}>
                     Clear override (use standard scale)
                   </button>
                 )}

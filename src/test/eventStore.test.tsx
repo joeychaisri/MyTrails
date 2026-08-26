@@ -68,17 +68,31 @@ describe("EventsStore — the full organizer→admin flow", () => {
     expect(e?.rejectionReason).toBe("Missing GPX route");
   });
 
-  it("adds and deletes a tier (delete blocked while in use)", () => {
+  it("adds, edits and deletes a commission bracket", () => {
     const { result } = renderHook(() => useEventsStore(), { wrapper });
-    act(() => result.current.addTier("Elite", 3));
-    const elite = result.current.settings.tiers.find((t) => t.name === "Elite")!;
-    expect(elite.commissionRate).toBe(3);
-    // t-standard is used by org1 → delete is a no-op.
-    act(() => result.current.deleteTier("t-standard"));
-    expect(result.current.settings.tiers.some((t) => t.id === "t-standard")).toBe(true);
-    // Unused new tier can be deleted.
-    act(() => result.current.deleteTier(elite.id));
-    expect(result.current.settings.tiers.some((t) => t.id === elite.id)).toBe(false);
+    act(() => result.current.addBracket({ minCount: 2000, type: "percent", value: 4 }));
+    const added = result.current.settings.commissionBrackets.find((b) => b.minCount === 2000)!;
+    expect(added.value).toBe(4);
+    act(() => result.current.updateBracket(added.id, { value: 5 }));
+    expect(result.current.settings.commissionBrackets.find((b) => b.id === added.id)?.value).toBe(5);
+    act(() => result.current.deleteBracket(added.id));
+    expect(result.current.settings.commissionBrackets.some((b) => b.id === added.id)).toBe(false);
+  });
+
+  it("refuses to delete the last commission bracket", () => {
+    const { result } = renderHook(() => useEventsStore(), { wrapper });
+    const ids = result.current.settings.commissionBrackets.map((b) => b.id);
+    act(() => ids.slice(0, -1).forEach((id) => result.current.deleteBracket(id)));
+    expect(result.current.settings.commissionBrackets).toHaveLength(1);
+    const last = result.current.settings.commissionBrackets[0].id;
+    act(() => result.current.deleteBracket(last));
+    expect(result.current.settings.commissionBrackets).toHaveLength(1);
+  });
+
+  it("saves a new platform service fee", () => {
+    const { result } = renderHook(() => useEventsStore(), { wrapper });
+    act(() => result.current.saveSettings({ ...result.current.settings, serviceFee: 2000 }));
+    expect(result.current.settings.serviceFee).toBe(2000);
   });
 
   it("marking a payout paid records the payout date", () => {

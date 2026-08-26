@@ -133,7 +133,7 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
                         <TableCell className="text-right text-muted-foreground">{f.refunded ? `−${formatCurrency(f.refunded)}` : "—"}</TableCell>
                         <TableCell className="text-right text-muted-foreground">
                           −{formatCurrency(f.totalCommission)}
-                          <span className="block text-[10px]">evt {formatCurrency(f.eventCommission)} · tier {f.tierRate}%</span>
+                          <span className="block text-[10px]">evt {formatCurrency(f.eventCommission)} · service {formatCurrency(f.serviceFee)}</span>
                         </TableCell>
                         <TableCell className="text-right font-semibold">{formatCurrency(f.netPayout)}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{payoutAccountFor(event.organizerId)}</TableCell>

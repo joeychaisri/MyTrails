@@ -4,8 +4,8 @@ import { Event, Registration, RunnerInfo, mockEvents } from "@/data/mockData";
 import { ticketWindowState } from "@/lib/eventPhase";
 import {
   AdminOrganizer,
+  CommissionBracket,
   PlatformSettings,
-  Tier,
   mockAdminOrganizers,
   mockOtherEvents,
   mockPlatformSettings,
@@ -15,7 +15,6 @@ import { getSupabase } from "@/lib/supabaseClient";
 import {
   RegistrationRow,
   deleteEventTree,
-  deleteTierRemote,
   fetchAll,
   must,
   pushEventTree,
@@ -23,7 +22,6 @@ import {
   registrationRowToRegistration,
   upsertOrganizer,
   updateOrganizerAccount,
-  upsertTiers,
 } from "@/lib/supabaseAdapter";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -36,7 +34,7 @@ import { useAuth } from "@/contexts/AuthContext";
 // and so on. Still mock (in-memory + localStorage) — no backend.
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = "mt_store_v9";
+const STORAGE_KEY = "mt_store_v10";
 
 interface StoreShape {
   events: Event[];
@@ -80,27 +78,50 @@ const mergeRegistrations = (server: Registration[], local: Registration[]): Regi
   return [...server, ...local.filter((r) => !seen.has(r.id))];
 };
 
-// Event-portion commission by number of registrations (PO spec, tunable mock):
-//   < 300 registrations → flat 1,000 THB
-//   300–999            → 8% of net registration revenue
-//   ≥ 1,000            → 6% (volume discount)
-// An admin can override the resolved amount per event at review time.
-export function eventCommissionAmount(regCount: number, netRevenue: number, overrideAmount?: number): number {
-  if (overrideAmount !== undefined) return Math.max(0, Math.round(overrideAmount));
-  if (regCount < 300) return 1000;
-  if (regCount < 1000) return Math.round(netRevenue * 0.08);
-  return Math.round(netRevenue * 0.06);
+// The bracket a given registration count falls into. Brackets are sorted by
+// minCount; the matching one is the last whose minCount the count reaches. A
+// count below every bracket still uses the first one, so there is always a
+// price even if an admin sets the lowest bracket's minCount above zero.
+export function resolveBracket(
+  regCount: number,
+  brackets: CommissionBracket[]
+): CommissionBracket | undefined {
+  if (!brackets.length) return undefined;
+  const sorted = [...brackets].sort((a, b) => a.minCount - b.minCount);
+  return sorted.filter((b) => regCount >= b.minCount).pop() ?? sorted[0];
 }
 
-// The two-part commission the platform keeps and the net owed to the organizer.
-// Event commission = registration-count scale (above); tier commission = the
-// organizer account's tier rate. Payout uses ACTUAL registrations (sold).
+// Event-portion commission by number of registrations. The scale itself lives
+// in platform settings (Admin → Settings), so the PO can retune it without a
+// deploy; the resolved bracket prices the whole event. An admin can override
+// the resolved amount per event at review time.
+export function eventCommissionAmount(
+  regCount: number,
+  netRevenue: number,
+  brackets: CommissionBracket[],
+  overrideAmount?: number
+): number {
+  if (overrideAmount !== undefined) return Math.max(0, Math.round(overrideAmount));
+  const bracket = resolveBracket(regCount, brackets);
+  if (!bracket) return 0;
+  if (bracket.type === "flat") return Math.max(0, Math.round(bracket.value));
+  return Math.max(0, Math.round((netRevenue * bracket.value) / 100));
+}
+
+// The flat fee every event pays regardless of size, overridable per event.
+export function eventServiceFee(e: Event, settings: PlatformSettings): number {
+  const fee = e.serviceFeeOverride ?? settings.serviceFee ?? 0;
+  return Math.max(0, Math.round(fee));
+}
+
+// The two charges the platform keeps and the net owed to the organizer.
+// Service fee = flat per event; event commission = registration-count bracket
+// scale (above). Payout uses ACTUAL registrations (sold).
 export interface EventFinance {
   gross: number;
   refunded: number;
   eventCommission: number;
-  tierCommission: number;
-  tierRate: number;
+  serviceFee: number;
   totalCommission: number;
   netPayout: number;
 }
@@ -109,14 +130,16 @@ export function eventFinance(e: Event, organizers: AdminOrganizer[], settings: P
   const gross = e.grossSales ?? e.revenue ?? 0;
   const refunded = e.refundedAmount ?? 0;
   const netAfterRefund = Math.max(0, gross - refunded);
-  const eventCommission = eventCommissionAmount(e.sold, netAfterRefund, e.eventCommissionOverride);
-  const org = organizers.find((o) => o.id === e.organizerId);
-  const tier = settings.tiers.find((t) => t.id === org?.tierId);
-  const tierRate = tier?.commissionRate ?? 0;
-  const tierCommission = Math.round((netAfterRefund * tierRate) / 100);
-  const totalCommission = eventCommission + tierCommission;
+  const eventCommission = eventCommissionAmount(
+    e.sold,
+    netAfterRefund,
+    settings.commissionBrackets,
+    e.eventCommissionOverride
+  );
+  const serviceFee = eventServiceFee(e, settings);
+  const totalCommission = eventCommission + serviceFee;
   const netPayout = netAfterRefund - totalCommission;
-  return { gross, refunded, eventCommission, tierCommission, tierRate, totalCommission, netPayout };
+  return { gross, refunded, eventCommission, serviceFee, totalCommission, netPayout };
 }
 
 const today = () => new Date().toISOString().split("T")[0];
@@ -193,10 +216,11 @@ interface EventsContextType {
   /** Persist an organizer's own editable account (profile + payout details). */
   updateMyAccount: (organizerId: string, account: NonNullable<AdminOrganizer["account"]>) => void;
   saveSettings: (settings: PlatformSettings) => void;
-  // Tier management (commission per tier). deleteTier is a no-op if the tier is in use.
-  addTier: (name: string, commissionRate: number) => void;
-  updateTier: (id: string, patch: Partial<Tier>) => void;
-  deleteTier: (id: string) => void;
+  // Commission-scale management. deleteBracket is a no-op on the last bracket —
+  // an empty scale would leave nothing to price an event with.
+  addBracket: (bracket: Omit<CommissionBracket, "id">) => void;
+  updateBracket: (id: string, patch: Partial<CommissionBracket>) => void;
+  deleteBracket: (id: string) => void;
   // Runner registrations (order + participant in one record, with capacity holds)
   registrations: Registration[];
   createRegistration: (input: {
@@ -272,6 +296,14 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       .catch((e) => console.error("[supabase] write failed", e))
       .then(() => applyFetched())
       .catch((e) => console.error("[supabase] refetch failed", e));
+  };
+
+  // Settings are one row remotely, so every edit inside them (service fee,
+  // commission brackets) pushes the whole object rather than a partial patch.
+  const mutateSettings = (fn: (s: PlatformSettings) => PlatformSettings) => {
+    const next = fn(store.settings);
+    setStore((s) => ({ ...s, settings: fn(s.settings) }));
+    remote((client) => pushSettings(client, next));
   };
 
   // No backend/cron in this prototype: promote scheduled events to live once their
@@ -410,28 +442,19 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       setStore((s) => ({ ...s, settings }));
       remote((client) => pushSettings(client, settings));
     },
-    addTier: (name, commissionRate) => {
-      const tier: Tier = { id: `tier-${Date.now()}`, name, commissionRate };
-      setStore((s) => ({
-        ...s,
-        settings: { ...s.settings, tiers: [...s.settings.tiers, tier] },
-      }));
-      remote((client) => upsertTiers(client, [tier]));
+    addBracket: (bracket) => {
+      const added: CommissionBracket = { ...bracket, id: `cb-${Date.now()}` };
+      mutateSettings((s) => ({ ...s, commissionBrackets: [...s.commissionBrackets, added] }));
     },
-    updateTier: (id, patch) => {
-      setStore((s) => ({
+    updateBracket: (id, patch) => {
+      mutateSettings((s) => ({
         ...s,
-        settings: { ...s.settings, tiers: s.settings.tiers.map((t) => (t.id === id ? { ...t, ...patch } : t)) },
+        commissionBrackets: s.commissionBrackets.map((b) => (b.id === id ? { ...b, ...patch } : b)),
       }));
-      const tier = store.settings.tiers.find((t) => t.id === id);
-      if (tier) remote((client) => upsertTiers(client, [{ ...tier, ...patch }]));
     },
-    deleteTier: (id) => {
-      setStore((s) => {
-        if (s.organizers.some((o) => o.tierId === id)) return s; // in use — block
-        return { ...s, settings: { ...s.settings, tiers: s.settings.tiers.filter((t) => t.id !== id) } };
-      });
-      if (!store.organizers.some((o) => o.tierId === id)) remote((client) => deleteTierRemote(client, id));
+    deleteBracket: (id) => {
+      if (store.settings.commissionBrackets.length <= 1) return; // keep the scale priceable
+      mutateSettings((s) => ({ ...s, commissionBrackets: s.commissionBrackets.filter((b) => b.id !== id) }));
     },
     registrations: store.registrations,
     createRegistration: (input) => {

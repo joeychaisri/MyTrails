@@ -6,8 +6,9 @@ import { useEventsStore } from "@/contexts/EventsContext";
 
 // Journey 11 · Admin — Platform Administration
 // Running the platform itself: the health overview, organizer accounts
-// (create / suspend), and settings — commission tiers are dynamic (CRUD here;
-// a tier in use can't be deleted) plus the "Reset demo data" escape hatch.
+// (create / suspend), and settings — the flat service fee and the event
+// commission scale are both editable here (bracket CRUD; the scale must keep at
+// least one bracket) plus the "Reset demo data" escape hatch.
 // AdminSettings reads/writes the store itself (no props).
 export default {
   title: "Admin/11 · Platform Administration",
@@ -42,4 +43,4 @@ export const Settings: Story = () => (
     <AdminSettings />
   </div>
 );
-Settings.storyName = "Settings (tiers + reset demo data)";
+Settings.storyName = "Settings (service fee + commission scale + reset demo data)";

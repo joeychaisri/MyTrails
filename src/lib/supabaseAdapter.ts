@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Category, Event, Registration, RunnerInfo, Ticket } from "@/data/mockData";
-import { AdminOrganizer, PlatformSettings, Tier, mockPlatformSettings } from "@/data/adminMockData";
+import { AdminOrganizer, CommissionBracket, PlatformSettings, mockPlatformSettings } from "@/data/adminMockData";
 
 // ---------------------------------------------------------------------------
 // Row ↔ client-type mapping for supabase mode. The authoritative mapping is
@@ -29,6 +29,7 @@ interface EventRow {
   publish_at: string | null;
   rejection_reason: string | null;
   commission_override: Numeric | null;
+  service_fee_override: Numeric | null;
   sold: number;
   capacity: number;
   revenue: Numeric;
@@ -76,16 +77,9 @@ interface OrganizerRow {
   contact_name: string;
   phone: string;
   status: AdminOrganizer["status"];
-  tier_id: string;
   payout_account: string | null;
   created_at: string;
   account: AdminOrganizer["account"] | null;
-}
-
-interface TierRow {
-  id: string;
-  name: string;
-  commission_rate: Numeric;
 }
 
 export interface RegistrationRow {
@@ -168,6 +162,7 @@ export function eventRowToEvent(row: EventRow, catRows: CategoryRow[], ticketRow
     publishAt: isoToLocalInput(row.publish_at),
     rejectionReason: row.rejection_reason ?? undefined,
     eventCommissionOverride: optNum(row.commission_override),
+    serviceFeeOverride: optNum(row.service_fee_override),
     sold: row.sold,
     capacity: row.capacity,
     revenue: num(row.revenue),
@@ -201,8 +196,6 @@ export const registrationRowToRegistration = (row: RegistrationRow): Registratio
   runner: row.runner,
 });
 
-const tierRowToTier = (t: TierRow): Tier => ({ id: t.id, name: t.name, commissionRate: num(t.commission_rate) });
-
 const organizerRowToAdminOrganizer = (o: OrganizerRow, eventsCount: number): AdminOrganizer => ({
   id: o.id,
   organizationName: o.organization_name,
@@ -210,7 +203,6 @@ const organizerRowToAdminOrganizer = (o: OrganizerRow, eventsCount: number): Adm
   email: o.email,
   phone: o.phone,
   status: o.status,
-  tierId: o.tier_id,
   createdAt: (o.created_at ?? "").slice(0, 10),
   eventsCount,
   payoutAccount: o.payout_account ?? undefined,
@@ -233,6 +225,7 @@ export function eventToRow(e: Event) {
     publish_at: localInputToIso(e.publishAt),
     rejection_reason: e.rejectionReason ?? null,
     commission_override: e.eventCommissionOverride ?? null,
+    service_fee_override: e.serviceFeeOverride ?? null,
     sold: e.sold,
     capacity: e.capacity,
     revenue: e.revenue,
@@ -281,13 +274,10 @@ const organizerToRow = (o: AdminOrganizer) => ({
   contact_name: o.contactName,
   phone: o.phone,
   status: o.status,
-  tier_id: o.tierId,
   payout_account: o.payoutAccount ?? null,
   created_at: o.createdAt,
   account: o.account ?? {},
 });
-
-const tierToRow = (t: Tier) => ({ id: t.id, name: t.name, commission_rate: t.commissionRate });
 
 // Quoted PostgREST "in" list, e.g. ("id1","id2").
 const inList = (ids: string[]) => `(${ids.map((id) => `"${id}"`).join(",")})`;
@@ -335,17 +325,15 @@ export async function updateOrganizerAccount(
   must(await client.from("organizers").update({ account: account ?? {} }).eq("id", id));
 }
 
-export async function upsertTiers(client: SupabaseClient, tiers: Tier[]): Promise<void> {
-  if (tiers.length) must(await client.from("tiers").upsert(tiers.map(tierToRow)));
-}
-
-export async function deleteTierRemote(client: SupabaseClient, id: string): Promise<void> {
-  must(await client.from("tiers").delete().eq("id", id));
-}
-
 export async function pushSettings(client: SupabaseClient, s: PlatformSettings): Promise<void> {
-  must(await client.from("platform_settings").upsert({ id: 1, payout_hold_days: s.payoutHoldDays }));
-  await upsertTiers(client, s.tiers);
+  must(
+    await client.from("platform_settings").upsert({
+      id: 1,
+      payout_hold_days: s.payoutHoldDays,
+      service_fee: s.serviceFee,
+      commission_brackets: s.commissionBrackets,
+    })
+  );
 }
 
 // --- reads ---
@@ -379,11 +367,10 @@ export async function fetchAll(client: SupabaseClient, scope: FetchAllScope): Pr
   // organizers/admins get their rows. Gating these on the JS `role` instead used
   // to race page load — the query got skipped before the auth state settled, so
   // admins saw an empty User Management / "organizer not found" on reload.
-  const [evRes, catRes, tixRes, tierRes, setRes, orgRes, regRes] = await Promise.all([
+  const [evRes, catRes, tixRes, setRes, orgRes, regRes] = await Promise.all([
     client.from("events").select("*").order("created_at", { ascending: false }),
     client.from("categories").select("*"),
     client.from("tickets").select("*"),
-    client.from("tiers").select("*"),
     client.from("platform_settings").select("*").eq("id", 1).maybeSingle(),
     client.from("organizers").select("*"),
     client.from("registrations").select("*").order("created_at", { ascending: false }),
@@ -399,10 +386,15 @@ export async function fetchAll(client: SupabaseClient, scope: FetchAllScope): Pr
     organizerRowToAdminOrganizer(o, events.filter((e) => e.organizerId === o.id).length)
   );
 
-  const tierRows = (tierRes.data ?? []) as TierRow[];
-  const settingsRow = setRes.data as { payout_hold_days: number } | null;
+  const settingsRow = setRes.data as {
+    payout_hold_days: number;
+    service_fee: Numeric | null;
+    commission_brackets: CommissionBracket[] | null;
+  } | null;
+  const brackets = settingsRow?.commission_brackets;
   const settings: PlatformSettings = {
-    tiers: tierRows.length ? tierRows.map(tierRowToTier) : mockPlatformSettings.tiers,
+    serviceFee: settingsRow?.service_fee != null ? num(settingsRow.service_fee) : mockPlatformSettings.serviceFee,
+    commissionBrackets: brackets?.length ? brackets : mockPlatformSettings.commissionBrackets,
     payoutHoldDays: settingsRow?.payout_hold_days ?? mockPlatformSettings.payoutHoldDays,
   };
 

@@ -3,7 +3,7 @@ import AdminFinancials from "@/views/admin/AdminFinancials";
 import { useEventsStore } from "@/contexts/EventsContext";
 
 // Journey 10 · Admin — Platform Finance
-// The payout queue: per-event commission (2 parts: event size + organizer tier)
+// The payout queue: per-event charges (2 parts: flat service fee + event commission)
 // computed on actual sold tickets, with the payout lifecycle held → payable → paid.
 // Data comes from the shared EventsProvider store; Mark paid is a no-op here.
 export default {

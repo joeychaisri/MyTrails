@@ -49,16 +49,18 @@ async function main() {
 
   // 2. wipe domain tables (order matters for FKs)
   const intIdTables = new Set(["event_status_history", "platform_settings"]);
-  for (const t of ["registrations", "event_status_history", "tickets", "categories", "events", "organizers", "platform_settings", "tiers"]) {
+  for (const t of ["registrations", "event_status_history", "tickets", "categories", "events", "organizers", "platform_settings"]) {
     const q = db.from(t).delete();
     die(`wipe ${t}`)(await (intIdTables.has(t) ? q.gte("id", 0) : q.neq("id", "")));
   }
 
-  // 3. tiers + settings
-  die("tiers")(await db.from("tiers").insert(
-    mockPlatformSettings.tiers.map((t) => ({ id: t.id, name: t.name, commission_rate: t.commissionRate })),
-  ));
-  die("settings")(await db.from("platform_settings").insert({ id: 1, payout_hold_days: mockPlatformSettings.payoutHoldDays }));
+  // 3. platform settings (service fee + commission scale live in this one row)
+  die("settings")(await db.from("platform_settings").insert({
+    id: 1,
+    payout_hold_days: mockPlatformSettings.payoutHoldDays,
+    service_fee: mockPlatformSettings.serviceFee,
+    commission_brackets: mockPlatformSettings.commissionBrackets,
+  }));
 
   // 4. organizers (org1 linked to the demo auth user)
   die("organizers")(await db.from("organizers").insert(
@@ -70,7 +72,6 @@ async function main() {
       contact_name: o.contactName,
       phone: o.phone,
       status: o.status,
-      tier_id: o.tierId,
       payout_account: o.payoutAccount ?? null,
       created_at: o.createdAt,
       // Editable account: org1 (the demo login) gets the full mock profile +
@@ -102,6 +103,7 @@ async function main() {
       publish_at: e.publishAt ? new Date(e.publishAt).toISOString() : null,
       rejection_reason: e.rejectionReason ?? null,
       commission_override: e.eventCommissionOverride ?? null,
+      service_fee_override: e.serviceFeeOverride ?? null,
       sold: e.sold,
       capacity: e.capacity,
       revenue: e.revenue,
@@ -148,7 +150,7 @@ async function main() {
   die("tickets")(await db.from("tickets").insert(tix));
 
   const counts = await Promise.all(
-    ["tiers", "organizers", "events", "categories", "tickets"].map(async (t) => {
+    ["organizers", "events", "categories", "tickets"].map(async (t) => {
       const { count } = await db.from(t).select("*", { count: "exact", head: true });
       return `${t}=${count}`;
     }),

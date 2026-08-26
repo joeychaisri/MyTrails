@@ -47,7 +47,7 @@ import Logo from "@/components/Logo";
 import PaymentModal from "@/components/PaymentModal";
 import { Event, Category, Ticket, PaymentInfo } from "@/data/mockData";
 import { useEvent } from "@/hooks/data/useEvents";
-import { useEventsStore, eventCommissionAmount } from "@/contexts/EventsContext";
+import { useEventsStore, eventCommissionAmount, resolveBracket } from "@/contexts/EventsContext";
 import { useOrganizerProfile } from "@/hooks/data/useOrganizerProfile";
 import { useToast } from "@/hooks/use-toast";
 
@@ -260,11 +260,9 @@ const WizardBody = ({ initialStep, initialScenario }: EventWizardProps = {}) => 
   // Commission estimate shown to the organizer on the Review step (2 parts).
   const estCapacity = categories.reduce((sum, c) => sum + c.tickets.reduce((s, t) => s + t.quantity, 0), 0);
   const estGross = categories.reduce((sum, c) => sum + c.tickets.reduce((s, t) => s + t.price * t.quantity, 0), 0);
-  const myOrg = store.organizers.find((o) => o.id === (organizerId ?? "org1"));
-  const myTier = store.settings.tiers.find((t) => t.id === myOrg?.tierId);
-  const estEventCommission = eventCommissionAmount(estCapacity, estGross);
-  const estTierRate = myTier?.commissionRate ?? 0;
-  const estTierCommission = Math.round((estGross * estTierRate) / 100);
+  const serviceFee = store.settings.serviceFee;
+  const estEventCommission = eventCommissionAmount(estCapacity, estGross, store.settings.commissionBrackets);
+  const estBracket = resolveBracket(estCapacity, store.settings.commissionBrackets);
   const fmtBaht = (n: number) => new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(n);
 
   const buildDraft = (): Omit<Event, "id" | "status"> => ({
@@ -855,32 +853,36 @@ const WizardBody = ({ initialStep, initialScenario }: EventWizardProps = {}) => 
               </div>
             </div>
 
-            {/* Commission notification — two parts */}
+            {/* Commission notification — service fee + event commission */}
             <div className="rounded-xl border border-border bg-card p-6">
               <h4 className="text-lg font-semibold">Platform commission</h4>
               <p className="mt-1 text-sm text-muted-foreground">
-                The platform keeps a commission on your registrations, deducted from your payout after the event. It has two parts:
+                The platform charges two things for this event, deducted from your payout after the event:
               </p>
-              <div className="mt-4 space-y-2 text-sm">
+              <div className="mt-4 space-y-3 text-sm">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Service fee</span>
+                    <span className="font-medium">{fmtBaht(serviceFee)}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    A one-time flat fee charged per event — the same amount whether 50 runners register or 5,000.
+                  </p>
+                </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">
-                    Event commission (based on {estCapacity.toLocaleString()} registrations)
+                    Event commission (based on {estCapacity.toLocaleString()} registrations
+                    {estBracket?.type === "percent" ? ` · ${estBracket.value}% of net sales` : ""})
                   </span>
                   <span className="font-medium">{fmtBaht(estEventCommission)}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">
-                    Your tier commission ({myTier?.name ?? "—"} · {estTierRate}%)
-                  </span>
-                  <span className="font-medium">{fmtBaht(estTierCommission)}</span>
-                </div>
                 <div className="flex items-center justify-between border-t border-border pt-2">
-                  <span className="font-medium">Estimated total commission</span>
-                  <span className="font-semibold">{fmtBaht(estEventCommission + estTierCommission)}</span>
+                  <span className="font-medium">Estimated total</span>
+                  <span className="font-semibold">{fmtBaht(serviceFee + estEventCommission)}</span>
                 </div>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                This is an estimate based on your planned capacity and prices. The final amount is calculated on actual registrations at payout.
+                The event commission is an estimate based on your planned capacity and prices — the final amount is calculated on actual registrations at payout. The service fee is fixed and won't change.
               </p>
             </div>
 

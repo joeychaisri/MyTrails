@@ -9,7 +9,7 @@ import { RunnerInfo } from "@/data/mockData";
 // Journey 8 · Organizer — Get Paid
 // The money side from the organizer's seat: the payout account they must set up
 // (payment modal) and the per-event Orders/Finance section where revenue and the
-// 2-part commission (event tier + account tier) become visible. The payout queue
+// 2 platform charges (service fee + event commission) become visible. The payout queue
 // itself is admin-side — see Journey 10 (Platform Finance).
 export default {
   title: "Organizer/8 · Get Paid",

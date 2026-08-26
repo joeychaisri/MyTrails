@@ -17,16 +17,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Search, Plus, KeyRound, ShieldBan, ShieldCheck, RefreshCw } from "lucide-react";
 import { AdminOrganizer } from "@/data/adminMockData";
-import { useEventsStore } from "@/contexts/EventsContext";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -58,13 +50,9 @@ const generatePassword = (len = 14) => {
 
 const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer }: AdminUserManagementProps) => {
   const { toast } = useToast();
-  const { settings } = useEventsStore();
-  const tiers = settings.tiers;
-  const defaultTierId = tiers[0]?.id ?? "";
-  const tierName = (tierId: string) => tiers.find((t) => t.id === tierId)?.name ?? "—";
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState({ organizationName: "", contactName: "", email: "", phone: "", password: "", tierId: defaultTierId });
+  const [form, setForm] = useState({ organizationName: "", contactName: "", email: "", phone: "", password: "" });
 
   const filtered = organizers.filter(
     (o) =>
@@ -82,7 +70,7 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
   const handleCreate = () => {
     if (!form.organizationName || !form.email || !form.password) return;
     onCreateOrganizer({ ...form, status: "active" });
-    setForm({ organizationName: "", contactName: "", email: "", phone: "", password: "", tierId: defaultTierId });
+    setForm({ organizationName: "", contactName: "", email: "", phone: "", password: "" });
     setCreateOpen(false);
     toast({ title: "Organizer Created", description: `Account for ${form.organizationName} created successfully.` });
   };
@@ -111,7 +99,6 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
               <TableHead>Organization</TableHead>
               <TableHead>Contact</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Tier</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -123,11 +110,6 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
                 <TableCell className="font-medium">{org.organizationName}</TableCell>
                 <TableCell>{org.contactName}</TableCell>
                 <TableCell className="text-muted-foreground">{org.email}</TableCell>
-                <TableCell>
-                  <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                    {tierName(org.tierId)}
-                  </span>
-                </TableCell>
                 <TableCell>
                   <span
                     className={cn(
@@ -202,21 +184,6 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
             <div className="space-y-2">
               <Label>Phone Number</Label>
               <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+66 89 123 4567" />
-            </div>
-            <div className="space-y-2">
-              <Label>Account Tier</Label>
-              <Select value={form.tierId} onValueChange={(v) => setForm({ ...form, tierId: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {tiers.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name} — {t.commissionRate}% commission
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <DialogFooter>

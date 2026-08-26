@@ -1,13 +1,6 @@
 import { Category, Event, EventStatus, PaymentInfo, UserProfile, makeCategory, withDerivedCapacity } from "./mockData";
 
 // Organizer accounts are provisioned by the platform admin (invite model).
-// Each account is assigned a Tier, which carries the tier-portion commission.
-export interface Tier {
-  id: string;
-  name: string;
-  commissionRate: number; // % of net registration revenue — the tier commission
-}
-
 export interface AdminOrganizer {
   id: string;
   organizationName: string;
@@ -15,7 +8,6 @@ export interface AdminOrganizer {
   email: string;
   phone: string;
   status: "active" | "suspended";
-  tierId: string;
   createdAt: string;
   eventsCount: number;
   // Where the platform transfers this organizer's net payout after events.
@@ -25,11 +17,24 @@ export interface AdminOrganizer {
   account?: { profile: UserProfile; paymentInfo: PaymentInfo };
 }
 
-// The platform takes commission on registrations in two parts (deducted at payout):
-//  1. Event commission — a scale by registration count (see eventCommissionAmount)
-//  2. Tier commission  — the organizer account's tier rate (configurable below)
+// One step of the event-commission scale. Brackets are sorted by minCount and
+// each one runs until the next bracket's minCount; the last runs to infinity.
+// The bracket the final registration count lands in prices the WHOLE event —
+// this is not a progressive/tax-style split.
+export interface CommissionBracket {
+  id: string;
+  minCount: number; // applies from this many registrations upward
+  type: "flat" | "percent";
+  value: number; // THB when flat, % of net registration revenue when percent
+}
+
+// The platform charges an organizer two things per event (deducted at payout):
+//  1. Service fee      — a flat amount every event pays, whatever its size
+//  2. Event commission — the bracket scale below, by registration count
+// Both are configurable here by the admin and overridable per event at review.
 export interface PlatformSettings {
-  tiers: Tier[];
+  serviceFee: number; // THB, flat per event
+  commissionBrackets: CommissionBracket[];
   payoutHoldDays: number; // days after event end before funds become payable
 }
 
@@ -39,12 +44,12 @@ export type AdminEvent = Event;
 export type AdminEventStatus = EventStatus;
 
 export const mockAdminOrganizers: AdminOrganizer[] = [
-  { id: "org1", organizationName: "Trail Events Co.", contactName: "Somchai Rattana", email: "somchai@trailevents.co.th", phone: "+66 89 123 4567", status: "active", tierId: "t-standard", createdAt: "2024-06-15", eventsCount: 6, payoutAccount: "KBank ···789-0" },
-  { id: "org2", organizationName: "Mountain Runners TH", contactName: "Natthaporn Sae-tang", email: "natthaporn@mountainrunners.th", phone: "+66 82 345 6789", status: "active", tierId: "t-vip", createdAt: "2024-08-20", eventsCount: 4, payoutAccount: "SCB ···441-2" },
-  { id: "org3", organizationName: "Andaman Trail Org", contactName: "Prasert Wongsawat", email: "prasert@andamantrail.com", phone: "+66 91 567 8901", status: "active", tierId: "t-standard", createdAt: "2024-09-10", eventsCount: 3, payoutAccount: "Krungsri ···220-5" },
-  { id: "org4", organizationName: "Northern Run Club", contactName: "Kannika Duangjai", email: "kannika@northernrun.club", phone: "+66 86 789 0123", status: "suspended", tierId: "t-standard", createdAt: "2024-10-01", eventsCount: 0 },
-  { id: "org5", organizationName: "Gulf Coast Races", contactName: "Worawit Phanich", email: "worawit@gulfcoastraces.th", phone: "+66 84 012 3456", status: "active", tierId: "t-standard", createdAt: "2024-11-15", eventsCount: 3, payoutAccount: "KBank ···330-8" },
-  { id: "org6", organizationName: "Isaan Ultra Events", contactName: "Supachai Khamwan", email: "supachai@isaanultra.com", phone: "+66 88 456 7890", status: "active", tierId: "t-vip", createdAt: "2025-01-05", eventsCount: 1, payoutAccount: "TTB ···017-3" },
+  { id: "org1", organizationName: "Trail Events Co.", contactName: "Somchai Rattana", email: "somchai@trailevents.co.th", phone: "+66 89 123 4567", status: "active", createdAt: "2024-06-15", eventsCount: 6, payoutAccount: "KBank ···789-0" },
+  { id: "org2", organizationName: "Mountain Runners TH", contactName: "Natthaporn Sae-tang", email: "natthaporn@mountainrunners.th", phone: "+66 82 345 6789", status: "active", createdAt: "2024-08-20", eventsCount: 4, payoutAccount: "SCB ···441-2" },
+  { id: "org3", organizationName: "Andaman Trail Org", contactName: "Prasert Wongsawat", email: "prasert@andamantrail.com", phone: "+66 91 567 8901", status: "active", createdAt: "2024-09-10", eventsCount: 3, payoutAccount: "Krungsri ···220-5" },
+  { id: "org4", organizationName: "Northern Run Club", contactName: "Kannika Duangjai", email: "kannika@northernrun.club", phone: "+66 86 789 0123", status: "suspended", createdAt: "2024-10-01", eventsCount: 0 },
+  { id: "org5", organizationName: "Gulf Coast Races", contactName: "Worawit Phanich", email: "worawit@gulfcoastraces.th", phone: "+66 84 012 3456", status: "active", createdAt: "2024-11-15", eventsCount: 3, payoutAccount: "KBank ···330-8" },
+  { id: "org6", organizationName: "Isaan Ultra Events", contactName: "Supachai Khamwan", email: "supachai@isaanultra.com", phone: "+66 88 456 7890", status: "active", createdAt: "2025-01-05", eventsCount: 1, payoutAccount: "TTB ···017-3" },
 ];
 
 // Compact seed for events owned by organizers OTHER than the demo organizer
@@ -235,10 +240,11 @@ export const mockPlatformRevenue = [
 ];
 
 export const mockPlatformSettings: PlatformSettings = {
-  tiers: [
-    { id: "t-standard", name: "Standard", commissionRate: 2 },
-    { id: "t-vip", name: "VIP", commissionRate: 0 },
-    { id: "t-partner", name: "Partner", commissionRate: 1 },
+  serviceFee: 1500,
+  commissionBrackets: [
+    { id: "cb-small", minCount: 0, type: "flat", value: 1000 },
+    { id: "cb-mid", minCount: 300, type: "percent", value: 8 },
+    { id: "cb-large", minCount: 1000, type: "percent", value: 6 },
   ],
   payoutHoldDays: 14,
 };

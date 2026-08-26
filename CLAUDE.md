@@ -189,7 +189,7 @@ auth.uid(); admin = jwt app_metadata.role), Storage buckets covers/slips.
 Data is still mock (this is a prototype), but it now lives in a **single writable store** — `src/contexts/EventsContext.tsx` (`EventsProvider`), backed by `localStorage` (key `mt_store_vN`). All three sides read/write the same store, so an organizer action reflects on the admin side and vice-versa.
 
 - **Reads:** `hooks/data/*` (`useEvents`, `useEvent`, `useAdminData`) now read from the store; components can also call `useEventsStore()` directly for mutations.
-- **Seed:** `mockData.ts` (org1 events) + `adminMockData.ts` (other organizers, tiers, settings). The store seeds from these on first load.
+- **Seed:** `mockData.ts` (org1 events) + `adminMockData.ts` (other organizers, platform settings incl. the service fee + commission brackets). The store seeds from these on first load.
 - **Bump `STORAGE_KEY`** in EventsContext whenever you change the seed shape/values, or browsers keep stale data. There's also a **"Reset demo data"** button in Admin → Settings.
 - Business logic in `src/lib/` (refund/distance policies) is unit-tested. Tests live in `src/test/` (store transitions, commission math, flow coverage, review page).
 
@@ -221,14 +221,16 @@ immediately; PromptPay lands in `awaiting_verification` until the organizer's
 Confirmed runners appear in Participants (CSV export available). Guest model — no
 runner login; lookup by email + code at `/registration/lookup`.
 
-## Commission model (2 parts)
+## Platform charges (2 parts) ⭐
 
-`eventFinance()` / `eventCommissionAmount()` live in `EventsContext.tsx`.
+`eventFinance()` / `eventCommissionAmount()` / `eventServiceFee()` / `resolveBracket()` live in `EventsContext.tsx`. **Account Tiers were removed 2026-08-26** — an organizer's account no longer affects what it is charged.
 
-1. **Event commission** — by registration count: `<300` → ฿1,000 flat · `300–999` → 8% · `≥1000` → 6%. Admin can override per event (`eventCommissionOverride`) in the review page.
-2. **Tier commission** — the organizer account's tier rate. Tiers are **dynamic** (`settings.tiers`, CRUD in Admin → Settings; a tier in use can't be deleted); each `AdminOrganizer` has a `tierId`.
+1. **Service fee** — a flat THB amount every event pays regardless of size (`settings.serviceFee`, default ฿1,500). Same for an event with 1 runner as one with 5,000.
+2. **Event commission** — by registration count, priced from a **bracket scale** (`settings.commissionBrackets`, CRUD in Admin → Settings). Seed scale: `≥0` → ฿1,000 flat · `≥300` → 8% · `≥1000` → 6%. The bracket the final count lands in prices the **whole event** — it is NOT progressive/tax-style. `deleteBracket` is a no-op on the last bracket (the scale must stay priceable).
 
-Total = event + tier, deducted at payout. The **wizard estimates** on planned capacity; the **payout** (Admin → Financials queue) computes on **actual `sold`**. Payout lifecycle: `held` → `payable` → `paid`.
+Admin can override **both** per event in the review page (`serviceFeeOverride`, `eventCommissionOverride`); unset means follow the platform setting. Total = service fee + event commission, deducted at payout. The **wizard estimates** on planned capacity; the **payout** (Admin → Financials queue) computes on **actual `sold`**. Payout lifecycle: `held` → `payable` → `paid`.
+
+Both settings live in the single `platform_settings` row (`service_fee`, `commission_brackets` jsonb), so every settings edit pushes the whole object.
 
 ## Adding a New Event Page
 
