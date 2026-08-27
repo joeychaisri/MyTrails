@@ -7,8 +7,9 @@ import { useEventsStore } from "@/contexts/EventsContext";
 // Journey 9 · Admin — Moderate Events
 // The platform's quality gate: the approvals queue plus the full-page event
 // review where admin approves, rejects (with a reason the organizer sees in the
-// edit wizard), overrides the event commission, or force-unpublishes. Data comes
-// from the shared EventsProvider store, same as the real pages.
+// edit wizard), overrides the service fee and/or event commission independently,
+// or force-unpublishes. Data comes from the shared EventsProvider store, same as
+// the real pages.
 export default {
   title: "Admin/9 · Moderate Events",
 };
@@ -33,7 +34,7 @@ const reviewAt = (id: string) => (
 );
 
 export const ReviewPending: Story = () => reviewAt("2");
-ReviewPending.storyName = "Event review - pending (approve / reject / commission override)";
+ReviewPending.storyName = "Event review - pending (approve / reject / fee overrides)";
 
 export const ReviewPreviouslyRejected: Story = () => reviewAt("5");
 ReviewPreviouslyRejected.storyName = "Event review - previously rejected (reason shown)";

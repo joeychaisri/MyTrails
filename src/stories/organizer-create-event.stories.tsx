@@ -59,7 +59,7 @@ export const Step5Review: Story = () => (
     }}
   />
 );
-Step5Review.storyName = "Step 5 - Review & Submit (commission estimate)";
+Step5Review.storyName = "Step 5 - Review & Submit (platform fees estimate)";
 
 export const DraftsTab: Story = () => <DashboardView initialTab="drafts" />;
 DraftsTab.storyName = "Dashboard - Drafts (resume later)";

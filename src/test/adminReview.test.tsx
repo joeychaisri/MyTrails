@@ -28,8 +28,8 @@ describe("AdminEventReview page", () => {
     expect(screen.getByRole("img", { name: "Khao Yai Night Trail" })).toBeTruthy();
     // Organizer side panel.
     expect(screen.getByText("Trail Events Co.")).toBeTruthy();
-    // Commission estimate must not collapse to ฿0 for a pending event (regression).
-    expect(screen.getByText("Commission (estimate)")).toBeTruthy();
+    // Fee estimate must not collapse to ฿0 for a pending event (regression).
+    expect(screen.getByText("Platform fees (estimate)")).toBeTruthy();
     expect(screen.queryAllByText("฿0").length).toBe(0);
   });
 

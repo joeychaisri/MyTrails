@@ -855,7 +855,7 @@ const WizardBody = ({ initialStep, initialScenario }: EventWizardProps = {}) => 
 
             {/* Commission notification — service fee + event commission */}
             <div className="rounded-xl border border-border bg-card p-6">
-              <h4 className="text-lg font-semibold">Platform commission</h4>
+              <h4 className="text-lg font-semibold">Platform fees</h4>
               <p className="mt-1 text-sm text-muted-foreground">
                 The platform charges two things for this event, deducted from your payout after the event:
               </p>
@@ -865,9 +865,7 @@ const WizardBody = ({ initialStep, initialScenario }: EventWizardProps = {}) => 
                     <span className="text-muted-foreground">Service fee</span>
                     <span className="font-medium">{fmtBaht(serviceFee)}</span>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    A one-time flat fee charged per event — the same amount whether 50 runners register or 5,000.
-                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">A one-time flat fee charged per event.</p>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">

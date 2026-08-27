@@ -13,8 +13,8 @@ interface AdminOverviewProps {
 
 const AdminOverview = ({ events, organizers, platformSettings }: AdminOverviewProps) => {
   const { data: { platformRevenue } } = useAdminData();
-  // Platform revenue = the commission the platform keeps on each live/completed
-  // event's registrations (not a flat listing fee).
+  // Platform revenue = the service fee + event commission the platform keeps
+  // on each live/completed event.
   const totalRevenue = events
     .filter((e) => e.status === "live")
     .reduce((sum, e) => sum + eventFinance(e, organizers, platformSettings).totalCommission, 0);
@@ -30,7 +30,7 @@ const AdminOverview = ({ events, organizers, platformSettings }: AdminOverviewPr
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatsCard title="Platform Revenue" value={formatCurrency(totalRevenue)} icon={Banknote} subtitle="Commission earned" />
+        <StatsCard title="Platform Revenue" value={formatCurrency(totalRevenue)} icon={Banknote} subtitle="Fees earned" />
         <StatsCard
           title="Events Pipeline"
           value={`${pendingReview} / ${scheduled} / ${liveEvents}`}

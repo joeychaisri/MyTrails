@@ -83,7 +83,7 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
         <StatsCard title="Held in Escrow" value={formatCurrency(heldTotal)} icon={Landmark} subtitle="Events in progress" />
         <StatsCard title="Payable Now" value={formatCurrency(payableTotal)} icon={Wallet} subtitle="Ready to transfer" />
         <StatsCard title="Paid Out" value={formatCurrency(paidTotal)} icon={Banknote} subtitle="Transferred to organizers" />
-        <StatsCard title="Commission Earned" value={formatCurrency(commissionTotal)} icon={Receipt} subtitle="Platform take" />
+        <StatsCard title="Fees Earned" value={formatCurrency(commissionTotal)} icon={Receipt} subtitle="Platform take" />
       </div>
 
       <div className="relative max-w-sm">
@@ -107,7 +107,7 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
                   <TableHead>Event / Organizer</TableHead>
                   <TableHead className="text-right">Gross</TableHead>
                   <TableHead className="text-right">Refunds</TableHead>
-                  <TableHead className="text-right">Commission</TableHead>
+                  <TableHead className="text-right">Fees</TableHead>
                   <TableHead className="text-right">Net Payout</TableHead>
                   <TableHead>Payout To</TableHead>
                   <TableHead className="text-right">Action</TableHead>
@@ -160,7 +160,7 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
                 <TableRow>
                   <TableHead>Event / Organizer</TableHead>
                   <TableHead className="text-right">Net Payout</TableHead>
-                  <TableHead className="text-right">Commission</TableHead>
+                  <TableHead className="text-right">Fees</TableHead>
                   <TableHead>Paid On</TableHead>
                 </TableRow>
               </TableHeader>

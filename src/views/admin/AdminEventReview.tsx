@@ -385,7 +385,7 @@ const AdminEventReview = () => {
 
             {/* Commission — two parts, each independently overridable */}
             <div className="rounded-xl border border-border bg-card p-5 shadow-card text-sm">
-              <h3 className="mb-3 font-semibold">Commission (estimate)</h3>
+              <h3 className="mb-3 font-semibold">Platform fees (estimate)</h3>
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
