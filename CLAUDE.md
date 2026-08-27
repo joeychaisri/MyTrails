@@ -25,6 +25,8 @@ npm run storybook:deploy # static build → storybook-dist/ for the live catalog
 
 Caddy serves `mytrails.theingress.co` from `dist/` (static SPA, `try_files → /index.html`).
 
+⚠️ **`npm run build` overwrites `dist/` in place — that's the live production site, not a scratch artifact.** Never run a plain build just to eyeball a change in a browser (it also silently drops to mock mode, wiping the "supabase" data source the live site needs). For local verification, build to a throwaway folder instead: `npx vite build --outDir /tmp/some-dir` (add `VITE_DATA_SOURCE=supabase` only if you specifically need to test against real data), serve that folder separately, and only run the real `VITE_DATA_SOURCE=supabase npm run build` into `dist/` when you actually intend to deploy.
+
 ## Developer Hand-off Catalog (Storybook)
 
 `mytrails.theingress.co/journey` serves a **Storybook** catalog (migrated from Ladle):
