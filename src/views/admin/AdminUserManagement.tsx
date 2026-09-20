@@ -13,11 +13,12 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Plus, KeyRound, ShieldBan, ShieldCheck, RefreshCw } from "lucide-react";
+import { Copy, Search, Plus, KeyRound, ShieldBan, ShieldCheck, RefreshCw } from "lucide-react";
 import { AdminOrganizer } from "@/data/adminMockData";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +28,9 @@ interface AdminUserManagementProps {
   organizers: AdminOrganizer[];
   onCreateOrganizer: (org: Omit<AdminOrganizer, "id" | "createdAt" | "eventsCount">) => void;
   onSuspendOrganizer: (orgId: string) => void;
+  initialCreateOpen?: boolean;
+  initialResetOrganizerId?: string;
+  initialStatusOrganizerId?: string;
 }
 
 // Strong random password for admin-provisioned accounts.
@@ -48,11 +52,25 @@ const generatePassword = (len = 14) => {
   return chars.join("");
 };
 
-const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer }: AdminUserManagementProps) => {
+const AdminUserManagement = ({
+  organizers,
+  onCreateOrganizer,
+  onSuspendOrganizer,
+  initialCreateOpen = false,
+  initialResetOrganizerId,
+  initialStatusOrganizerId,
+}: AdminUserManagementProps) => {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(initialCreateOpen);
   const [form, setForm] = useState({ organizationName: "", contactName: "", email: "", phone: "", password: "" });
+  const [resetCredential, setResetCredential] = useState<{ org: AdminOrganizer; password: string } | null>(() => {
+    const org = organizers.find((item) => item.id === initialResetOrganizerId);
+    return org ? { org, password: generatePassword() } : null;
+  });
+  const [statusOrganizer, setStatusOrganizer] = useState<AdminOrganizer | null>(
+    () => organizers.find((item) => item.id === initialStatusOrganizerId) ?? null
+  );
 
   const filtered = organizers.filter(
     (o) =>
@@ -76,7 +94,28 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
   };
 
   const handleResetPassword = (org: AdminOrganizer) => {
-    toast({ title: "Password Reset", description: `Temporary password generated for ${org.email}.` });
+    setResetCredential({ org, password: generatePassword() });
+  };
+
+  const handleCopyPassword = async () => {
+    if (!resetCredential) return;
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable");
+      await navigator.clipboard.writeText(resetCredential.password);
+      toast({ title: "Password copied", description: "Share it with the organizer through a secure channel." });
+    } catch {
+      toast({ title: "Copy unavailable", description: "Select and copy the temporary password manually.", variant: "destructive" });
+    }
+  };
+
+  const handleConfirmStatus = () => {
+    if (!statusOrganizer) return;
+    onSuspendOrganizer(statusOrganizer.id);
+    toast({
+      title: statusOrganizer.status === "active" ? "User Suspended" : "User Reactivated",
+      description: `${statusOrganizer.organizationName} has been ${statusOrganizer.status === "active" ? "suspended" : "reactivated"}.`,
+    });
+    setStatusOrganizer(null);
   };
 
   return (
@@ -105,7 +144,13 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((org) => (
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                  No organizers found
+                </TableCell>
+              </TableRow>
+            ) : filtered.map((org) => (
               <TableRow key={org.id}>
                 <TableCell className="font-medium">{org.organizationName}</TableCell>
                 <TableCell>{org.contactName}</TableCell>
@@ -129,13 +174,7 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => {
-                        onSuspendOrganizer(org.id);
-                        toast({
-                          title: org.status === "active" ? "User Suspended" : "User Reactivated",
-                          description: `${org.organizationName} has been ${org.status === "active" ? "suspended" : "reactivated"}.`,
-                        });
-                      }}
+                      onClick={() => setStatusOrganizer(org)}
                       title={org.status === "active" ? "Suspend" : "Reactivate"}
                     >
                       {org.status === "active" ? (
@@ -157,6 +196,9 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Create New Organizer</DialogTitle>
+            <DialogDescription>
+              Create a portal account and share the temporary password through a secure channel.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -189,6 +231,62 @@ const AdminUserManagement = ({ organizers, onCreateOrganizer, onSuspendOrganizer
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
             <Button onClick={handleCreate} disabled={!form.organizationName || !form.email || !form.password}>Create Account</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password-reset result — mock UX until Supabase Auth provisioning is implemented. */}
+      <Dialog open={!!resetCredential} onOpenChange={(open) => { if (!open) setResetCredential(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Temporary password generated</DialogTitle>
+            <DialogDescription>
+              This prototype shows the credential handoff state. It does not change Supabase Auth yet.
+            </DialogDescription>
+          </DialogHeader>
+          {resetCredential && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Organizer</Label>
+                <Input value={resetCredential.org.email} readOnly />
+              </div>
+              <div className="space-y-2">
+                <Label>Temporary password</Label>
+                <div className="flex gap-2">
+                  <Input value={resetCredential.password} readOnly className="font-mono" />
+                  <Button type="button" variant="outline" onClick={handleCopyPassword}>
+                    <Copy className="mr-1.5 h-4 w-4" />
+                    Copy
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setResetCredential(null)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm account status changes because they affect portal access. */}
+      <Dialog open={!!statusOrganizer} onOpenChange={(open) => { if (!open) setStatusOrganizer(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{statusOrganizer?.status === "active" ? "Suspend organizer?" : "Reactivate organizer?"}</DialogTitle>
+            <DialogDescription>
+              {statusOrganizer?.status === "active"
+                ? `${statusOrganizer.organizationName} will lose access to the organizer portal until reactivated.`
+                : `${statusOrganizer?.organizationName} will regain access to the organizer portal.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatusOrganizer(null)}>Cancel</Button>
+            <Button
+              variant={statusOrganizer?.status === "active" ? "destructive" : "default"}
+              onClick={handleConfirmStatus}
+            >
+              {statusOrganizer?.status === "active" ? "Confirm Suspension" : "Confirm Reactivation"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

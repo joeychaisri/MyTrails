@@ -80,7 +80,7 @@ doesn't have).
 | `/organizer/events/new` | Organizer | `EventWizard` |
 | `/organizer/events/:id/edit` | Organizer | `EventWizard` |
 | `/organizer/events/:id/:section` | Organizer | `EventManagerHub` |
-| `/organizer/admin` | Admin | `AdminDashboard` (Overview / Approvals / Financials / Users / Settings) |
+| `/organizer/admin?page=overview|approvals|financials|users|settings` | Admin | `AdminDashboard` deep links to each admin section |
 | `/organizer/admin/review/:id` | Admin | `AdminEventReview` — full-page event review before approve / request-changes |
 | `/board`, `/board/:id` | Internal | `BoardListView` / `BoardThreadView` — dev↔UX support board (see below) |
 | `/login`, `/dashboard` etc. | — | Legacy redirects → `/organizer/*` |

@@ -31,19 +31,33 @@ interface AdminFinancialsProps {
   organizers: AdminOrganizer[];
   settings: PlatformSettings;
   onMarkPaid: (eventId: string) => void;
+  initialTab?: AdminFinanceTab;
+  initialConfirmEventId?: string;
 }
+
+export type AdminFinanceTab = "queue" | "paid" | "refunds";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", minimumFractionDigits: 0 }).format(amount);
 
 const fmtDate = (d?: string) => (d ? format(new Date(d), "MMM d, yyyy") : "—");
 
-const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFinancialsProps) => {
+const AdminFinancials = ({
+  events,
+  organizers,
+  settings,
+  onMarkPaid,
+  initialTab = "queue",
+  initialConfirmEventId,
+}: AdminFinancialsProps) => {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   // Marking a payout transferred records that real money was sent and can't be
   // undone in-app — so confirm first (same pattern as Force Unpublish).
-  const [confirmEvent, setConfirmEvent] = useState<Event | null>(null);
+  const [activeTab, setActiveTab] = useState<AdminFinanceTab>(initialTab);
+  const [confirmEvent, setConfirmEvent] = useState<Event | null>(
+    () => events.find((event) => event.id === initialConfirmEventId) ?? null
+  );
 
   const payoutAccountFor = (organizerId: string) =>
     organizers.find((o) => o.id === organizerId)?.payoutAccount ?? "—";
@@ -91,7 +105,7 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
         <Input placeholder="Search events..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
       </div>
 
-      <Tabs defaultValue="queue">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AdminFinanceTab)}>
         <TabsList>
           <TabsTrigger value="queue">Payout Queue ({payableEvents.length})</TabsTrigger>
           <TabsTrigger value="paid">Paid ({paidEvents.length})</TabsTrigger>
@@ -234,7 +248,7 @@ const AdminFinancials = ({ events, organizers, settings, onMarkPaid }: AdminFina
       </Tabs>
 
       {/* Confirm before recording a transfer — it's an irreversible money action. */}
-      <Dialog open={!!confirmEvent} onOpenChange={() => setConfirmEvent(null)}>
+      <Dialog open={!!confirmEvent} onOpenChange={(open) => { if (!open) setConfirmEvent(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Mark payout as transferred?</DialogTitle>

@@ -1,6 +1,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -21,6 +22,7 @@ const AccountSecurityModal = ({ open, onOpenChange, email, onEmailChange }: Acco
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Account &amp; Security</DialogTitle>
+          <DialogDescription>Change the email address or password used to access the organizer portal.</DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="email" className="w-full">
           <TabsList className="grid w-full grid-cols-2">

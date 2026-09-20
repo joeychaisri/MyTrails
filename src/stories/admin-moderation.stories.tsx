@@ -16,20 +16,42 @@ export default {
 
 const noop = () => {};
 
-const QueueFromStore = () => {
+const QueueFromStore = ({
+  initialTab = "queue",
+  initialUnpublishEventId,
+}: {
+  initialTab?: "queue" | "scheduled" | "live";
+  initialUnpublishEventId?: string;
+}) => {
   const { events } = useEventsStore();
   return (
     <div className="min-h-screen bg-background p-6">
-      <AdminEventApprovals events={events} onForceUnpublish={noop} />
+      <AdminEventApprovals
+        events={events}
+        onForceUnpublish={noop}
+        initialTab={initialTab}
+        initialUnpublishEventId={initialUnpublishEventId}
+      />
     </div>
   );
 };
 export const ApprovalsQueue: Story = () => <QueueFromStore />;
 ApprovalsQueue.storyName = "Approvals queue";
 
-const reviewAt = (id: string) => (
+export const ScheduledEvents: Story = () => <QueueFromStore initialTab="scheduled" />;
+ScheduledEvents.storyName = "Scheduled events";
+
+export const LiveEvents: Story = () => <QueueFromStore initialTab="live" />;
+LiveEvents.storyName = "Live events";
+
+export const ForceUnpublishConfirmation: Story = () => (
+  <QueueFromStore initialTab="live" initialUnpublishEventId="1" />
+);
+ForceUnpublishConfirmation.storyName = "Force unpublish - confirmation";
+
+const reviewAt = (id: string, initialRejectOpen = false) => (
   <Routes location={`/organizer/admin/review/${id}`}>
-    <Route path="/organizer/admin/review/:id" element={<AdminEventReview />} />
+    <Route path="/organizer/admin/review/:id" element={<AdminEventReview initialRejectOpen={initialRejectOpen} />} />
   </Routes>
 );
 
@@ -38,3 +60,9 @@ ReviewPending.storyName = "Event review - pending (approve / reject / fee overri
 
 export const ReviewPreviouslyRejected: Story = () => reviewAt("5");
 ReviewPreviouslyRejected.storyName = "Event review - previously rejected (reason shown)";
+
+export const RejectConfirmation: Story = () => reviewAt("2", true);
+RejectConfirmation.storyName = "Event review - request changes dialog";
+
+export const EventNotFound: Story = () => reviewAt("does-not-exist");
+EventNotFound.storyName = "Event review - not found";

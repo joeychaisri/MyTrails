@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { composeStories, setProjectAnnotations } from "@storybook/react-vite";
 import preview from "../../.storybook/preview";
 import * as getStartedStories from "@/stories/organizer-get-started.stories";
 import * as discoverStories from "@/stories/runner-discover.stories";
 import * as moderationStories from "@/stories/admin-moderation.stories";
+import * as financeStories from "@/stories/admin-finance.stories";
+import * as administrationStories from "@/stories/admin-administration.stories";
 import * as approvalStories from "@/stories/organizer-approval-outcomes.stories";
 import * as registerStories from "@/stories/runner-register.stories";
 
@@ -17,6 +19,17 @@ beforeAll(() => {
     unobserve() {}
     disconnect() {}
   } as never;
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+    x: 0,
+    y: 0,
+    width: 1024,
+    height: 768,
+    top: 0,
+    right: 1024,
+    bottom: 768,
+    left: 0,
+    toJSON: () => ({}),
+  } as DOMRect);
   setProjectAnnotations(preview);
 });
 
@@ -46,6 +59,24 @@ describe("storybook portable stories", () => {
     for (const Story of Object.values(stories)) {
       const { unmount } = render(<Story />);
       // Portal-based stories (dialogs) render into document.body, not the container
+      expect(document.body.textContent).not.toBe("");
+      unmount();
+    }
+  });
+
+  it("renders Platform Finance stories", () => {
+    const stories = composeStories(financeStories);
+    for (const Story of Object.values(stories)) {
+      const { unmount } = render(<Story />);
+      expect(document.body.textContent).not.toBe("");
+      unmount();
+    }
+  });
+
+  it("renders Platform Administration stories", () => {
+    const stories = composeStories(administrationStories);
+    for (const Story of Object.values(stories)) {
+      const { unmount } = render(<Story />);
       expect(document.body.textContent).not.toBe("");
       unmount();
     }

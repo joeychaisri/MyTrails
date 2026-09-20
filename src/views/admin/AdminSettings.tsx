@@ -13,13 +13,25 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useEventsStore } from "@/contexts/EventsContext";
 import type { CommissionBracket } from "@/data/adminMockData";
 import { dataSource } from "@/lib/dataSource";
 import { useToast } from "@/hooks/use-toast";
 import { Save, RotateCcw, Plus, Trash2 } from "lucide-react";
 
-const AdminSettings = () => {
+interface AdminSettingsProps {
+  initialResetOpen?: boolean;
+}
+
+const AdminSettings = ({ initialResetOpen = false }: AdminSettingsProps) => {
   const { toast } = useToast();
   const { settings, addBracket, updateBracket, deleteBracket, saveSettings, resetStore } = useEventsStore();
   const [payoutHoldDays, setPayoutHoldDays] = useState(settings.payoutHoldDays.toString());
@@ -27,6 +39,7 @@ const AdminSettings = () => {
   const [newBracketMin, setNewBracketMin] = useState("");
   const [newBracketType, setNewBracketType] = useState<CommissionBracket["type"]>("flat");
   const [newBracketValue, setNewBracketValue] = useState("");
+  const [resetOpen, setResetOpen] = useState(initialResetOpen);
 
   const sortedBrackets = [...settings.commissionBrackets].sort((a, b) => a.minCount - b.minCount);
 
@@ -66,6 +79,16 @@ const AdminSettings = () => {
     if (settings.commissionBrackets.length <= 1) return;
     deleteBracket(id);
     toast({ title: "Bracket deleted", description: "Commission bracket removed." });
+  };
+
+  const handleResetStore = () => {
+    resetStore();
+    setResetOpen(false);
+    toast(
+      dataSource === "supabase"
+        ? { title: "Data refreshed", description: "Reloaded the latest data from the server." }
+        : { title: "Demo data reset", description: "Sample events, organizers and settings restored." }
+    );
   };
 
   return (
@@ -215,19 +238,31 @@ const AdminSettings = () => {
         </div>
         <Button
           variant="outline"
-          onClick={() => {
-            resetStore();
-            toast(
-              dataSource === "supabase"
-                ? { title: "Data refreshed", description: "Reloaded the latest data from the server." }
-                : { title: "Demo data reset", description: "Sample events, organizers and settings restored." }
-            );
-          }}
+          onClick={() => setResetOpen(true)}
         >
           <RotateCcw className="mr-2 h-4 w-4" />
           {dataSource === "supabase" ? "Refresh from server" : "Reset demo data"}
         </Button>
       </div>
+
+      <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{dataSource === "supabase" ? "Refresh server data?" : "Reset demo data?"}</DialogTitle>
+            <DialogDescription>
+              {dataSource === "supabase"
+                ? "This reloads the latest server state and replaces unsaved values currently shown in the admin portal."
+                : "This replaces all browser-side demo changes with the original sample events, organizers, and settings."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetOpen(false)}>Cancel</Button>
+            <Button variant={dataSource === "supabase" ? "default" : "destructive"} onClick={handleResetStore}>
+              {dataSource === "supabase" ? "Confirm Refresh" : "Confirm Reset"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
@@ -30,7 +30,10 @@ import AdminSettings from "@/views/admin/AdminSettings";
 import { useEventsStore } from "@/contexts/EventsContext";
 import { cn } from "@/lib/utils";
 
-type AdminPage = "overview" | "approvals" | "financials" | "users" | "settings";
+export type AdminPage = "overview" | "approvals" | "financials" | "users" | "settings";
+
+const isAdminPage = (page: string | null | undefined): page is AdminPage =>
+  page === "overview" || page === "approvals" || page === "financials" || page === "users" || page === "settings";
 
 const sidebarItems: { id: AdminPage; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard },
@@ -55,10 +58,25 @@ const AdminDashboard = () => {
   const store = useEventsStore();
   const { events, organizers, settings } = store;
   const location = useLocation();
-  // Returning from the standalone review page lands back on the Approvals tab.
-  const initialPage = (location.state as { page?: AdminPage } | null)?.page ?? "overview";
-  const [activePage, setActivePage] = useState<AdminPage>(initialPage);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // The query string is the shareable source of truth. Keep the old location
+  // state fallback so bookmarks/history created before deep links still land on
+  // the intended section.
+  const queryPage = searchParams.get("page");
+  const legacyPage = (location.state as { page?: AdminPage } | null)?.page;
+  const activePage: AdminPage = isAdminPage(queryPage)
+    ? queryPage
+    : isAdminPage(legacyPage)
+      ? legacyPage
+      : "overview";
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const selectPage = (page: AdminPage) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("page", page);
+    setSearchParams(next);
+    setSidebarOpen(false);
+  };
 
   const renderPage = () => {
     switch (activePage) {
@@ -120,9 +138,9 @@ const AdminDashboard = () => {
             <button
               key={item.id}
               onClick={() => {
-                setActivePage(item.id);
-                setSidebarOpen(false);
+                selectPage(item.id);
               }}
+              aria-current={activePage === item.id ? "page" : undefined}
               className={cn(
                 "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                 activePage === item.id

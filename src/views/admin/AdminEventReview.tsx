@@ -110,18 +110,22 @@ const CategoryCard = ({ cat }: { cat: Category }) => {
   );
 };
 
-const AdminEventReview = () => {
+interface AdminEventReviewProps {
+  initialRejectOpen?: boolean;
+}
+
+const AdminEventReview = ({ initialRejectOpen = false }: AdminEventReviewProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getEvent, organizers, settings, approveEvent, rejectEvent, updateEvent, hydrated } = useEventsStore();
-  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(initialRejectOpen);
   const [rejectReason, setRejectReason] = useState("");
   const [commissionOverrideInput, setCommissionOverrideInput] = useState("");
   const [serviceFeeOverrideInput, setServiceFeeOverrideInput] = useState("");
 
   const event = getEvent(id);
-  const backToQueue = () => navigate("/organizer/admin", { state: { page: "approvals" } });
+  const backToQueue = () => navigate("/organizer/admin?page=approvals");
 
   if (!event) {
     // Supabase mode hydrates async — don't cry "not found" before the data arrives.

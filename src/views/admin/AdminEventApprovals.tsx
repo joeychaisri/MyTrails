@@ -28,15 +28,27 @@ import { useToast } from "@/hooks/use-toast";
 interface AdminEventApprovalsProps {
   events: Event[];
   onForceUnpublish: (eventId: string) => void;
+  initialTab?: AdminApprovalTab;
+  initialUnpublishEventId?: string;
 }
+
+export type AdminApprovalTab = "queue" | "scheduled" | "live";
 
 const fmtDate = (d?: string) => (d ? format(new Date(d), "MMM d, yyyy") : "—");
 
-const AdminEventApprovals = ({ events, onForceUnpublish }: AdminEventApprovalsProps) => {
+const AdminEventApprovals = ({
+  events,
+  onForceUnpublish,
+  initialTab = "queue",
+  initialUnpublishEventId,
+}: AdminEventApprovalsProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [unpublishEvent, setUnpublishEvent] = useState<Event | null>(null);
+  const [activeTab, setActiveTab] = useState<AdminApprovalTab>(initialTab);
+  const [unpublishEvent, setUnpublishEvent] = useState<Event | null>(
+    () => events.find((event) => event.id === initialUnpublishEventId) ?? null
+  );
 
   const pendingEvents = events.filter((e) => e.status === "pending_review");
   const scheduledEvents = events.filter((e) => e.status === "scheduled");
@@ -64,7 +76,7 @@ const AdminEventApprovals = ({ events, onForceUnpublish }: AdminEventApprovalsPr
         <Input placeholder="Search events..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
       </div>
 
-      <Tabs defaultValue="queue">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AdminApprovalTab)}>
         <TabsList>
           <TabsTrigger value="queue">Submission Queue ({pendingEvents.length})</TabsTrigger>
           <TabsTrigger value="scheduled">Scheduled ({scheduledEvents.length})</TabsTrigger>
@@ -196,7 +208,7 @@ const AdminEventApprovals = ({ events, onForceUnpublish }: AdminEventApprovalsPr
       </Tabs>
 
       {/* Force Unpublish Modal — the only takedown mechanism (cancellation flow removed) */}
-      <Dialog open={!!unpublishEvent} onOpenChange={() => setUnpublishEvent(null)}>
+      <Dialog open={!!unpublishEvent} onOpenChange={(open) => { if (!open) setUnpublishEvent(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Force Unpublish</DialogTitle>

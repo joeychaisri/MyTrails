@@ -14,6 +14,7 @@ import {
   journeys,
   roleMeta,
   uxStatusMeta,
+  verificationMeta,
   type JourneyScreen,
   type ProductJourney,
   type ProductRole,
@@ -100,7 +101,8 @@ function JourneyNode({ journey }: { journey: ProductJourney }) {
         {journey.screens.map((item, index) => <ScreenNode item={item} index={index} key={item.storyId} />)}
       </ol>
       <p className="mt-auto pt-2 text-[11px] text-muted-foreground">
-        {journey.verification === "verified" ? `Flow checked ${journey.verifiedDate}` : "Flow not UX-verified"}
+        {verificationMeta[journey.verification].label}
+        {journey.verifiedDate ? ` · last checked ${journey.verifiedDate}` : ""}
       </p>
     </article>
   );

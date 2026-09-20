@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -35,6 +36,7 @@ const ProfileModal = ({ open, onOpenChange, profile, onSave }: ProfileModalProps
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
+          <DialogDescription>Update the organizer profile shown across the management portal.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Avatar */}
@@ -48,6 +50,7 @@ const ProfileModal = ({ open, onOpenChange, profile, onSave }: ProfileModalProps
               </Avatar>
               <button
                 type="button"
+                aria-label="Change profile photo"
                 className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md"
               >
                 <Camera className="h-4 w-4" />

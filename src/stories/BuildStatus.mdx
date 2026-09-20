@@ -4,7 +4,7 @@ import { Meta } from "@storybook/addon-docs/blocks";
 
 # 🚦 Build Status — UI ไหนสร้างตามได้เลย
 
-_ทบทวนล่าสุด: **15 ก.ค. 2026 (เทส UX ครบทุก flow ฝั่ง Organizer/Admin)** · เจ้าของสถานะ: **Joey** (แก้ได้ที่ `src/stories/BuildStatus.mdx`
+_ทบทวนล่าสุด: **20 ก.ย. 2026 (ขยาย Admin handoff states; รอ UX re-test)** · เจ้าของสถานะ: **Joey** (แก้ได้ที่ `src/stories/BuildStatus.mdx`
 แล้ว `npm run storybook:deploy`)_
 
 **"UX verified"** = วันที่ไล่เดิน user flow จริงจนจบแล้วยืนยันว่า flow ครบ + UX สมเหตุสมผล
@@ -142,23 +142,23 @@ _ทบทวนล่าสุด: **15 ก.ค. 2026 (เทส UX ครบ�
     <tr>
       <td>9 · อนุมัติอีเวนต์ (คิวรออนุมัติ + หน้า review)</td>
       <td>🟡</td>
-      <td>27 ส.ค.</td>
-      <td><strong>14 ก.ค. 2026</strong></td>
-      <td>เทส UX จบทุกเส้น (approve / reject / override / force unpublish) + แก้บั๊ก organizer-loading แล้ว · <strong>26 ส.ค.</strong> แยก override เป็น 2 ช่อง (service fee + event commission) · <strong>27 ส.ค.</strong> เปลี่ยนหัวการ์ดเป็น "Platform fees (estimate)"</td>
+      <td>20 ก.ย.</td>
+      <td><strong>Needs re-test</strong> (เดิม 14 ก.ค.)</td>
+      <td>pin state ครบ queue / scheduled / live / force unpublish / review / reject / not-found และเพิ่ม deep link เข้า Approvals · fee override + confirmation copy ยังรอ Joey เช็ก UX ล่าสุด</td>
     </tr>
     <tr>
       <td>10 · การเงินแพลตฟอร์ม (คิว payout)</td>
       <td>🔴</td>
-      <td>27 ส.ค.</td>
-      <td><strong>15 ก.ค. 2026</strong></td>
-      <td>เลขค่าคอมถูก + เพิ่ม confirm dialog ให้ Mark Transferred · <strong>27 ส.ค.</strong> คอลัมน์ "Commission" เปลี่ยนชื่อเป็น "Fees" (breakdown ยังโชว์ evt/service แยก) — สถานะยังรอ Joey ยืนยัน</td>
+      <td>20 ก.ย.</td>
+      <td><strong>Needs re-test</strong> (เดิม 15 ก.ค.)</td>
+      <td>pin state ครบ payout queue / confirm transfer / paid / refunds / empty และเพิ่ม deep link เข้า Financials · calculation ทำงานแล้ว แต่ UI ยังรอ Joey ยืนยัน</td>
     </tr>
     <tr>
       <td>11 · ตั้งค่าแพลตฟอร์ม (ผู้ใช้ / service fee + ขั้นค่าคอม / settings)</td>
       <td>🟡</td>
-      <td>27 ส.ค.</td>
-      <td><strong>14 ก.ค. 2026</strong></td>
-      <td>รื้อ Account Tier ทิ้ง เปลี่ยนเป็น service fee (คงที่ทุกงาน) + ตารางขั้นค่าคอมที่แอดมินแก้เองได้ — รอ Joey เช็ก UX</td>
+      <td>20 ก.ย.</td>
+      <td><strong>Needs re-test</strong> (เดิม 14 ก.ค.)</td>
+      <td>pin state ครบ overview / create organizer / temporary password / suspend / settings / reset confirmation และเพิ่ม deep link ราย section · fee model ใหม่ยังรอ Joey เช็ก UX</td>
     </tr>
   </tbody>
 </table>

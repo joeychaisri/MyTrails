@@ -27,16 +27,40 @@ const OverviewFromStore = () => {
 export const Overview: Story = () => <OverviewFromStore />;
 Overview.storyName = "Platform overview";
 
-const UsersFromStore = () => {
+const UsersFromStore = ({
+  initialCreateOpen = false,
+  initialResetOrganizerId,
+  initialStatusOrganizerId,
+}: {
+  initialCreateOpen?: boolean;
+  initialResetOrganizerId?: string;
+  initialStatusOrganizerId?: string;
+}) => {
   const { organizers } = useEventsStore();
   return (
     <div className="min-h-screen bg-background p-6">
-      <AdminUserManagement organizers={organizers} onCreateOrganizer={noop} onSuspendOrganizer={noop} />
+      <AdminUserManagement
+        organizers={organizers}
+        onCreateOrganizer={noop}
+        onSuspendOrganizer={noop}
+        initialCreateOpen={initialCreateOpen}
+        initialResetOrganizerId={initialResetOrganizerId}
+        initialStatusOrganizerId={initialStatusOrganizerId}
+      />
     </div>
   );
 };
 export const UserManagement: Story = () => <UsersFromStore />;
 UserManagement.storyName = "User management";
+
+export const CreateOrganizer: Story = () => <UsersFromStore initialCreateOpen />;
+CreateOrganizer.storyName = "User management - create organizer";
+
+export const PasswordResetResult: Story = () => <UsersFromStore initialResetOrganizerId="org1" />;
+PasswordResetResult.storyName = "User management - temporary password";
+
+export const SuspendConfirmation: Story = () => <UsersFromStore initialStatusOrganizerId="org1" />;
+SuspendConfirmation.storyName = "User management - suspend confirmation";
 
 export const Settings: Story = () => (
   <div className="min-h-screen bg-background p-6">
@@ -44,3 +68,10 @@ export const Settings: Story = () => (
   </div>
 );
 Settings.storyName = "Settings (service fee + commission scale + reset demo data)";
+
+export const ResetDemoConfirmation: Story = () => (
+  <div className="min-h-screen bg-background p-6">
+    <AdminSettings initialResetOpen />
+  </div>
+);
+ResetDemoConfirmation.storyName = "Settings - reset demo confirmation";
