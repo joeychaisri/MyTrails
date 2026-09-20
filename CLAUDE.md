@@ -68,7 +68,8 @@ doesn't have).
   an action dead-ends or a required state/outcome is missing; remove it only after that
   mockup is reviewable. This is separate from Joey's UX status and flow verification.
   It is intentionally tagged `unlisted`: keep it out of the public sidebar and do not
-  link it from public catalog pages; Joey opens the known docs URL directly.
+  link it from public catalog pages; Joey opens `/journey/gaps`, a Caddy redirect to the
+  unlisted Storybook docs URL.
 - MDX docs pages: use **HTML `<table>`**, not GFM markdown tables (Storybook MDX won't render pipe tables).
 
 ## Route Structure
