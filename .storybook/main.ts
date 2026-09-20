@@ -11,6 +11,12 @@ const config: StorybookConfig = {
     "@storybook/addon-mcp"
   ],
   "framework": "@storybook/react-vite",
+  "tags": {
+    "unlisted": {
+      "excludeFromSidebar": true,
+      "excludeFromDocsStories": true
+    }
+  },
   // The catalog documents the prototype: always mock data, never Supabase.
   "env": (config) => ({ ...config, VITE_DATA_SOURCE: "mock" })
 };
