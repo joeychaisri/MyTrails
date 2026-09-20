@@ -30,6 +30,9 @@ MyTrails เชื่อมต่อ 2 กลุ่มผู้ใช้:
 >
 > **Product Map:** [`mytrails.theingress.co/journey/?path=/docs/product-map--docs`](https://mytrails.theingress.co/journey/?path=/docs/product-map--docs)
 > — ดู cross-role flow, sitemap และสถานะรายหน้าของ Runner / Organizer / Admin
+>
+> **Journey Gaps:** [`mytrails.theingress.co/journey/?path=/docs/journey-gaps--docs`](https://mytrails.theingress.co/journey/?path=/docs/journey-gaps--docs)
+> — backlog กลางว่า journey ไหนยังขาด state, action หรือผลลัพธ์อะไรอยู่
 
 **ฝั่ง Runner** — เปิด browser เข้าได้เลย ไม่ต้อง login
 

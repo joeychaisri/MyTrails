@@ -2,6 +2,9 @@ export type ProductRole = "runner" | "organizer" | "admin";
 export type UxStatus = "locked" | "tentative" | "draft" | "unclassified";
 export type BuildStatus = "done" | "partial" | "planned";
 export type VerificationStatus = "verified" | "needs-retest" | "untested";
+export type GapKind = "dead-end" | "missing-state" | "missing-outcome";
+export type GapPriority = "core" | "supporting";
+export type GapStatus = "open" | "in-progress";
 
 export interface JourneyScreen {
   name: string;
@@ -9,6 +12,16 @@ export interface JourneyScreen {
   route?: string;
   storyId: string;
   buildStatus: BuildStatus;
+}
+
+export interface JourneyGap {
+  id: string;
+  title: string;
+  detail: string;
+  kind: GapKind;
+  priority: GapPriority;
+  status: GapStatus;
+  route?: string;
 }
 
 export interface ProductJourney {
@@ -23,6 +36,7 @@ export interface ProductJourney {
   verifiedDate?: string;
   updatedDate: string;
   note: string;
+  gaps: JourneyGap[];
   screens: JourneyScreen[];
 }
 
@@ -33,6 +47,16 @@ const screen = (
   route?: string,
   buildStatus: BuildStatus = "done",
 ): JourneyScreen => ({ name, purpose, storyId, route, buildStatus });
+
+const gap = (
+  id: string,
+  title: string,
+  detail: string,
+  kind: GapKind,
+  priority: GapPriority = "core",
+  route?: string,
+  status: GapStatus = "open",
+): JourneyGap => ({ id, title, detail, kind, priority, status, route });
 
 /**
  * Product-map source of truth.
@@ -53,6 +77,10 @@ export const journeys: ProductJourney[] = [
     verification: "untested",
     updatedDate: "14 Jul 2026",
     note: "Runner experience is waiting for a full redesign after Admin work.",
+    gaps: [
+      gap("j1-empty-results", "Empty and no-results discovery", "Show what happens when no live events exist or a search/filter returns no matches.", "missing-state", "core", "/"),
+      gap("j1-thai-state", "Thai discovery state", "Pin and review the Thai-language home, filters and calendar instead of relying only on the interactive toggle.", "missing-state", "supporting", "/"),
+    ],
     screens: [
       screen("Event grid", "Browse the default event grid", "runner-1-·-discover-events--default", "/"),
       screen("Event list", "Compare events in a compact list", "runner-1-·-discover-events--list-view", "/"),
@@ -71,6 +99,10 @@ export const journeys: ProductJourney[] = [
     verification: "untested",
     updatedDate: "14 Jul 2026",
     note: "Both the bespoke event microsite and the generic template are documented.",
+    gaps: [
+      gap("j2-registration-unavailable", "Registration unavailable", "Define the event page when registration is not open, sold out or already closed.", "missing-state", "core", "/events/1/preview"),
+      gap("j2-event-not-found", "Event not found", "Add recovery for a deleted event or stale public-event link.", "missing-state", "supporting"),
+    ],
     screens: [
       screen(
         "PYT event landing",
@@ -97,6 +129,13 @@ export const journeys: ProductJourney[] = [
     verification: "untested",
     updatedDate: "14 Jul 2026",
     note: "Card and PromptPay are simulated; the registration record is real on the deployed Supabase demo.",
+    gaps: [
+      gap("j3-registration-blocked", "Registration blocked states", "Cover sold out, ticket-window closed and duplicate-registration messages.", "missing-state", "core", "/events/1/register"),
+      gap("j3-card-failure", "Card failure and retry", "Show declined and insufficient-funds feedback with a clear retry path.", "missing-state", "core", "/events/1/register"),
+      gap("j3-hold-expired", "Seat hold expired", "Expose the expired 15-minute hold and restart action as a reviewable state.", "missing-state", "core", "/events/1/register"),
+      gap("j3-promptpay-handoff", "PromptPay awaiting verification", "Show QR, uploaded slip, confirmation copy and the resulting awaiting-verification status.", "missing-outcome", "core", "/events/1/register"),
+      gap("j3-lookup-results", "Registration lookup results", "Cover found, not-found and key status variants instead of only the empty lookup form.", "missing-state", "core", "/registration/lookup"),
+    ],
     screens: [
       screen("Runner form", "Enter runner, emergency and PDPA details", "runner-3-·-register-pay--runner-form", "/events/1/register"),
       screen("Payment methods", "Choose card or PromptPay", "runner-3-·-register-pay--payment-methods", "/events/1/register"),
@@ -117,6 +156,11 @@ export const journeys: ProductJourney[] = [
     verifiedDate: "15 Jul 2026",
     updatedDate: "15 Jul 2026",
     note: "Login, dashboard and profile persistence were verified against Supabase.",
+    gaps: [
+      gap("j4-login-error", "Login error", "Show invalid-credential feedback and a retry state.", "missing-state", "core", "/organizer/login"),
+      gap("j4-forgot-password", "Forgot-password journey", "The visible Forgot password link currently has no mock flow or completion state.", "dead-end", "core", "/organizer/login"),
+      gap("j4-account-change-results", "Account-change outcomes", "Show success and failure feedback after changing email or password.", "missing-outcome", "supporting", "/organizer/dashboard"),
+    ],
     screens: [
       screen("Login", "Authenticate as an organizer", "organizer-4-·-get-started--login-default", "/organizer/login"),
       screen("Login loading", "See the submitting state", "organizer-4-·-get-started--login-loading", "/organizer/login"),
@@ -139,6 +183,11 @@ export const journeys: ProductJourney[] = [
     verifiedDate: "15 Jul 2026",
     updatedDate: "27 Aug 2026",
     note: "Platform-fee wording changed after the last UX verification and needs a fresh sign-off.",
+    gaps: [
+      gap("j5-cover-upload", "Cover-photo upload", "The upload surface is visible but has no selected, preview, replace or remove state.", "dead-end", "core", "/organizer/events/new"),
+      gap("j5-validation", "Wizard validation and recovery", "Define required-field, invalid schedule and ticket-configuration errors before submission.", "missing-state", "core", "/organizer/events/new"),
+      gap("j5-submit-failure", "Submission failure and retry", "The success dialog exists, but no failed-submit or retry outcome is represented.", "missing-outcome", "supporting", "/organizer/events/new"),
+    ],
     screens: [
       screen("Step 1 · Event info", "Set identity, venue and dates", "organizer-5-·-create-submit-event--step-1-event-info", "/organizer/events/new"),
       screen("Step 2 · Race config", "Configure categories and capacity", "organizer-5-·-create-submit-event--step-2-race-config", "/organizer/events/new"),
@@ -161,6 +210,10 @@ export const journeys: ProductJourney[] = [
     verifiedDate: "15 Jul 2026",
     updatedDate: "15 Jul 2026",
     note: "The flow works end to end but still awaits product sign-off.",
+    gaps: [
+      gap("j6-resubmit-result", "Resubmission result", "Show the rejected event returning to pending review after corrections are submitted.", "missing-outcome", "core", "/organizer/events/5/edit"),
+      gap("j6-approved-edit-reapproval", "Re-approval after editing", "Make the live or scheduled event → edit → pending-review handoff explicit.", "missing-outcome", "core", "/organizer/dashboard"),
+    ],
     screens: [
       screen("In review", "Track pending and scheduled events", "organizer-6-·-approval-outcomes--in-review", "/organizer/dashboard"),
       screen("Action needed", "Find rejected events that need changes", "organizer-6-·-approval-outcomes--action-needed", "/organizer/dashboard"),
@@ -182,6 +235,11 @@ export const journeys: ProductJourney[] = [
     verifiedDate: "15 Jul 2026",
     updatedDate: "15 Jul 2026",
     note: "All sections load and work, but the overall experience is not signed off.",
+    gaps: [
+      gap("j7-broadcast-result", "Broadcast send result", "Email and SMS buttons currently have no mock confirmation, sent summary or failure state.", "dead-end", "core", "/organizer/events/1/broadcast"),
+      gap("j7-bib-template", "BIB template download", "The download-template control is visible but has no mock result; import also needs a clear completion summary.", "dead-end", "supporting", "/organizer/events/1/bib"),
+      gap("j7-operation-save-feedback", "Operational save feedback", "Participant edits, BIB changes and promotion actions need consistent saved/failed outcomes.", "missing-outcome", "supporting", "/organizer/events/1/participants"),
+    ],
     screens: [
       screen("Race operations", "Review KPIs and event activity", "organizer-7-·-run-the-event--race-operations", "/organizer/events/1/overview3"),
       screen("Participants", "Search, edit and export confirmed runners", "organizer-7-·-run-the-event--participants", "/organizer/events/1/participants"),
@@ -203,6 +261,11 @@ export const journeys: ProductJourney[] = [
     verifiedDate: "15 Jul 2026",
     updatedDate: "15 Jul 2026",
     note: "Payout account persistence works; UX still awaits sign-off.",
+    gaps: [
+      gap("j8-slip-verdict", "Slip-verification outcomes", "Show approve, reject and empty-queue results after the organizer reviews a PromptPay slip.", "missing-outcome", "core", "/organizer/events/1/orders"),
+      gap("j8-payout-received", "Organizer payout received", "Add the organizer-facing paid state with amount, transfer date and payout account.", "missing-outcome", "core", "/organizer/events/1/orders"),
+      gap("j8-refund-flow", "Primary refund flow", "Bring refund request, calculation and completion into the primary Orders / Finance journey.", "missing-state", "core", "/organizer/events/1/orders"),
+    ],
     screens: [
       screen("Payout account", "Configure the organizer bank account", "organizer-8-·-get-paid--payout-account", "/organizer/dashboard"),
       screen("Orders / Finance", "Review event revenue, refunds and order activity", "organizer-8-·-get-paid--orders-finance", "/organizer/events/1/orders"),
@@ -221,6 +284,11 @@ export const journeys: ProductJourney[] = [
     verifiedDate: "14 Jul 2026",
     updatedDate: "20 Sep 2026",
     note: "Moderation states are pinned; fee overrides, confirmation copy and deep links need Joey's re-check.",
+    gaps: [
+      gap("j9-approve-result", "Approval confirmation and result", "Show the decision summary and whether the event becomes live now or scheduled.", "missing-outcome", "core", "/organizer/admin/review/2"),
+      gap("j9-empty-queue", "Empty approval queue", "Show the admin's next step when no events are waiting for review.", "missing-state", "supporting", "/organizer/admin?page=approvals"),
+      gap("j9-fee-override-validation", "Fee-override validation", "Define invalid override input and reset-to-platform-default feedback.", "missing-state", "supporting", "/organizer/admin/review/2"),
+    ],
     screens: [
       screen("Approvals queue", "Prioritize submitted events", "admin-9-·-moderate-events--approvals-queue", "/organizer/admin?page=approvals"),
       screen("Scheduled events", "Monitor approved events waiting to publish", "admin-9-·-moderate-events--scheduled-events", "/organizer/admin?page=approvals"),
@@ -244,6 +312,7 @@ export const journeys: ProductJourney[] = [
     verifiedDate: "15 Jul 2026",
     updatedDate: "20 Sep 2026",
     note: "Queue, confirmation, paid, refund and empty states are pinned; the finance UI still awaits sign-off.",
+    gaps: [],
     screens: [
       screen("Payout queue", "Review held, payable and paid payouts", "admin-10-·-platform-finance--payout-queue", "/organizer/admin?page=financials"),
       screen("Transfer confirmation", "Confirm an irreversible organizer payout", "admin-10-·-platform-finance--transfer-confirmation", "/organizer/admin?page=financials"),
@@ -264,6 +333,11 @@ export const journeys: ProductJourney[] = [
     verifiedDate: "14 Jul 2026",
     updatedDate: "20 Sep 2026",
     note: "Account and settings states are pinned; the post-tier fee model and confirmations need a fresh UX check.",
+    gaps: [
+      gap("j11-create-result", "Organizer creation result", "Connect account creation to a clear success and temporary-credential handoff state.", "missing-outcome", "core", "/organizer/admin?page=users"),
+      gap("j11-reactivate", "Reactivate organizer", "Expose the suspended-user recovery path and reactivation confirmation as its own state.", "missing-state", "core", "/organizer/admin?page=users"),
+      gap("j11-settings-validation", "Settings validation", "Show invalid fee/bracket input, overlapping thresholds and deletion constraints.", "missing-state", "supporting", "/organizer/admin?page=settings"),
+    ],
     screens: [
       screen("Platform overview", "Monitor platform-level activity", "admin-11-·-platform-administration--overview", "/organizer/admin?page=overview"),
       screen("User management", "Review organizer accounts", "admin-11-·-platform-administration--user-management", "/organizer/admin?page=users"),
@@ -319,3 +393,10 @@ export const verificationMeta: Record<VerificationStatus, { label: string; short
 export const allScreens = journeys.flatMap((journey) =>
   journey.screens.map((item) => ({ ...item, journey })),
 );
+
+export const allGaps = journeys.flatMap((journey) =>
+  journey.gaps.map((item) => ({ ...item, journey })),
+);
+
+export const incompleteJourneys = journeys.filter((journey) => journey.gaps.length > 0);
+export const completeJourneys = journeys.filter((journey) => journey.gaps.length === 0);

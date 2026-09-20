@@ -63,6 +63,10 @@ doesn't have).
   inventory: cross-role hand-offs, role sitemaps, routes, pinned stories, UX/build/
   verification status and direct links. Keep `journeyCatalog.ts` in sync whenever a
   route, pinned story or status changes; never promote UX status without Joey's sign-off.
+- **Journey Gaps** (`src/stories/product-map/JourneyGaps.mdx`) is the mockup-completeness
+  backlog, derived from each journey's `gaps` in `journeyCatalog.ts`. Add a gap whenever
+  an action dead-ends or a required state/outcome is missing; remove it only after that
+  mockup is reviewable. This is separate from Joey's UX status and flow verification.
 - MDX docs pages: use **HTML `<table>`**, not GFM markdown tables (Storybook MDX won't render pipe tables).
 
 ## Route Structure

@@ -59,6 +59,7 @@ const preview: Preview = {
         order: [
           'Build Status',
           'Product Map',
+          'Journey Gaps',
           'Journey Map',
           'Runner',
           ['1 · Discover Events', '2 · Explore an Event', '3 · Register & Pay'],

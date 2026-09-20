@@ -5,6 +5,7 @@ import {
   CalendarRange,
   ExternalLink,
   GitBranch,
+  ListTodo,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
@@ -88,7 +89,7 @@ function ScreenNode({ item, index }: { item: JourneyScreen; index: number }) {
 
 function JourneyNode({ journey }: { journey: ProductJourney }) {
   return (
-    <article className="flex w-0 min-w-0 flex-1 flex-col rounded-xl border bg-card p-3 text-card-foreground shadow-card">
+    <article id={`journey-${journey.id}`} className="flex w-0 min-w-0 flex-1 scroll-mt-4 flex-col rounded-xl border bg-card p-3 text-card-foreground shadow-card">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Journey {journey.id}</p>
@@ -100,10 +101,24 @@ function JourneyNode({ journey }: { journey: ProductJourney }) {
       <ol className="mt-2 space-y-1">
         {journey.screens.map((item, index) => <ScreenNode item={item} index={index} key={item.storyId} />)}
       </ol>
-      <p className="mt-auto pt-2 text-[11px] text-muted-foreground">
-        {verificationMeta[journey.verification].label}
-        {journey.verifiedDate ? ` · last checked ${journey.verifiedDate}` : ""}
-      </p>
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2 text-[11px] text-muted-foreground">
+        <p>
+          {verificationMeta[journey.verification].label}
+          {journey.verifiedDate ? ` · last checked ${journey.verifiedDate}` : ""}
+        </p>
+        {journey.gaps.length > 0 ? (
+          <a
+            className="inline-flex items-center gap-1 font-semibold text-destructive underline-offset-2 hover:underline"
+            href={`?path=/docs/journey-gaps--docs#journey-${journey.id}`}
+            target="_top"
+          >
+            <ListTodo className="h-3 w-3" aria-hidden="true" />
+            {journey.gaps.length} gaps
+          </a>
+        ) : (
+          <span className="font-semibold text-success">No open gaps</span>
+        )}
+      </div>
     </article>
   );
 }
@@ -182,6 +197,7 @@ export function BirdsEyeProductMap() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button asChild variant="destructive"><a href="?path=/docs/journey-gaps--docs" target="_top">Journey Gaps</a></Button>
           <Button asChild variant="outline"><a href="?path=/docs/build-status--docs" target="_top">Build Status</a></Button>
           <Button asChild variant="outline"><a href="?path=/docs/journey-map--docs" target="_top">Journey definitions</a></Button>
           <Button asChild>
