@@ -54,10 +54,11 @@ const preview: Preview = {
   ],
   parameters: {
     options: {
-      // The 12-journey hand-off map. See the Journey Map docs page.
+      // The 11-journey hand-off map. See Product Map for screen-level coverage.
       storySort: {
         order: [
           'Build Status',
+          'Product Map',
           'Journey Map',
           'Runner',
           ['1 · Discover Events', '2 · Explore an Event', '3 · Register & Pay'],

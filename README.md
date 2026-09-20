@@ -27,6 +27,9 @@ MyTrails เชื่อมต่อ 2 กลุ่มผู้ใช้:
 **ดูทุกหน้าจอแบบ isolated (ไม่ต้อง login):** [`mytrails.theingress.co/journey`](https://mytrails.theingress.co/journey) — catalog รวมทุก user journey (Storybook)
 
 > หน้าแรกของ catalog คือ **Build Status** — ตาราง sign-off ต่อ journey (🟢 Locked / 🟡 Tentative / 🔴 Draft) พร้อมลิงก์เปิด Support Board ถ้า dev มีคำถามระหว่างทำ
+>
+> **Product Map:** [`mytrails.theingress.co/journey/?path=/docs/product-map--docs`](https://mytrails.theingress.co/journey/?path=/docs/product-map--docs)
+> — ดู cross-role flow, sitemap และสถานะรายหน้าของ Runner / Organizer / Admin
 
 **ฝั่ง Runner** — เปิด browser เข้าได้เลย ไม่ต้อง login
 

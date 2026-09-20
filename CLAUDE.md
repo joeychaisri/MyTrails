@@ -31,7 +31,7 @@ Caddy serves `mytrails.theingress.co` from `dist/` (static SPA, `try_files → /
 
 `mytrails.theingress.co/journey` serves a **Storybook** catalog (migrated from Ladle):
 every user journey as a sidebar group of isolated, pinned-state screens — the hand-off
-artifact for developers and the PO. The structure is a **12-journey map** in 4 acts
+artifact for developers and the PO. The structure is an **11-journey map** in 4 acts
 (Runner 1-2 [3 reserved for Register & Pay], Organizer 4-8, Admin 9-11, plus
 Design System / System / Experiments) — documented on the catalog's own **Journey Map**
 docs page (`src/stories/JourneyMap.mdx`). The **Design System** group
@@ -59,6 +59,10 @@ doesn't have).
 - **Build Status page** (`src/stories/BuildStatus.mdx`, first in the sidebar) is the
   dev-facing sign-off board: per-journey 🟢 Locked / 🟡 Tentative / 🔴 Draft + last-updated.
   Joey owns the status values — update this page whenever a UI gets confirmed/changed.
+- **Product Map** (`src/stories/product-map/`, second in the sidebar) is the screen-level
+  inventory: cross-role hand-offs, role sitemaps, routes, pinned stories, UX/build/
+  verification status and direct links. Keep `journeyCatalog.ts` in sync whenever a
+  route, pinned story or status changes; never promote UX status without Joey's sign-off.
 - MDX docs pages: use **HTML `<table>`**, not GFM markdown tables (Storybook MDX won't render pipe tables).
 
 ## Route Structure
