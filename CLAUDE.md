@@ -70,6 +70,12 @@ doesn't have).
   It is intentionally tagged `unlisted`: keep it out of the public sidebar and do not
   link it from public catalog pages; Joey opens `/journey/gaps`, a Caddy redirect to the
   unlisted Storybook docs URL.
+- **Payout Workflow Options** (`src/stories/payout-workflow-options.stories.tsx`) is a
+  PO decision aid under `Experiments (not for build)`: Option A is one final payout
+  after the event and hold period; Option B is monthly advances with a reserve and a
+  final post-event true-up. Keep both out of the committed Journey 10 product flow
+  until the PO selects a policy. Share the decision overview through the short Caddy
+  redirect `/journey/payout-options`.
 - MDX docs pages: use **HTML `<table>`**, not GFM markdown tables (Storybook MDX won't render pipe tables).
 
 ## Route Structure

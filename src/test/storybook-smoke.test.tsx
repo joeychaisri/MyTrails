@@ -9,6 +9,7 @@ import * as financeStories from "@/stories/admin-finance.stories";
 import * as administrationStories from "@/stories/admin-administration.stories";
 import * as approvalStories from "@/stories/organizer-approval-outcomes.stories";
 import * as registerStories from "@/stories/runner-register.stories";
+import * as payoutOptionStories from "@/stories/payout-workflow-options.stories";
 
 // Smoke test: stories render through the .storybook/preview decorator chain
 // (QueryClient → Tooltip → Auth → Language → MemoryRouter) without throwing.
@@ -66,6 +67,15 @@ describe("storybook portable stories", () => {
 
   it("renders Platform Finance stories", () => {
     const stories = composeStories(financeStories);
+    for (const Story of Object.values(stories)) {
+      const { unmount } = render(<Story />);
+      expect(document.body.textContent).not.toBe("");
+      unmount();
+    }
+  });
+
+  it("renders payout workflow decision stories", () => {
+    const stories = composeStories(payoutOptionStories);
     for (const Story of Object.values(stories)) {
       const { unmount } = render(<Story />);
       expect(document.body.textContent).not.toBe("");
