@@ -96,6 +96,7 @@ doesn't have).
 | `/organizer/admin?page=overview|approvals|financials|users|settings` | Admin | `AdminDashboard` deep links to each admin section |
 | `/organizer/admin/review/:id` | Admin | `AdminEventReview` — full-page event review before approve / request-changes |
 | `/board`, `/board/:id` | Internal | `BoardListView` / `BoardThreadView` — dev↔UX support board (see below) |
+| `/payout-options` | Internal prototype | Clickable Option A / Option B payout simulator; local UI state only, no Supabase or transfer calls |
 | `/login`, `/dashboard` etc. | — | Legacy redirects → `/organizer/*` |
 
 ## Support board (`/board`) — internal dev↔UX tool ⭐

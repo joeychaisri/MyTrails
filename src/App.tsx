@@ -22,6 +22,7 @@ import LookupPage from "./views/runner/register/LookupPage";
 import PdpaPage from "./views/runner/register/PdpaPage";
 import BoardListView from "./views/board/BoardListView";
 import BoardThreadView from "./views/board/BoardThreadView";
+import PayoutOptionsPrototype from "./views/admin/PayoutOptionsPrototype";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const App = () => (
                 <Route path="/pdpa" element={<PdpaPage />} />
                 <Route path="/board" element={<BoardListView />} />
                 <Route path="/board/:id" element={<BoardThreadView />} />
+                <Route path="/payout-options" element={<PayoutOptionsPrototype />} />
 
                 {/* Organizer portal */}
                 <Route path="/organizer/login" element={<AuthView />} />
